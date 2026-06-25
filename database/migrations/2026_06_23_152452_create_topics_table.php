@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('topics', function (Blueprint $table) {
             $table->id();
+            $table->string('title');
+            $table->text('content');
+            $table->string('predicted_category');
             $table->timestamps();
         });
     }
