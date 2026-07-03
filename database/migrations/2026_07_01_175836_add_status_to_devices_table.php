@@ -11,12 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('topics', function (Blueprint $table) {
-            $table->id();
-            $table->string('title');
-            $table->text('content');
-            $table->string('predicted_category');
-            $table->timestamps();
+        Schema::table('devices', function (Blueprint $table) {
+            $table->string('status')
+                  ->default('offline')
+                  ->after('device_type');
         });
     }
 
@@ -25,6 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('topics');
+        Schema::table('devices', function (Blueprint $table) {
+            $table->dropColumn('status');
+        });
     }
 };
