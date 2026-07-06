@@ -1,0 +1,28 @@
+{
+    "name": "Laravel Dev",
+
+    "image": "mcr.microsoft.com/devcontainers/php:8.4",
+
+    "features": {
+        "ghcr.io/devcontainers/features/composer:1": {},
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "22"
+        }
+    },
+
+    "postCreateCommand": "sudo docker pull mysql:8.0 && composer install",
+
+    "forwardPorts": [
+        8000,
+        3306
+    ],
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "bmewburn.vscode-intelephense-client",
+                "xdebug.php-debug"
+            ]
+        }
+    }
+}
