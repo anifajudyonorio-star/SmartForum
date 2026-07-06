@@ -1,0 +1,156 @@
+@extends('layouts.app')
+
+@section('content')
+
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <h2>💬 Discussion Topics</h2>
+
+        <a href="{{ route('groups.index') }}" class="btn btn-secondary">
+            ← Back to Groups
+        </a>
+
+    </div>
+
+    @if($topics->count())
+
+        <div class="row">
+
+            @foreach($topics as $topic)
+
+            <div class="col-lg-6 mb-4">
+
+                <div class="card shadow border-0 rounded-4 h-100">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-start">
+
+                            <div>
+
+                                <h4 class="fw-bold">
+                                    💬 {{ $topic->Title }}
+                                </h4>
+
+                                <span class="badge bg-primary">
+                                    {{ $topic->group->Group_Name }}
+                                </span>
+
+                            </div>
+
+                            <span class="badge bg-success">
+                                {{ $topic->posts_count }} Posts
+                            </span>
+
+                        </div>
+
+                        <hr>
+
+                        <p class="text-muted">
+
+                            {{ $topic->Topic_Description }}
+
+                        </p>
+
+                        <div class="row text-center my-4">
+
+                            <div class="col">
+
+                                <h5>{{ $topic->posts_count }}</h5>
+
+                                <small class="text-muted">
+                                    Posts
+                                </small>
+
+                            </div>
+
+                            <div class="col">
+
+                                <h5>{{ $topic->created_at->format('d M Y') }}</h5>
+
+                                <small class="text-muted">
+                                    Created
+                                </small>
+
+                            </div>
+
+                        </div>
+
+                        <p class="mb-4">
+
+                            👤 Created by:
+
+                            <strong>
+
+                                {{ $topic->user->name }}
+
+                            </strong>
+
+                        </p>
+
+                        <div class="d-flex justify-content-between">
+
+                            <a href="{{ route('topics.show', $topic) }}"
+                               class="btn btn-success">
+
+                                Open Discussion
+
+                            </a>
+
+                            <div>
+
+                                <a href="{{ route('topics.edit', $topic) }}"
+                                   class="btn btn-warning">
+
+                                    Edit
+
+                                </a>
+
+                                <form action="{{ route('topics.destroy', $topic) }}"
+                                      method="POST"
+                                      class="d-inline">
+
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button
+                                        class="btn btn-danger"
+                                        onclick="return confirm('Delete this topic?')">
+
+                                        Delete
+
+                                    </button>
+
+                                </form>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            @endforeach
+
+        </div>
+
+    @else
+
+        <div class="alert alert-info text-center">
+
+            <h5>No Topics Available</h5>
+
+            <p>Create a topic inside a group to begin the discussion.</p>
+
+        </div>
+
+    @endif
+
+</div>
+
+@endsection

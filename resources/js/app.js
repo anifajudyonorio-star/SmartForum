@@ -1,39 +1,53 @@
-/**
- * First we will load all of this project's JavaScript dependencies which
- * includes Vue and other libraries. It is a great starting point when
- * building robust, powerful web applications using Vue and Laravel.
- */
-
 import './bootstrap';
-import { createApp } from 'vue';
 
-/**
- * Next, we will create a fresh Vue application instance. You may then begin
- * registering components with the application instance so they are ready
- * to use in your application's views. An example is included for you.
- */
+// Mobile sidebar toggle
+(function () {
+    const toggle = document.getElementById('sidebarToggle');
+    const mobile = document.getElementById('mobileSidebar');
+    const backdrop = document.getElementById('mobileSidebarBackdrop');
+    const closeBtn = document.getElementById('mobileSidebarClose');
 
-const app = createApp({});
+    function setOpenState(open) {
+        if (mobile) mobile.classList.toggle('open', !!open);
+        if (backdrop) backdrop.classList.toggle('open', !!open);
+        document.body.style.overflow = open ? 'hidden' : '';
+    }
 
-import ExampleComponent from './components/ExampleComponent.vue';
-app.component('example-component', ExampleComponent);
+    function closeSidebar() { setOpenState(false); }
 
-/**
- * The following block of code may be used to automatically register your
- * Vue components. It will recursively scan this directory for the Vue
- * components and automatically register them with their "basename".
- *
- * Eg. ./components/ExampleComponent.vue -> <example-component></example-component>
- */
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeSidebar();
+    });
 
-// Object.entries(import.meta.glob('./**/*.vue', { eager: true })).forEach(([path, definition]) => {
-//     app.component(path.split('/').pop().replace(/\.\w+$/, ''), definition.default);
-// });
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            const isOpen = mobile && mobile.classList.contains('open');
+            setOpenState(!isOpen);
+        });
+    }
 
-/**
- * Finally, we will attach the application instance to a HTML element with
- * an "id" attribute of "app". This element is included with the "auth"
- * scaffolding. Otherwise, you will need to add an element yourself.
- */
+    if (backdrop) backdrop.addEventListener('click', closeSidebar);
+    if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
 
-app.mount('#app');
+    // Close mobile sidebar when a nav link is clicked
+    document.querySelectorAll('#mobileSidebar .sidebar-nav-link').forEach((link) => {
+        link.addEventListener('click', closeSidebar);
+    });
+})();
+
+// Fly-in animations for dynamically loaded content
+(function () {
+    const observer = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fly-in-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        },
+        { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    document.querySelectorAll('[data-fly-in]').forEach((el) => observer.observe(el));
+})();

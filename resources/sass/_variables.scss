@@ -1,7 +1,18 @@
-// Body
-$body-bg: #f8fafc;
+// Deep light green theme
+$primary: #16a34a;
+$success: #15803d;
+$info: #4ade80;
+$warning: #fbbf24;
+$danger: #ef4444;
 
-// Typography
+$body-bg: #ecfdf5;
+$body-color: #1f2937;
+
 $font-family-sans-serif: 'Nunito', sans-serif;
-$font-size-base: 0.9rem;
-$line-height-base: 1.6;
+$font-size-base: 1rem;
+$line-height-base: 1.5;
+
+$border-radius: 0.5rem;
+$border-radius-lg: 0.625rem;
+$box-shadow: 0 2px 8px rgba(22, 101, 52, 0.08);
+$link-color: $primary;
