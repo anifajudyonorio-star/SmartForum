@@ -17,6 +17,16 @@ class Topic extends Model
         'Created_By',
     ];
 
+    public function getTitleAttribute(): ?string
+    {
+        return $this->attributes['title'] ?? $this->attributes['Title'] ?? null;
+    }
+
+    public function setTitleAttribute(?string $value): void
+    {
+        $this->attributes['title'] = $value;
+    }
+
     public function group()
     {
         return $this->belongsTo(Group::class, 'Group_ID');

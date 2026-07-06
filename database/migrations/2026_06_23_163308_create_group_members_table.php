@@ -13,7 +13,12 @@ return new class extends Migration
     {
         Schema::create('group_members', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('User_ID')->index();
+            $table->unsignedBigInteger('Group_ID')->index();
+            $table->string('Member_Status')->default('Active');
             $table->timestamps();
+
+            $table->unique(['User_ID', 'Group_ID']);
         });
     }
 

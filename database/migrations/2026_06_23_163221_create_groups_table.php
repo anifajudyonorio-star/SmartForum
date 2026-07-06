@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('groups', function (Blueprint $table) {
             $table->id();
+            $table->string('Group_Name');
+            $table->text('Description')->nullable();
+            $table->unsignedBigInteger('Created_By')->nullable()->index();
+            $table->string('Status')->default('Active');
             $table->timestamps();
         });
     }

@@ -13,9 +13,10 @@ return new class extends Migration
     {
         Schema::create('topics', function (Blueprint $table) {
             $table->id();
-            $table->string('title');
-            $table->text('content');
-            $table->string('predicted_category');
+            $table->string('Title');
+            $table->text('Topic_Description')->nullable();
+            $table->unsignedBigInteger('Group_ID')->index();
+            $table->unsignedBigInteger('Created_By')->index();
             $table->timestamps();
         });
     }

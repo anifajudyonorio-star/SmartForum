@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('posts', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('Topic_ID')->index();
+            $table->unsignedBigInteger('Parent_Post_ID')->nullable()->index();
+            $table->unsignedBigInteger('Created_By')->index();
+            $table->text('Post_Content');
             $table->timestamps();
         });
     }
