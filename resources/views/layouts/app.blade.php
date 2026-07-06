@@ -22,7 +22,7 @@
         @endauth
 
         <div class="app-main">
-            <nav class="navbar navbar-expand-md app-navbar sticky-top">
+            <nav class="navbar navbar-expand-md app-navbar">
                 <div class="container-fluid px-3 px-md-4">
                     @auth
                         <button id="sidebarToggle" class="btn btn-outline-success btn-sm d-md-none me-2" type="button" aria-label="Toggle sidebar">
