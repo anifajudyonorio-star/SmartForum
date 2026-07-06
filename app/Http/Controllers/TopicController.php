@@ -101,15 +101,37 @@ class TopicController extends Controller
 
     public function search(Request $request)
     {
-        $groupIds = Auth::user()->groups()->pluck('groups.id');
+        $search = trim((string) $request->query('search', ''));
+        $user = Auth::user();
 
-        $topics = Topic::with(['user', 'group'])
-            ->where('Title', 'like', '%'.$request->search.'%')
-            ->whereIn('Group_ID', $groupIds)
-            ->latest()
-            ->get();
+        $query = Topic::with(['user', 'group'])
+            ->withCount('posts');
 
-        return view('topics.search', compact('topics'));
+        if ($user->isAdmin()) {
+            // Super admin can search all topics
+        } else {
+            $groupIds = $user->groups()->pluck('groups.id');
+
+            if ($groupIds->isEmpty()) {
+                return view('topics.search', [
+                    'topics' => collect(),
+                    'search' => $search,
+                ]);
+            }
+
+            $query->whereIn('Group_ID', $groupIds);
+        }
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('Title', 'like', '%'.$search.'%')
+                    ->orWhere('Topic_Description', 'like', '%'.$search.'%');
+            });
+        }
+
+        $topics = $query->latest()->get();
+
+        return view('topics.search', compact('topics', 'search'));
     }
 
     public function index()

@@ -28,11 +28,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/groups/{group}/topics/create', [TopicController::class, 'create'])->name('topics.create');
     Route::post('/groups/{group}/topics', [TopicController::class, 'store'])->name('topics.store');
 
+    Route::get('/topics/search', [TopicController::class, 'search'])->name('topics.search');
     Route::get('/topics/{topic}', [TopicController::class, 'show'])->name('topics.show');
     Route::get('/topics/{topic}/edit', [TopicController::class, 'edit'])->name('topics.edit');
     Route::put('/topics/{topic}', [TopicController::class, 'update'])->name('topics.update');
     Route::delete('/topics/{topic}', [TopicController::class, 'destroy'])->name('topics.destroy');
-    Route::get('/topics/search', [TopicController::class, 'search'])->name('topics.search');
 
     Route::post('/topics/{topic}/posts', [PostController::class, 'store'])->name('posts.store');
     Route::get('/posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
