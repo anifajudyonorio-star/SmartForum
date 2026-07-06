@@ -1,14 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-
 <div class="container">
-
-    <h2>Create New Quiz</h2>
+    <h2 class="mb-4">Create New Quiz</h2>
 
     @if ($errors->any())
-        <div style="color:red; margin-bottom:15px;">
-            <ul>
+        <div class="alert alert-danger">
+            <ul class="mb-0">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -16,53 +14,52 @@
         </div>
     @endif
 
-    <form action="{{ route('quizzes.store') }}" method="POST">
-        @csrf
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form action="{{ route('quizzes.store') }}" method="POST">
+                @csrf
 
-        <div style="margin-bottom:15px;">
-            <label><strong>Quiz Category</strong></label><br>
-            <select name="category_id" required>
-                <option value="">-- Select Category --</option>
+                <div class="mb-3">
+                    <label class="form-label">Quiz Category</label>
+                    <select name="category_id" class="form-select" required>
+                        <option value="">-- Select Category --</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" @selected(old('category_id') == $category->id)>
+                                {{ $category->category_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
-                @foreach($categories as $category)
-                    <option value="{{ $category->id }}">
-                        {{ $category->category_name }}
-                    </option>
-                @endforeach
-            </select>
+                <div class="mb-3">
+                    <label class="form-label">Quiz Title</label>
+                    <input type="text" name="title" class="form-control" value="{{ old('title') }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="3" required>{{ old('description') }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Duration (minutes)</label>
+                    <input type="number" name="duration" class="form-control" value="{{ old('duration', 15) }}" min="1" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Start Time</label>
+                    <input type="datetime-local" name="start_time" class="form-control" value="{{ old('start_time') }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">End Time</label>
+                    <input type="datetime-local" name="end_time" class="form-control" value="{{ old('end_time') }}" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Quiz</button>
+                <a href="{{ route('quizzes.index') }}" class="btn btn-secondary">Cancel</a>
+            </form>
         </div>
-
-        <div style="margin-bottom:15px;">
-            <label><strong>Quiz Title</strong></label><br>
-            <input type="text" name="title" value="{{ old('title') }}" required>
-        </div>
-
-        <div style="margin-bottom:15px;">
-            <label><strong>Description</strong></label><br>
-            <textarea name="description">{{ old('description') }}</textarea>
-        </div>
-
-        <div style="margin-bottom:15px;">
-            <label><strong>Duration (Minutes)</strong></label><br>
-            <input type="number" name="duration" value="{{ old('duration') }}" min="1" required>
-        </div>
-
-        <div style="margin-bottom:15px;">
-            <label><strong>Start Time</strong></label><br>
-            <input type="datetime-local" name="start_time" required>
-        </div>
-
-        <div style="margin-bottom:15px;">
-            <label><strong>End Time</strong></label><br>
-            <input type="datetime-local" name="end_time" required>
-        </div>
-
-        <button type="submit">
-            Save Quiz
-        </button>
-
-    </form>
-
+    </div>
 </div>
-
 @endsection

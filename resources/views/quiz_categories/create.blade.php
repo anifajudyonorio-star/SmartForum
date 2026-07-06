@@ -1,25 +1,38 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Create Quiz Category</title>
-</head>
-<body>
+@extends('layouts.app')
 
-    <h1>Create Quiz Category</h1>
+@section('content')
+<div class="container">
+    <h2 class="mb-4">Create Quiz Category</h2>
 
-    <form action="{{ route('quiz-categories.store') }}" method="POST">
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
-        @csrf
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form action="{{ route('quiz-categories.store') }}" method="POST">
+                @csrf
 
-        <label>Category Name</label><br>
-        <input type="text" name="category_name"><br><br>
+                <div class="mb-3">
+                    <label class="form-label">Category Name</label>
+                    <input type="text" name="category_name" class="form-control" value="{{ old('category_name') }}" required>
+                </div>
 
-        <label>Description</label><br>
-        <textarea name="description"></textarea><br><br>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="3">{{ old('description') }}</textarea>
+                </div>
 
-        <button type="submit">Save Category</button>
-
-    </form>
-
-</body>
-</html>
+                <button type="submit" class="btn btn-success">Save Category</button>
+                <a href="{{ route('quiz-categories.index') }}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+@endsection

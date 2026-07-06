@@ -9,6 +9,10 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\ParticipationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\QuizController;
+use App\Http\Controllers\QuizCategoryController;
+use App\Http\Controllers\QuestionController;
+use App\Http\Controllers\StudentQuizController;
 
 Route::get('/', function () {
     return auth()->check()
@@ -51,7 +55,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/participation', [ParticipationController::class, 'index'])
         ->middleware('role:lecturer')
         ->name('participation.index');
-    //Route::get('/topics/{topic}/posts/create', [PostController::class, 'create'])->name('posts.create');
+
+    // Student quizzes
+    Route::get('/student/quizzes', [StudentQuizController::class, 'index'])->name('student.quizzes');
+    Route::get('/student/quizzes/{quiz}', [StudentQuizController::class, 'show'])->name('student.quiz.show');
+    Route::post('/student/quizzes/{quiz}/submit', [StudentQuizController::class, 'submit'])->name('student.quiz.submit');
+
+    // Lecturer / admin quiz management
+    Route::middleware('role:lecturer')->group(function () {
+        Route::resource('quiz-categories', QuizCategoryController::class)->except(['show']);
+        Route::resource('quizzes', QuizController::class)->except(['show']);
+        Route::patch('/quizzes/{quiz}/publish', [QuizController::class, 'publish'])->name('quizzes.publish');
+        Route::resource('questions', QuestionController::class)->except(['show']);
+    });
 
     //Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
 

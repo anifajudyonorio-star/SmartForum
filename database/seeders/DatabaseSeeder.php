@@ -46,5 +46,7 @@ class DatabaseSeeder extends Seeder
                 $user
             );
         }
+
+        $this->call(QuizSeeder::class);
     }
 }

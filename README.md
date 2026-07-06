@@ -147,6 +147,32 @@ You can also register a new account from the **Register** tab on the login page.
 
 ---
 
+## Quizzes
+
+The quiz module is wired up and seeded with a sample quiz (**SmartForum Welcome Quiz**).
+
+### Students
+
+1. Log in as `student@smartforum.com` (password: `password`).
+2. Open **Quizzes** in the sidebar.
+3. Click **Start Quiz**, answer the questions, and submit to see your score.
+4. Each quiz can only be taken once per student.
+
+### Lecturers / admins
+
+1. Log in as `lecturer@smartforum.com` or `admin@smartforum.com`.
+2. Open **Quizzes** under the Lecturer section in the sidebar.
+3. Create a **category**, then a **quiz**, then add **questions** with answer options.
+4. Click **Publish** on the quiz list to make it available to students (quiz must have at least one question and status **Active** within its start/end window).
+
+To re-seed only quiz data:
+
+```bash
+php artisan db:seed --class=QuizSeeder
+```
+
+---
+
 ## Development mode (with hot reload)
 
 For CSS/JS live reload during development, run:

@@ -6,6 +6,10 @@
         ['route' => 'topics.search', 'match' => 'topics.*', 'label' => 'Search Topics', 'icon' => 'bi-search'],
         ['route' => 'notifications.index', 'match' => 'notifications.*', 'label' => 'Notifications', 'icon' => 'bi-bell-fill'],
     ];
+
+    if ($user && $user->isStudent()) {
+        $navItems[] = ['route' => 'student.quizzes', 'match' => 'student.*', 'label' => 'Quizzes', 'icon' => 'bi-patch-question-fill'];
+    }
 @endphp
 
 {{-- Desktop sidebar (fixed) --}}
@@ -29,6 +33,13 @@
 
             @if($user && ($user->isLecturer() || $user->isAdmin()))
                 <li class="sidebar-section-label">Lecturer</li>
+                <li class="sidebar-nav-item">
+                    <a class="sidebar-nav-link {{ request()->routeIs('quizzes.*') || request()->routeIs('quiz-categories.*') || request()->routeIs('questions.*') ? 'active' : '' }}"
+                       href="{{ route('quizzes.index') }}">
+                        <i class="bi bi-patch-question-fill"></i>
+                        <span>Quizzes</span>
+                    </a>
+                </li>
                 <li class="sidebar-nav-item">
                     <a class="sidebar-nav-link {{ request()->routeIs('participation.*') ? 'active' : '' }}"
                        href="{{ route('participation.index') }}">
@@ -80,6 +91,13 @@
 
             @if($user && ($user->isLecturer() || $user->isAdmin()))
                 <li class="sidebar-section-label">Lecturer</li>
+                <li class="sidebar-nav-item">
+                    <a class="sidebar-nav-link {{ request()->routeIs('quizzes.*') || request()->routeIs('quiz-categories.*') || request()->routeIs('questions.*') ? 'active' : '' }}"
+                       href="{{ route('quizzes.index') }}">
+                        <i class="bi bi-patch-question-fill"></i>
+                        <span>Quizzes</span>
+                    </a>
+                </li>
                 <li class="sidebar-nav-item">
                     <a class="sidebar-nav-link {{ request()->routeIs('participation.*') ? 'active' : '' }}"
                        href="{{ route('participation.index') }}">
