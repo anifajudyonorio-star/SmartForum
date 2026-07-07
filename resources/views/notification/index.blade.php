@@ -2,35 +2,33 @@
 
 @section('content')
 
-<div class="container">
+<div class="container-fluid px-0">
 
-    <h2 class="mb-4">Notifications</h2>
-
-    @forelse($notifications as $notification)
-
-        <a href="{{ route('notifications.read', $notification) }}"
-   class="text-decoration-none text-dark">
-
-    <div class="card mb-3 {{ !$notification->is_read ? 'border-primary' : '' }}">
-
-        <div class="card-body">
-
-            <h5>{{ $notification->title }}</h5>
-
-            <p>{{ $notification->message }}</p>
-
-            <small class="text-muted">
-                {{ $notification->created_at->diffForHumans() }}
-            </small>
-
-        </div>
-
+    <div class="page-header fly-in">
+        <h1 class="page-title"><i class="bi bi-bell-fill me-2 text-primary"></i>Notifications</h1>
+        <p class="page-subtitle">Stay updated on replies, posts, and forum activity.</p>
     </div>
 
-</a>
-@empty
-    <p>No notifications to display.</p>
-@endforelse
+    <div class="notif-list">
+        @forelse($notifications as $notification)
+            <a href="{{ route('notifications.read', $notification) }}"
+               class="notif-item {{ !$notification->is_read ? 'unread' : '' }} fly-in">
+                <div class="notif-icon">
+                    <i class="bi bi-chat-left-text-fill"></i>
+                </div>
+                <div class="notif-body">
+                    <p class="notif-title">{{ $notification->title }}</p>
+                    <p class="notif-message">{{ $notification->message }}</p>
+                    <span class="notif-time">{{ $notification->created_at->diffForHumans() }}</span>
+                </div>
+            </a>
+        @empty
+            <div class="groups-empty-state fly-in">
+                <div class="groups-empty-icon"><i class="bi bi-bell-slash"></i></div>
+                <p class="text-muted mb-0">No notifications yet.</p>
+            </div>
+        @endforelse
+    </div>
 
 </div>
 

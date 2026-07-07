@@ -16,21 +16,21 @@
     </div>
 
     <div class="row g-2 mb-2">
-        <div class="col-md-4">
+        <div class="col-6 col-md-4">
             <div class="stat-card stat-card-compact fly-in fly-in-delay-1">
                 <div class="stat-card-icon"><i class="bi bi-people-fill"></i></div>
                 <p class="stat-label">My Groups</p>
                 <p class="stat-number">{{ $myGroups }}</p>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-6 col-md-4">
             <div class="stat-card stat-card-compact fly-in fly-in-delay-2">
                 <div class="stat-card-icon"><i class="bi bi-bookmark-fill"></i></div>
                 <p class="stat-label">My Topics</p>
                 <p class="stat-number">{{ $myTopics }}</p>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-6 col-md-4">
             <div class="stat-card stat-card-compact fly-in fly-in-delay-3">
                 <div class="stat-card-icon"><i class="bi bi-person-check-fill"></i></div>
                 <p class="stat-label">Active Participants</p>

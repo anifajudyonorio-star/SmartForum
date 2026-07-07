@@ -1,100 +1,49 @@
 @php
     $mine = auth()->id() == $post->Created_By;
-    $initials = strtoupper(substr($post->user->name ?? 'U', 0, 2));
 @endphp
 
-<div class="message-row {{ $mine ? 'mine' : 'theirs' }}">
-
-    {{-- LEFT AVATAR (others only) --}}
-    @unless($mine)
-        <div class="avatar">
-            {{ $initials }}
-        </div>
-    @endunless
-
-    {{-- MESSAGE BUBBLE --}}
-    <div class="bubble">
-
-        {{-- HEADER --}}
-        <div class="bubble-header">
-
-            <strong class="username">
-                {{ $post->user->name }}
-            </strong>
-
-            <div class="dropdown">
-
-                <button class="btn btn-sm border-0 dropdown-toggle"
-                        data-bs-toggle="dropdown">
-                    ⋮
+<div class="wa-msg {{ $mine ? 'mine' : 'theirs' }}" id="msg-{{ $post->id }}" data-msg-id="{{ $post->id }}">
+    <div class="wa-bubble-wrap">
+        <div class="wa-bubble">
+            <div class="wa-bubble-actions">
+                <button type="button" class="wa-action-btn reply-btn"
+                        data-post="{{ $post->id }}"
+                        data-user="{{ $post->user->name }}"
+                        data-content="{{ Str::limit($post->Post_Content, 80) }}"
+                        title="Reply">
+                    <i class="bi bi-reply-fill"></i>
                 </button>
-
-                <ul class="dropdown-menu dropdown-menu-end">
-
-                    <li>
-                        <button class="dropdown-item reply-btn"
-                                data-post="{{ $post->id }}"
-                                data-user="{{ $post->user->name }}">
-                            Reply
+                @if($mine)
+                    <a href="{{ route('posts.edit', $post) }}" class="wa-action-btn" title="Edit">
+                        <i class="bi bi-pencil-fill"></i>
+                    </a>
+                    <form action="{{ route('posts.destroy', $post) }}" method="POST" class="d-inline"
+                          onsubmit="return confirm('Delete this message?')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="wa-action-btn" title="Delete">
+                            <i class="bi bi-trash-fill"></i>
                         </button>
-                    </li>
+                    </form>
+                @endif
+            </div>
 
-                    @if($mine)
-                        <li>
-                            <a href="{{ route('posts.edit', $post) }}"
-                               class="dropdown-item">
-                                Edit
-                            </a>
-                        </li>
+            @unless($mine)
+                <div class="wa-bubble-name">{{ $post->user->name }}</div>
+            @endunless
 
-                        <li>
-                            <form action="{{ route('posts.destroy', $post) }}"
-                                  method="POST">
-                                @csrf
-                                @method('DELETE')
+            @if($post->parent)
+                <div class="wa-quote reply-quote" data-scroll-to="msg-{{ $post->parent->id }}">
+                    <div class="wa-quote-author">{{ $post->parent->user->name ?? 'User' }}</div>
+                    <p class="wa-quote-text">{{ Str::limit($post->parent->Post_Content, 120) }}</p>
+                </div>
+            @endif
 
-                                <button class="dropdown-item text-danger">
-                                    Delete
-                                </button>
-                            </form>
-                        </li>
-                    @endif
+            <p class="wa-bubble-text">{{ $post->Post_Content }}</p>
 
-                </ul>
-
+            <div class="wa-bubble-meta">
+                <span class="wa-bubble-time">{{ $post->created_at->format('g:i A') }}</span>
             </div>
         </div>
-
-        {{-- BODY --}}
-        <div class="bubble-body">
-            {{ $post->Post_Content }}
-        </div>
-
-        {{-- TIME --}}
-        <div class="bubble-time">
-            {{ $post->created_at->diffForHumans() }}
-        </div>
-
     </div>
-
-    {{-- RIGHT AVATAR (mine only) --}}
-    @if($mine)
-        <div class="avatar mine-avatar">
-            {{ $initials }}
-        </div>
-    @endif
-
 </div>
-
-{{-- REPLIES --}}
-@if($post->replies->count())
-
-    <div class="reply-list">
-
-        @foreach($post->replies as $reply)
-            @include('posts.message', ['post' => $reply])
-        @endforeach
-
-    </div>
-
-@endif

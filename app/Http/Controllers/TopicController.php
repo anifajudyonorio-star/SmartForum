@@ -48,12 +48,8 @@ class TopicController extends Controller
             'Join the group to view and participate in this discussion.'
         );
 
-        $posts = Post::with([
-                'user',
-                'replies.user',
-            ])
+        $posts = Post::with(['user', 'parent.user'])
             ->where('Topic_ID', $topic->id)
-            ->whereNull('Parent_Post_ID')
             ->oldest()
             ->get();
 

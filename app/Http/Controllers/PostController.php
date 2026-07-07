@@ -60,6 +60,15 @@ class PostController extends Controller
             NotificationService::notifyReply($post);
         }
 
+        if ($request->wantsJson()) {
+            $post->load(['user', 'parent.user']);
+
+            return response()->json([
+                'success' => true,
+                'post' => $this->formatPostForChat($post),
+            ]);
+        }
+
         return redirect()
             ->route('topics.show', $topic)
             ->with('success', 'Message sent successfully.');
@@ -111,5 +120,23 @@ class PostController extends Controller
         }
 
         return (int) $post->Created_By === $user->id;
+    }
+
+    private function formatPostForChat(Post $post): array
+    {
+        return [
+            'id' => $post->id,
+            'content' => $post->Post_Content,
+            'created_at' => $post->created_at->format('g:i A'),
+            'created_human' => $post->created_at->diffForHumans(),
+            'user_name' => $post->user->name ?? 'User',
+            'user_initials' => strtoupper(substr($post->user->name ?? 'U', 0, 2)),
+            'is_mine' => (int) $post->Created_By === Auth::id(),
+            'parent' => $post->parent ? [
+                'id' => $post->parent->id,
+                'user_name' => $post->parent->user->name ?? 'User',
+                'content' => $post->parent->Post_Content,
+            ] : null,
+        ];
     }
 }

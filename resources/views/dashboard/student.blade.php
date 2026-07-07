@@ -74,6 +74,9 @@
                     <a href="{{ route('groups.index') }}" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-compass me-1"></i> Explore Groups
                     </a>
+                    <a href="{{ route('student.quizzes') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-patch-question me-1"></i> Take a Quiz
+                    </a>
                 </div>
             </div>
 

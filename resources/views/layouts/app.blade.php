@@ -15,7 +15,7 @@
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body>
+<body class="@yield('body-class')">
     <div id="app" class="app-shell">
         @auth
             @include('partials.sidebar')
@@ -72,6 +72,9 @@
                                                 @endif
                                             </small>
                                         </div>
+                                        <a class="dropdown-item py-2" href="{{ route('profile.edit') }}">
+                                            <i class="bi bi-person-circle me-2"></i>{{ __('Profile') }}
+                                        </a>
                                         <a class="dropdown-item py-2" href="{{ route('logout') }}"
                                            onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                                             <i class="bi bi-box-arrow-right me-2"></i>{{ __('Logout') }}
@@ -91,6 +94,10 @@
             <main class="app-content">
                 @yield('content')
             </main>
+
+            @auth
+                @include('partials.mobile-nav')
+            @endauth
         </div>
     </div>
     @stack('scripts')
