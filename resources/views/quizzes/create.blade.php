@@ -45,6 +45,16 @@
                     <label class="form-label">Duration (minutes)</label>
                     <input type="number" name="duration" class="form-control" value="{{ old('duration', 15) }}" min="1" required>
                 </div>
+                <div class="mb-3">
+    <label class="form-label">Participation Marks</label>
+    <input
+        type="number"
+        name="participation_marks"
+        class="form-control"
+        value="{{ old('participation_marks',2) }}"
+        min="0"
+        required>
+</div>
 
                 <div class="mb-3">
                     <label class="form-label">Start Time</label>

@@ -1,14 +1,65 @@
 @extends('layouts.app')
 
 @section('content')
+
 <div class="container">
-    <div class="card shadow-sm border-success">
-        <div class="card-body text-center py-5">
-            <h2 class="text-success mb-3">Quiz Submitted Successfully</h2>
-            <p class="lead mb-1">Your score: <strong>{{ $score }}</strong> / {{ $totalMarks ?? $quiz->questions->sum('marks') }} marks</p>
-            <p class="text-muted">{{ $quiz->title }}</p>
-            <a href="{{ route('student.quizzes') }}" class="btn btn-primary mt-3">Back to Quizzes</a>
-        </div>
-    </div>
+
+<div class="card shadow">
+
+<div class="card-header bg-success text-white">
+
+<h3>Quiz Results</h3>
+
 </div>
+
+<div class="card-body">
+
+<table class="table table-bordered">
+
+<tr>
+
+<th>Quiz</th>
+
+<td>{{ $quiz->title }}</td>
+
+</tr>
+
+<tr>
+
+<th>Quiz Score</th>
+
+<td>{{ $score }} / {{ $totalMarks }}</td>
+
+</tr>
+
+<tr>
+
+<th>Participation Marks</th>
+
+<td>{{ $participationMarks }}</td>
+
+</tr>
+
+<tr class="table-success">
+
+<th>Final Score</th>
+
+<td><strong>{{ $totalScore }}</strong></td>
+
+</tr>
+
+</table>
+
+<a href="{{ route('student.quizzes') }}" class="btn btn-primary">
+
+Back to Quizzes
+
+</a>
+
+</div>
+
+</div>
+
+</div>
+
 @endsection

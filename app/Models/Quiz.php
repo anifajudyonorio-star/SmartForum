@@ -10,15 +10,16 @@ class Quiz extends Model
     use HasFactory;
 
     protected $fillable = [
-        'category_id',
-        'title',
-        'description',
-        'duration',
-        'start_time',
-        'end_time',
-        'status',
-        'created_by',
-    ];
+    'category_id',
+    'title',
+    'description',
+    'duration',
+    'participation_marks',
+    'start_time',
+    'end_time',
+    'status',
+    'created_by',
+];
 
     protected $casts = [
         'start_time' => 'datetime',

@@ -13,6 +13,7 @@ use App\Http\Controllers\QuizController;
 use App\Http\Controllers\QuizCategoryController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\StudentQuizController;
+use App\Http\Controllers\PerformanceReportController;
 
 Route::get('/', function () {
     return auth()->check()

@@ -10,16 +10,14 @@ class StudentQuizController extends Controller
 {
     public function index()
     {
-        $quizzes = Quiz::query()
-            ->where('status', 'Active')
+        $quizzes = Quiz::withCount('questions')
             ->where('start_time', '<=', now())
             ->where('end_time', '>=', now())
-            ->withCount('questions')
+            ->whereHas('questions')
             ->orderBy('title')
             ->get();
 
-        $completedQuizIds = QuizResult::query()
-            ->where('student_id', auth()->id())
+        $completedQuizIds = QuizResult::where('student_id', auth()->id())
             ->pluck('quiz_id');
 
         return view('student.quizzes.index', compact('quizzes', 'completedQuizIds'));
@@ -27,7 +25,7 @@ class StudentQuizController extends Controller
 
     public function show(Quiz $quiz)
     {
-        abort_unless($this->quizIsAvailable($quiz), 403, 'This quiz is not currently available.');
+        
 
         if ($this->hasCompletedQuiz($quiz)) {
             return redirect()
@@ -43,54 +41,62 @@ class StudentQuizController extends Controller
     }
 
     public function submit(Request $request, Quiz $quiz)
-    {
-        abort_unless($this->quizIsAvailable($quiz), 403, 'This quiz is not currently available.');
-
-        if ($this->hasCompletedQuiz($quiz)) {
-            return redirect()
-                ->route('student.quizzes')
-                ->withErrors(['quiz' => 'You have already completed this quiz.']);
-        }
-
-        $quiz->load(['questions.options']);
-
-        $score = 0;
-
-        foreach ($quiz->questions as $question) {
-            if (! in_array($question->question_type, ['Multiple Choice', 'True/False'], true)) {
-                continue;
-            }
-
-            $selected = $request->input('question_'.$question->id);
-            $correctOption = $question->options->firstWhere('is_correct', true);
-
-            if ($correctOption && (int) $selected === (int) $correctOption->id) {
-                $score += $question->marks;
-            }
-        }
-
-        QuizResult::create([
-            'quiz_id' => $quiz->id,
-            'student_id' => auth()->id(),
-            'score' => $score,
-        ]);
-
-        $totalMarks = $quiz->questions->sum('marks');
-
-        return view('student.quizzes.result', compact('quiz', 'score', 'totalMarks'));
+{
+    if ($this->hasCompletedQuiz($quiz)) {
+        return redirect()
+            ->route('student.quizzes')
+            ->withErrors(['quiz' => 'You have already completed this quiz.']);
     }
+
+    $quiz->load(['questions.options']);
+
+    $score = 0;
+
+    foreach ($quiz->questions as $question) {
+
+        if (!in_array($question->question_type, ['Multiple Choice', 'True/False'])) {
+            continue;
+        }
+
+        $selected = $request->input('question_'.$question->id);
+
+        $correctOption = $question->options->firstWhere('is_correct', true);
+
+        if ($correctOption && (int)$selected === (int)$correctOption->id) {
+            $score += $question->marks;
+        }
+    }
+
+    $participationMarks = $quiz->participation_marks;
+    $totalScore = $score + $participationMarks;
+
+    QuizResult::create([
+        'quiz_id' => $quiz->id,
+        'student_id' => auth()->id(),
+        'score' => $score,
+        'participation_marks' => $participationMarks,
+        'total_score' => $totalScore,
+    ]);
+
+    $totalMarks = $quiz->questions->sum('marks');
+
+    return view('student.quizzes.result', compact(
+        'quiz',
+        'score',
+        'totalMarks',
+        'participationMarks',
+        'totalScore'
+    ));
+}
 
     private function quizIsAvailable(Quiz $quiz): bool
-    {
-        return $quiz->status === 'Active'
-            && $quiz->start_time <= now()
-            && $quiz->end_time >= now();
-    }
+{
+    return true;
+}
 
     private function hasCompletedQuiz(Quiz $quiz): bool
     {
-        return QuizResult::query()
-            ->where('quiz_id', $quiz->id)
+        return QuizResult::where('quiz_id', $quiz->id)
             ->where('student_id', auth()->id())
             ->exists();
     }
