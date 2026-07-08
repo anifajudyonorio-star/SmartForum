@@ -6,6 +6,7 @@ use App\Models\Post;
 use App\Models\Topic;
 use App\Models\Notification;
 use App\Services\NotificationService;
+use App\Services\PostVisibilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -30,6 +31,8 @@ class PostController extends Controller
 
         $request->validate([
             'Post_Content' => 'required|string',
+            'excluded_users' => 'nullable|array',
+            'excluded_users.*' => 'integer|exists:users,id',
         ]);
 
         $parentPostId = $request->filled('Parent_Post_ID') ? $request->Parent_Post_ID : null;
@@ -41,13 +44,22 @@ class PostController extends Controller
             'Created_By' => Auth::id(),
         ]);
 
-        if ($topic->Created_By != Auth::id()) {
+        PostVisibilityService::syncHiddenFrom(
+            $post,
+            $topic,
+            $request->input('excluded_users', []),
+            Auth::user()
+        );
+
+        $post->load('hiddenFromUsers');
+
+        if ($topic->Created_By != Auth::id() && ! $post->hiddenFromUsers->contains('id', $topic->Created_By)) {
             try {
                 Notification::create([
                     'user_ID' => $topic->Created_By,
                     'Notification_Type' => 'PostCreated',
-                    'Notification_Title' => 'New Discussion Message',
-                    'Message' => Auth::user()->name.' posted in your topic "'.$topic->Title.'".',
+                    'Notification_Title' => Auth::user()->name,
+                    'Message' => 'Posted in "'.$topic->Title.'"',
                     'Is_Read' => false,
                     'Post_ID' => $post->id,
                 ]);
@@ -78,7 +90,10 @@ class PostController extends Controller
     {
         abort_unless($this->canManagePost($post), 403);
 
-        return view('posts.edit', compact('post'));
+        $post->load(['topic.group', 'hiddenFromUsers']);
+        $groupMembers = PostVisibilityService::groupMembersExcept($post->topic, Auth::user());
+
+        return view('posts.edit', compact('post', 'groupMembers'));
     }
 
     public function update(Request $request, Post $post)
@@ -87,11 +102,22 @@ class PostController extends Controller
 
         $request->validate([
             'Post_Content' => 'required|string',
+            'excluded_users' => 'nullable|array',
+            'excluded_users.*' => 'integer|exists:users,id',
         ]);
 
         $post->update([
             'Post_Content' => $request->Post_Content,
         ]);
+
+        $post->loadMissing('topic.group');
+
+        PostVisibilityService::syncHiddenFrom(
+            $post,
+            $post->topic,
+            $request->input('excluded_users', []),
+            Auth::user()
+        );
 
         return redirect()
             ->route('topics.show', $post->topic)
@@ -124,6 +150,15 @@ class PostController extends Controller
 
     private function formatPostForChat(Post $post): array
     {
+        $parent = null;
+        if ($post->parent && $post->parent->isVisibleTo(Auth::user())) {
+            $parent = [
+                'id' => $post->parent->id,
+                'user_name' => $post->parent->user->name ?? 'User',
+                'content' => $post->parent->Post_Content,
+            ];
+        }
+
         return [
             'id' => $post->id,
             'content' => $post->Post_Content,
@@ -132,11 +167,8 @@ class PostController extends Controller
             'user_name' => $post->user->name ?? 'User',
             'user_initials' => strtoupper(substr($post->user->name ?? 'U', 0, 2)),
             'is_mine' => (int) $post->Created_By === Auth::id(),
-            'parent' => $post->parent ? [
-                'id' => $post->parent->id,
-                'user_name' => $post->parent->user->name ?? 'User',
-                'content' => $post->parent->Post_Content,
-            ] : null,
+            'hidden_count' => $post->hiddenFromUsers()->count(),
+            'parent' => $parent,
         ];
     }
 }

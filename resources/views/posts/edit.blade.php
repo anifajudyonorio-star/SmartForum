@@ -28,8 +28,26 @@
             @method('PUT')
 
             <div class="mb-3">
+                <label class="form-label">Message</label>
                 <textarea name="Post_Content" rows="5" class="form-control" required>{{ old('Post_Content', $post->Post_Content) }}</textarea>
             </div>
+
+            @if($groupMembers->isNotEmpty())
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-eye-slash me-1"></i>Hide from members</label>
+                    <p class="small text-muted">Selected members will not see this message.</p>
+                    <div class="wa-exclude-list wa-exclude-list-edit">
+                        @php $excluded = old('excluded_users', $post->hiddenFromUsers->pluck('id')->all()); @endphp
+                        @foreach($groupMembers as $member)
+                            <label class="wa-exclude-option">
+                                <input type="checkbox" name="excluded_users[]" value="{{ $member->id }}"
+                                       @checked(in_array($member->id, $excluded))>
+                                <span>{{ $member->name }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>

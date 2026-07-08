@@ -6,6 +6,7 @@ use App\Models\Group;
 use App\Models\Post;
 use App\Models\Topic;
 use App\Models\User;
+use App\Services\GroupStatisticsService;
 use Carbon\Carbon;
 
 class StatisticsController extends Controller
@@ -34,49 +35,49 @@ class StatisticsController extends Controller
             ->first();
 
         $topUsers = User::withCount('posts')
-        ->orderByDesc('posts_count')
-        ->take(5)
-        ->get();
-            $postsToday = Post::whereDate('created_at', Carbon::today())->count();
+            ->orderByDesc('posts_count')
+            ->take(5)
+            ->get();
 
-$postsThisWeek = Post::whereBetween('created_at', [
-    Carbon::now()->startOfWeek(),
-    Carbon::now()->endOfWeek(),
-])->count();
+        $postsToday = Post::whereDate('created_at', Carbon::today())->count();
 
-$postsThisMonth = Post::whereMonth('created_at', Carbon::now()->month)
-    ->whereYear('created_at', Carbon::now()->year)
-    ->count();
-    $groups = Group::all();
+        $postsThisWeek = Post::whereBetween('created_at', [
+            Carbon::now()->startOfWeek(),
+            Carbon::now()->endOfWeek(),
+        ])->count();
 
-$groupLabels = [];
-$groupPosts = [];
+        $postsThisMonth = Post::whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->count();
 
-foreach ($groups as $group) {
+        $groups = Group::all();
 
-    $groupLabels[] = $group->Group_Name;
+        $groupLabels = [];
+        $groupPosts = [];
 
-    $groupPosts[] = Post::whereIn(
-        'Topic_ID',
-        $group->topics()->pluck('id')
-    )->count();
-}
-$monthLabels = [];
-$monthlyPosts = [];
+        foreach ($groups as $group) {
+            $groupLabels[] = $group->Group_Name;
+            $groupPosts[] = Post::whereIn(
+                'Topic_ID',
+                $group->topics()->pluck('id')
+            )->count();
+        }
 
-for ($month = 1; $month <= 12; $month++) {
+        $monthLabels = [];
+        $monthlyPosts = [];
 
-    $monthLabels[] = date('M', mktime(0, 0, 0, $month, 1));
+        for ($month = 1; $month <= 12; $month++) {
+            $monthLabels[] = date('M', mktime(0, 0, 0, $month, 1));
+            $monthlyPosts[] = Post::whereMonth('created_at', $month)
+                ->whereYear('created_at', now()->year)
+                ->count();
+        }
 
-    $monthlyPosts[] = Post::whereMonth('created_at', $month)
-        ->whereYear('created_at', now()->year)
-        ->count();
-}
-$topicLabels = Group::pluck('Group_Name');
+        $topicLabels = Group::pluck('Group_Name');
+        $topicCounts = Group::all()->map(fn ($group) => $group->topics()->count());
 
-$topicCounts = Group::all()->map(function ($group) {
-    return $group->topics()->count();
-});
+        $groupSummaries = GroupStatisticsService::summaries();
+
         return view('statistics.index', compact(
             'totalGroups',
             'totalTopics',
@@ -95,6 +96,18 @@ $topicCounts = Group::all()->map(function ($group) {
             'monthlyPosts',
             'topicLabels',
             'topicCounts',
+            'groupSummaries',
         ));
+    }
+
+    public function group(Group $group)
+    {
+        if (! auth()->user()->isAdmin()) {
+            abort(403, 'You do not have permission to access this page.');
+        }
+
+        $stats = GroupStatisticsService::forGroup($group);
+
+        return view('statistics.group', $stats);
     }
 }

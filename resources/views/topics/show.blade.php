@@ -64,7 +64,26 @@
             @csrf
             <input type="hidden" name="Parent_Post_ID" id="Parent_Post_ID">
 
+            @if($groupMembers->isNotEmpty())
+                <div id="excludePanel" class="wa-exclude-panel d-none">
+                    <p class="wa-exclude-title"><i class="bi bi-eye-slash me-1"></i>Hide this message from:</p>
+                    <div class="wa-exclude-list">
+                        @foreach($groupMembers as $member)
+                            <label class="wa-exclude-option">
+                                <input type="checkbox" name="excluded_users[]" value="{{ $member->id }}" class="exclude-user-checkbox">
+                                <span>{{ $member->name }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             <div class="wa-input-row">
+                @if($groupMembers->isNotEmpty())
+                    <button type="button" class="wa-exclude-toggle" id="excludeToggle" aria-label="Hide from members" title="Hide from members">
+                        <i class="bi bi-eye-slash"></i>
+                    </button>
+                @endif
                 <textarea class="wa-textarea" name="Post_Content" id="messageInput"
                           rows="1" placeholder="Type a message" required></textarea>
                 <button type="submit" class="wa-send-btn" id="sendBtn" aria-label="Send message">

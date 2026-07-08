@@ -12,6 +12,8 @@
     const replyText = document.getElementById('replyText');
     const parentInput = document.getElementById('Parent_Post_ID');
     const cancelReply = document.getElementById('cancelReply');
+    const excludeToggle = document.getElementById('excludeToggle');
+    const excludePanel = document.getElementById('excludePanel');
     const storeUrl = chat.dataset.storeUrl;
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
 
@@ -39,6 +41,14 @@
         if (input) input.focus();
     }
 
+    function clearExcludeSelections() {
+        form?.querySelectorAll('.exclude-user-checkbox:checked').forEach((cb) => {
+            cb.checked = false;
+        });
+        if (excludePanel) excludePanel.classList.add('d-none');
+        if (excludeToggle) excludeToggle.classList.remove('active');
+    }
+
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
@@ -61,6 +71,10 @@
             ? `<a href="/posts/${post.id}/edit" class="wa-action-btn" title="Edit"><i class="bi bi-pencil-fill"></i></a>`
             : '';
 
+        const hiddenBadge = post.is_mine && post.hidden_count > 0
+            ? `<span class="wa-hidden-badge" title="Hidden from ${post.hidden_count} member(s)"><i class="bi bi-eye-slash"></i> ${post.hidden_count}</span>`
+            : '';
+
         return `
             <div class="wa-msg ${mine}" id="msg-${post.id}" data-msg-id="${post.id}">
                 <div class="wa-bubble-wrap">
@@ -79,6 +93,7 @@
                         ${quoteBlock}
                         <p class="wa-bubble-text">${escapeHtml(post.content)}</p>
                         <div class="wa-bubble-meta">
+                            ${hiddenBadge}
                             <span class="wa-bubble-time">${escapeHtml(post.created_at)}</span>
                         </div>
                     </div>
@@ -127,6 +142,13 @@
         cancelReply.addEventListener('click', clearReply);
     }
 
+    if (excludeToggle && excludePanel) {
+        excludeToggle.addEventListener('click', () => {
+            excludePanel.classList.toggle('d-none');
+            excludeToggle.classList.toggle('active');
+        });
+    }
+
     bindReplyButtons();
     bindQuoteScroll();
     scrollToBottom();
@@ -169,6 +191,7 @@
                 input.value = '';
                 autoGrow(input);
                 clearReply();
+                clearExcludeSelections();
                 scrollToBottom();
             } catch {
                 form.submit();

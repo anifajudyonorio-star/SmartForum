@@ -1,5 +1,6 @@
 @php
     $mine = auth()->id() == $post->Created_By;
+    $parentVisible = $post->parent && $post->parent->isVisibleTo(auth()->user());
 @endphp
 
 <div class="wa-msg {{ $mine ? 'mine' : 'theirs' }}" id="msg-{{ $post->id }}" data-msg-id="{{ $post->id }}">
@@ -32,7 +33,7 @@
                 <div class="wa-bubble-name">{{ $post->user->name }}</div>
             @endunless
 
-            @if($post->parent)
+            @if($parentVisible)
                 <div class="wa-quote reply-quote" data-scroll-to="msg-{{ $post->parent->id }}">
                     <div class="wa-quote-author">{{ $post->parent->user->name ?? 'User' }}</div>
                     <p class="wa-quote-text">{{ Str::limit($post->parent->Post_Content, 120) }}</p>
@@ -42,6 +43,11 @@
             <p class="wa-bubble-text">{{ $post->Post_Content }}</p>
 
             <div class="wa-bubble-meta">
+                @if($mine && $post->hiddenFromUsers->isNotEmpty())
+                    <span class="wa-hidden-badge" title="Hidden from {{ $post->hiddenFromUsers->pluck('name')->join(', ') }}">
+                        <i class="bi bi-eye-slash"></i> {{ $post->hiddenFromUsers->count() }}
+                    </span>
+                @endif
                 <span class="wa-bubble-time">{{ $post->created_at->format('g:i A') }}</span>
             </div>
         </div>

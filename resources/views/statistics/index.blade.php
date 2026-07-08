@@ -6,6 +6,69 @@
 
     <h2 class="stats-page-title fly-in">Forum Statistics</h2>
 
+    <div class="card mb-3 fly-in">
+        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-semibold"><i class="bi bi-bar-chart-fill me-1 text-primary"></i> Statistics by Group</h6>
+            <span class="badge bg-primary">{{ $groupSummaries->count() }} groups</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive d-none d-md-block">
+                <table class="table table-hover mb-0 dashboard-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Group</th>
+                            <th>Members</th>
+                            <th>Topics</th>
+                            <th>Posts</th>
+                            <th>Lecturer</th>
+                            <th class="pe-3">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($groupSummaries as $summary)
+                            <tr>
+                                <td class="ps-3 fw-semibold">{{ $summary->group->Group_Name }}</td>
+                                <td>{{ $summary->members_count }}</td>
+                                <td>{{ $summary->topics_count }}</td>
+                                <td>{{ $summary->posts_count }}</td>
+                                <td>{{ $summary->group->user->name ?? '—' }}</td>
+                                <td class="pe-3">
+                                    <a href="{{ route('statistics.group', $summary->group) }}" class="btn btn-primary btn-sm">
+                                        View Stats
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-3">No groups yet.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-md-none p-2">
+                <div class="data-card-list">
+                    @forelse($groupSummaries as $summary)
+                        <div class="data-card-item">
+                            <p class="data-card-item-title">{{ $summary->group->Group_Name }}</p>
+                            <div class="data-card-item-meta">
+                                <span><i class="bi bi-people me-1"></i>{{ $summary->members_count }} members</span>
+                                <span><i class="bi bi-bookmark me-1"></i>{{ $summary->topics_count }} topics</span>
+                                <span><i class="bi bi-chat me-1"></i>{{ $summary->posts_count }} posts</span>
+                            </div>
+                            <div class="data-card-item-actions">
+                                <a href="{{ route('statistics.group', $summary->group) }}" class="btn btn-primary btn-sm w-100">View Group Statistics</a>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-muted small text-center py-3 mb-0">No groups yet.</p>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-2 g-md-3 mb-3">
         <div class="col-6 col-md-3">
             <div class="stat-card fly-in fly-in-delay-1">

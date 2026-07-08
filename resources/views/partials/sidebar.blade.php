@@ -27,6 +27,10 @@
                        href="{{ route($item['route']) }}">
                         <i class="bi {{ $item['icon'] }}"></i>
                         <span>{{ $item['label'] }}</span>
+                        @if($item['route'] === 'notifications.index')
+                            <span class="notif-badge {{ ($unreadNotificationCount ?? 0) > 0 ? '' : 'd-none' }}"
+                                  data-notif-badge>{{ ($unreadNotificationCount ?? 0) > 99 ? '99+' : ($unreadNotificationCount ?? 0) }}</span>
+                        @endif
                     </a>
                 </li>
             @endforeach
@@ -85,6 +89,10 @@
                        href="{{ route($item['route']) }}">
                         <i class="bi {{ $item['icon'] }}"></i>
                         <span>{{ $item['label'] }}</span>
+                        @if($item['route'] === 'notifications.index')
+                            <span class="notif-badge {{ ($unreadNotificationCount ?? 0) > 0 ? '' : 'd-none' }}"
+                                  data-notif-badge>{{ ($unreadNotificationCount ?? 0) > 99 ? '99+' : ($unreadNotificationCount ?? 0) }}</span>
+                        @endif
                     </a>
                 </li>
             @endforeach

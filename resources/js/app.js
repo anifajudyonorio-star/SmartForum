@@ -1,5 +1,6 @@
 import './bootstrap';
 import './chat';
+import './notifications';
 
 // Mobile sidebar toggle
 (function () {

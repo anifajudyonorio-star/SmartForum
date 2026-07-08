@@ -20,7 +20,13 @@
             $active = collect($patterns)->contains(fn ($p) => request()->routeIs($p));
         @endphp
         <a href="{{ route($item['route']) }}" class="mobile-nav-item {{ $active ? 'active' : '' }}">
-            <i class="bi {{ $item['icon'] }}"></i>
+            <span class="mobile-nav-icon-wrap">
+                <i class="bi {{ $item['icon'] }}"></i>
+                @if($item['route'] === 'notifications.index')
+                    <span class="notif-badge notif-badge-mobile {{ ($unreadNotificationCount ?? 0) > 0 ? '' : 'd-none' }}"
+                          data-notif-badge>{{ ($unreadNotificationCount ?? 0) > 99 ? '99+' : ($unreadNotificationCount ?? 0) }}</span>
+                @endif
+            </span>
             <span>{{ $item['label'] }}</span>
         </a>
     @endforeach

@@ -34,4 +34,41 @@ class Post extends Model
     {
         return $this->hasMany(Post::class, 'Parent_Post_ID');
     }
+
+    public function hiddenFromUsers()
+    {
+        return $this->belongsToMany(User::class, 'post_hidden_from', 'post_id', 'user_id')
+            ->withTimestamps();
+    }
+
+    public function isVisibleTo(User $user): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        if ((int) $this->Created_By === $user->id) {
+            return true;
+        }
+
+        if ($this->relationLoaded('hiddenFromUsers')) {
+            return ! $this->hiddenFromUsers->contains('id', $user->id);
+        }
+
+        return ! $this->hiddenFromUsers()->where('users.id', $user->id)->exists();
+    }
+
+    public function scopeVisibleTo($query, User $user)
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($user) {
+            $q->where('Created_By', $user->id)
+                ->orWhereDoesntHave('hiddenFromUsers', function ($sub) use ($user) {
+                    $sub->where('users.id', $user->id);
+                });
+        });
+    }
 }

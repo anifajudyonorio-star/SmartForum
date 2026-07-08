@@ -6,6 +6,12 @@
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    @auth
+        <meta name="notifications-poll-url" content="{{ route('notifications.poll') }}">
+        <meta name="notifications-last-id" content="{{ $latestNotificationId ?? 0 }}">
+        <meta name="notifications-unread" content="{{ $unreadNotificationCount ?? 0 }}">
+    @endauth
+
     <title>Smart Discussion</title>
 
     <link rel="dns-prefetch" href="//fonts.bunny.net">
@@ -100,6 +106,11 @@
             @endauth
         </div>
     </div>
+
+    @auth
+        <div id="notifToastStack" class="wa-notif-stack" aria-live="polite"></div>
+    @endauth
+
     @stack('scripts')
 </body>
 </html>

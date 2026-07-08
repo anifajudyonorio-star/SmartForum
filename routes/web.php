@@ -46,11 +46,15 @@ Route::middleware('auth')->group(function () {
     Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
+    Route::match(['get', 'patch'], '/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 
     Route::get('/statistics', [StatisticsController::class, 'index'])
         ->middleware('role:admin')
         ->name('statistics.index');
+    Route::get('/statistics/groups/{group}', [StatisticsController::class, 'group'])
+        ->middleware('role:admin')
+        ->name('statistics.group');
 
     Route::get('/participation', [ParticipationController::class, 'index'])
         ->middleware('role:lecturer')

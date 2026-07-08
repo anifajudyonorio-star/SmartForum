@@ -48,12 +48,17 @@ class TopicController extends Controller
             'Join the group to view and participate in this discussion.'
         );
 
-        $posts = Post::with(['user', 'parent.user'])
+        $topic->load('group');
+
+        $posts = Post::with(['user', 'parent.user', 'hiddenFromUsers'])
             ->where('Topic_ID', $topic->id)
+            ->visibleTo(Auth::user())
             ->oldest()
             ->get();
 
-        return view('topics.show', compact('topic', 'posts'));
+        $groupMembers = \App\Services\PostVisibilityService::groupMembersExcept($topic, Auth::user());
+
+        return view('topics.show', compact('topic', 'posts', 'groupMembers'));
     }
 
     public function edit(Topic $topic)
