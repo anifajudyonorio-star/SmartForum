@@ -18,7 +18,7 @@
         <div class="auth-card-form">
             <ul class="nav nav-pills auth-tabs mb-2" role="tablist">
                 <li class="nav-item flex-fill">
-                    <button class="nav-link w-100 {{ $activeTab === 'login' ? 'active' : '' }}" data-auth-tab="login" type="button">Login</button>
+                    <button class="nav-link w-100 {{ $activeTab === 'login' ? 'active' : '' }}" data-auth-tab="login" type="button">Sign In</button>
                 </li>
                 <li class="nav-item flex-fill">
                     <button class="nav-link w-100 {{ $activeTab === 'register' ? 'active' : '' }}" data-auth-tab="register" type="button">Register</button>

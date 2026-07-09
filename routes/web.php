@@ -70,6 +70,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users');
         Route::post('/admin/users', [AdminUserController::class, 'store'])->name('admin.users.store');
         Route::post('/admin/users/{user}/warn', [AdminUserController::class, 'warn'])->name('admin.users.warn');
+        Route::post('/admin/users/{user}/promote', [AdminUserController::class, 'promote'])->name('admin.users.promote');
         Route::post('/admin/users/{user}/blacklist', [AdminUserController::class, 'blacklist'])->name('admin.users.blacklist');
         Route::post('/admin/users/{user}/unblacklist', [AdminUserController::class, 'unblacklist'])->name('admin.users.unblacklist');
     });

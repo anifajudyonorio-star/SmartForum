@@ -106,6 +106,9 @@
                                 <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#blacklistModal{{ $user->id }}">
                                     <i data-feather="slash" style="width:13px;height:13px;"></i> Blacklist
                                 </button>
+                                <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#promoteModal{{ $user->id }}">
+                                    <i data-feather="shield" style="width:13px;height:13px;"></i> Role
+                                </button>
                             @else
                                 <form action="{{ route('admin.users.unblacklist', $user) }}" method="POST" class="d-inline">
                                     @csrf
@@ -163,6 +166,32 @@
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                                         <button type="submit" class="btn btn-danger btn-sm">Blacklist User</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {{-- Promote Modal --}}
+                    <div class="modal fade" id="promoteModal{{ $user->id }}" tabindex="-1">
+                        <div class="modal-dialog modal-sm">
+                            <div class="modal-content">
+                                <form action="{{ route('admin.users.promote', $user) }}" method="POST">
+                                    @csrf
+                                    <div class="modal-header">
+                                        <h6 class="modal-title">Change Role — {{ $user->Fname }}</h6>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <label class="form-label small">Select new role</label>
+                                        <select name="role" class="form-select form-select-sm">
+                                            <option value="student" {{ $user->role === 'student' ? 'selected' : '' }}>Student</option>
+                                            <option value="lecturer" {{ $user->role === 'lecturer' ? 'selected' : '' }}>Lecturer</option>
+                                            <option value="admin" {{ $user->role === 'admin' ? 'selected' : '' }}>Admin</option>
+                                        </select>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-info btn-sm text-white">Save Role</button>
                                     </div>
                                 </form>
                             </div>

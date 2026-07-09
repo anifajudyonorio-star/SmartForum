@@ -38,6 +38,16 @@ class AdminUserController extends Controller
         return back()->with('success', "Lecturer account created for {$validated['Fname']} {$validated['Lname']}.");
     }
 
+    public function promote(Request $request, User $user)
+    {
+        $request->validate(['role' => ['required', 'in:student,lecturer,admin']]);
+
+        $oldRole = $user->role;
+        $user->update(['role' => $request->role]);
+
+        return back()->with('success', "{$user->Fname}'s role changed from {$oldRole} to {$request->role}.");
+    }
+
     public function warn(Request $request, User $user)
     {
         if ($user->warnings >= 2) {
