@@ -15,7 +15,7 @@ use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Notification;
 
-#[Fillable(['Fname', 'Lname', 'email', 'password', 'role'])]
+#[Fillable(['Fname', 'Lname', 'email', 'password', 'role', 'warnings', 'is_blacklisted', 'google_id', 'apple_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {

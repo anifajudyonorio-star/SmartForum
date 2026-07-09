@@ -15,6 +15,8 @@ return new class extends Migration
 
             $table->string('device_name');
             $table->string('device_id')->unique();
+            $table->string('device_type')->nullable();
+            $table->string('status')->default('offline');
 
             $table->timestamp('last_sync')->nullable();
 

@@ -97,6 +97,9 @@ h5 { font-size: 1rem; }
     padding: 0.5rem 0 0.65rem;
     margin-bottom: 0.65rem;
     border-bottom: 1px solid #d1fae5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .dashboard-title {
@@ -1662,4 +1665,19 @@ body.chat-page {
     }
 
     .bubble { max-width: 100% !important; break-inside: avoid; }
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: rgba(255,255,255,.4);
+    font-size: .8rem;
+
+    &::before, &::after {
+        content: '';
+        flex: 1;
+        border-top: 1px solid rgba(255,255,255,.15);
+    }
+    span { padding: 0 .75rem; }
 }

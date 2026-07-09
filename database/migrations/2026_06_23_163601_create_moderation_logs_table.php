@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('moderation_logs', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('admin_id')->constrained('users')->cascadeOnDelete();
+            $table->enum('action', ['warning', 'blacklist', 'unblacklist']);
+            $table->text('reason')->nullable();
             $table->timestamps();
         });
     }
