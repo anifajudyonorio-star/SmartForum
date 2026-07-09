@@ -357,7 +357,7 @@
                 Where <span class="accent">Learning</span><br>
                 Meets <span class="accent-2">Discussion</span>
             </h1>
-            <p>Join groups, explore topics, and engage in meaningful academic conversations with lecturers and peers.</p>
+            <p>Participate in assigned groups, explore topics, and engage in meaningful academic conversations with lecturers and peers.</p>
             <div class="hero-actions">
                 <a href="{{ route('register') }}" class="btn-hero btn-hero-primary">
                     Get Started Free →
@@ -396,7 +396,7 @@
             <div class="feature-card">
                 <div class="feature-icon">📚</div>
                 <h3>Group Discussions</h3>
-                <p>Lecturers create focused groups and topics. Students join and participate in structured academic conversations.</p>
+                <p>Admins create groups and assign members. Lecturers create topics. Students and lecturers participate in structured academic conversations.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🧠</div>
@@ -419,7 +419,7 @@
     <section class="cta">
         <div class="cta-inner">
             <h2>Ready to get started?</h2>
-            <p>Create your free account in seconds and join the academic conversation.</p>
+            <p>Create your free account in seconds and start learning together.</p>
             <a href="{{ route('register') }}" class="btn-hero btn-hero-primary">
                 Sign up for free →
             </a>

@@ -41,8 +41,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::post('/groups/{group}/join', [GroupController::class, 'join'])->name('groups.join');
-    Route::post('/groups/{group}/leave', [GroupController::class, 'leave'])->name('groups.leave');
+    Route::middleware('role:admin')->group(function () {
+        Route::post('/groups/{group}/members', [GroupController::class, 'addMember'])->name('groups.members.add');
+        Route::delete('/groups/{group}/members/{user}', [GroupController::class, 'removeMember'])->name('groups.members.remove');
+    });
+
     Route::resource('groups', GroupController::class);
 
     Route::get('/groups/{group}/topics/create', [TopicController::class, 'create'])->name('topics.create');

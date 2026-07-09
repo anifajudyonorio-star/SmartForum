@@ -45,7 +45,7 @@ class TopicController extends Controller
         abort_unless(
             Auth::user()->isMemberOf($topic->group),
             403,
-            'Join the group to view and participate in this discussion.'
+            'You must be assigned to this group to view and participate in this discussion.'
         );
 
         $topic->load('group');

@@ -12,9 +12,14 @@
                 </h2>
                 <p class="text-muted small mb-0">Manage the forum, review usage statistics, and keep the community healthy.</p>
             </div>
-            <a href="{{ route('statistics.index') }}" class="btn btn-primary btn-sm dashboard-action-btn">
-                <i data-feather="bar-chart-2" class="feather-icon-sm me-1"></i> View Statistics
-            </a>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('groups.index') }}" class="btn btn-outline-primary btn-sm dashboard-action-btn">
+                    <i data-feather="layers" class="feather-icon-sm me-1"></i> Manage Groups
+                </a>
+                <a href="{{ route('statistics.index') }}" class="btn btn-primary btn-sm dashboard-action-btn">
+                    <i data-feather="bar-chart-2" class="feather-icon-sm me-1"></i> View Statistics
+                </a>
+            </div>
         </div>
     </div>
 

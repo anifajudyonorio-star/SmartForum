@@ -17,28 +17,88 @@
                     <div class="d-flex flex-wrap gap-2 small">
                         <span class="badge bg-primary">{{ $group->Status }}</span>
                         @if($group->user)
-                            <span class="text-muted"><i class="bi bi-person me-1"></i>{{ $group->user->name }}</span>
+                            <span class="text-muted"><i class="bi bi-shield-check me-1"></i>Created by {{ $group->user->name }}</span>
                         @endif
                     </div>
                 </div>
 
-                <div class="d-flex gap-2 flex-wrap">
-                    @if($canJoin ?? false)
-                        <form action="{{ route('groups.join', $group) }}" method="POST">
+                @if($canManage ?? false)
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{{ route('groups.edit', $group) }}" class="btn btn-outline-secondary btn-sm">Edit Group</a>
+                        <form action="{{ route('groups.destroy', $group) }}" method="POST"
+                              onsubmit="return confirm('Delete this group and all its topics?')">
                             @csrf
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="bi bi-box-arrow-in-right me-1"></i> Join
-                            </button>
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
                         </form>
-                    @endif
-
-                    @if(auth()->user()->isLecturer() && (int) $group->Created_By === auth()->id())
-                        <a href="{{ route('groups.edit', $group) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
-                    @endif
-                </div>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
+
+    @if($canManage ?? false)
+        <div class="card mb-3 fly-in">
+            <div class="card-header bg-white py-2">
+                <h6 class="mb-0 fw-semibold"><i class="bi bi-people-fill me-1 text-primary"></i> Group Members</h6>
+            </div>
+            <div class="card-body">
+                <form action="{{ route('groups.members.add', $group) }}" method="POST" class="row g-2 align-items-end mb-3">
+                    @csrf
+                    <div class="col-md-8">
+                        <label class="form-label small mb-1">Add student or lecturer</label>
+                        <select name="user_id" class="form-select form-select-sm" required>
+                            <option value="">Select a user to add...</option>
+                            @foreach($availableUsers as $user)
+                                <option value="{{ $user->id }}">
+                                    {{ $user->name }} ({{ ucfirst($user->role ?? 'student') }}) — {{ $user->email }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-grid">
+                        <button type="submit" class="btn btn-primary btn-sm" @disabled($availableUsers->isEmpty())>
+                            <i class="bi bi-person-plus me-1"></i> Add Member
+                        </button>
+                    </div>
+                </form>
+
+                @if($members->isEmpty())
+                    <p class="text-muted small mb-0">No members yet. Add students and lecturers above.</p>
+                @else
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Role</th>
+                                    <th>Email</th>
+                                    <th width="100"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($members as $member)
+                                    <tr>
+                                        <td>{{ $member->name }}</td>
+                                        <td><span class="badge bg-secondary">{{ ucfirst($member->role ?? 'student') }}</span></td>
+                                        <td class="small text-muted">{{ $member->email }}</td>
+                                        <td>
+                                            <form action="{{ route('groups.members.remove', [$group, $member]) }}" method="POST"
+                                                  onsubmit="return confirm('Remove {{ $member->name }} from this group?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
 
     <div class="d-flex justify-content-between align-items-center mb-2 fly-in">
         <h2 class="h6 fw-semibold mb-0">Discussion Topics</h2>
@@ -50,9 +110,13 @@
         @endif
     </div>
 
-    @if(! $isMember)
+    @if(! $isMember && ! ($canManage ?? false))
         <div class="alert alert-info small fly-in">
-            Join this group to open topics and participate in discussions.
+            You are not a member of this group. Contact an admin to be added.
+        </div>
+    @elseif(! $isMember && ($canManage ?? false))
+        <div class="alert alert-info small fly-in">
+            You are managing this group as admin. Add yourself as a member if you need to participate in discussions.
         </div>
     @endif
 
