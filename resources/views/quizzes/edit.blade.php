@@ -46,13 +46,13 @@
                     <input type="number" name="duration" class="form-control" value="{{ old('duration', $quiz->duration) }}" min="1" required>
                 </div>
                 <div class="mb-3">
-    <label class="form-label">Participation Marks</label>
+                      <label class="form-label">Participation Marks</label>
 
-    <input
-        type="number"
-        name="participation_marks"
-        class="form-control"
-        value="{{ old('participation_marks',$quiz->participation_marks) }}"
+                     <input
+                         type="number"
+                          name="participation_marks"
+                        class="form-control"
+                   value="{{ old('participation_marks',$quiz->participation_marks) }}"
         min="0"
         required>
 </div>

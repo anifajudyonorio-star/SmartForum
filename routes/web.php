@@ -68,11 +68,20 @@ Route::middleware('auth')->group(function () {
 
     // Lecturer / admin quiz management
     Route::middleware('role:lecturer')->group(function () {
-        Route::resource('quiz-categories', QuizCategoryController::class)->except(['show']);
-        Route::resource('quizzes', QuizController::class)->except(['show']);
-        Route::patch('/quizzes/{quiz}/publish', [QuizController::class, 'publish'])->name('quizzes.publish');
-        Route::resource('questions', QuestionController::class)->except(['show']);
-    });
+
+    Route::resource('quiz-categories', QuizCategoryController::class)->except(['show']);
+
+    Route::resource('quizzes', QuizController::class)->except(['show']);
+
+    Route::patch('/quizzes/{quiz}/publish', [QuizController::class, 'publish'])
+        ->name('quizzes.publish');
+
+    Route::resource('questions', QuestionController::class)->except(['show']);
+
+    Route::get('/reports', [PerformanceReportController::class, 'index'])
+        ->name('reports.index');
+
+});
 
     //Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
 

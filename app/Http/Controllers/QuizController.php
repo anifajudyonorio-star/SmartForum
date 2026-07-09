@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Quiz;
+use App\Models\Notification;
 use App\Models\QuizCategory;
 use Illuminate\Http\Request;
 
@@ -107,15 +108,43 @@ class QuizController extends Controller
     }
 
     public function publish(Quiz $quiz)
-    {
-        if ($quiz->questions()->count() === 0) {
-            return back()->withErrors(['quiz' => 'Add at least one question before publishing.']);
-        }
-
-        $quiz->update(['status' => 'Active']);
-
-        return back()->with('success', 'Quiz published and available to students.');
+{
+    if ($quiz->questions()->count() == 0) {
+        return back()->withErrors([
+            'quiz' => 'Please add at least one question before publishing the quiz.'
+        ]);
     }
+
+    $quiz->update([
+        'status' => 'Active'
+    ]);
+
+    $students = \App\Models\User::where('role', 'student')->get();
+
+    foreach ($students as $student) {
+
+        \App\Models\Notification::create([
+
+            'user_ID' => $student->id,
+
+            'Notification_Type' => 'Quiz',
+
+            'Notification_Title' => 'New Quiz Available',
+
+            'Message' => 'A new quiz "' . $quiz->title . '" is now available. Please complete it before '
+                . $quiz->end_time->format('d M Y H:i'),
+
+            'Is_Read' => false,
+
+            'Post_ID' => null,
+
+        ]);
+
+    }
+
+    return redirect()->route('quizzes.index')
+        ->with('success', 'Quiz published successfully and all students have been notified.');
+}
 
     public function destroy(Quiz $quiz)
     {
