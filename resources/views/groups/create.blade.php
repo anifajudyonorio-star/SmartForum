@@ -8,6 +8,7 @@
 
         <div class="card-header">
             <h3>Create Group</h3>
+            <p class="text-muted small mb-0">After creating a group, open it to add students and lecturers as members.</p>
         </div>
 
         <div class="card-body">

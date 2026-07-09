@@ -62,6 +62,13 @@
                         <span>Statistics</span>
                     </a>
                 </li>
+                <li class="sidebar-nav-item">
+                    <a class="sidebar-nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}"
+                       href="{{ route('admin.users') }}">
+                        <i class="bi bi-people"></i>
+                        <span>User Management</span>
+                    </a>
+                </li>
             @endif
         </ul>
     </div>
@@ -122,6 +129,13 @@
                        href="{{ route('statistics.index') }}">
                         <i class="bi bi-graph-up-arrow"></i>
                         <span>Statistics</span>
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a class="sidebar-nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}"
+                       href="{{ route('admin.users') }}">
+                        <i class="bi bi-people"></i>
+                        <span>User Management</span>
                     </a>
                 </li>
             @endif

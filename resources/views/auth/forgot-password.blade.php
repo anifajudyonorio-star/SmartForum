@@ -1,25 +1,69 @@
-<x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
+@extends('layouts.auth')
+
+@section('content')
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-card-brand">
+            <div class="auth-logo">SD</div>
+            <h1 class="auth-title">Reset Password</h1>
+            <p class="auth-subtitle">Enter your email and new password</p>
+        </div>
+
+        <div class="auth-card-form">
+            @if (session('status'))
+                <div class="alert alert-success py-2 small">{{ session('status') }}</div>
+            @endif
+
+            @if ($errors->any())
+                <div class="alert alert-danger py-2 small">{{ $errors->first() }}</div>
+            @endif
+
+            <form method="POST" action="{{ route('password.direct.update') }}">
+                @csrf
+                <div class="mb-2">
+                    <label for="email" class="form-label auth-label">Email</label>
+                    <input id="email" type="email" name="email" class="form-control auth-input"
+                           value="{{ old('email', request('email')) }}" required autofocus autocomplete="email">
+                </div>
+                <div class="mb-2">
+                    <label for="password" class="form-label auth-label">New Password</label>
+                    <div class="position-relative">
+                        <input id="password" type="password" name="password" class="form-control auth-input pe-5" required>
+                        <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-2 text-muted toggle-password" data-target="password" tabindex="-1" style="border:none;background:none;">
+                            <i data-feather="eye" style="width:16px;height:16px;"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="password_confirmation" class="form-label auth-label">Confirm Password</label>
+                    <div class="position-relative">
+                        <input id="password_confirmation" type="password" name="password_confirmation" class="form-control auth-input pe-5" required>
+                        <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-2 text-muted toggle-password" data-target="password_confirmation" tabindex="-1" style="border:none;background:none;">
+                            <i data-feather="eye" style="width:16px;height:16px;"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 auth-submit">Reset Password</button>
+            </form>
+
+            <div class="text-center mt-3">
+                <a href="{{ route('login') }}" class="small text-muted">← Back to login</a>
+            </div>
+        </div>
     </div>
+</div>
+@endsection
 
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <form method="POST" action="{{ route('password.email') }}">
-        @csrf
-
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Email Password Reset Link') }}
-            </x-primary-button>
-        </div>
-    </form>
-</x-guest-layout>
+@push('scripts')
+<script>
+document.querySelectorAll('.toggle-password').forEach((btn) => {
+    btn.addEventListener('click', () => {
+        const input = document.getElementById(btn.dataset.target);
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        btn.querySelector('i').setAttribute('data-feather', isPassword ? 'eye-off' : 'eye');
+        feather.replace();
+    });
+});
+</script>
+@endpush

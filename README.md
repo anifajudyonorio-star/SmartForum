@@ -1,6 +1,6 @@
 # SmartForum (Smart Discussion)
 
-A Laravel-based academic discussion forum where **lecturers** create groups and topics, **students** join groups and participate in discussions, and **admins** oversee platform activity.
+A Laravel-based academic discussion forum where **admins** create groups and assign members, **lecturers** create topics, **students** participate in discussions, and **admins** oversee platform activity.
 
 ## Requirements
 
@@ -194,9 +194,9 @@ npm run dev
 
 ## Typical usage flow
 
-1. **Lecturer** logs in → creates a **group** → creates **topics** inside the group.
-2. **Student** logs in → joins a lecturer's group → views topics → posts and replies.
-3. **Admin** logs in → views dashboard statistics and manages the platform.
+1. **Admin** logs in → creates a **group** → adds **students** and **lecturers** as members.
+2. **Lecturer** logs in → creates **topics** in assigned groups → monitors participation.
+3. **Student** logs in → views topics in assigned groups → posts and replies.
 
 ### Main routes
 

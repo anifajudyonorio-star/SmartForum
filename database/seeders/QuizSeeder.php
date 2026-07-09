@@ -33,6 +33,7 @@ class QuizSeeder extends Seeder
                 'category_id' => $category->id,
                 'description' => 'A short quiz to help students get familiar with the platform.',
                 'duration' => 15,
+                'participation_marks' => 2,
                 'start_time' => now()->subDay(),
                 'end_time' => now()->addMonths(3),
                 'status' => 'Active',
@@ -55,14 +56,14 @@ class QuizSeeder extends Seeder
                 'question' => 'Who can create discussion groups?',
                 'marks' => 2,
                 'options' => [
-                    ['text' => 'Lecturers and admins', 'correct' => true],
+                    ['text' => 'Admins', 'correct' => true],
                     ['text' => 'Students only', 'correct' => false],
-                    ['text' => 'Guests', 'correct' => false],
+                    ['text' => 'Lecturers only', 'correct' => false],
                     ['text' => 'Anyone without login', 'correct' => false],
                 ],
             ],
             [
-                'question' => 'Students can join groups created by lecturers.',
+                'question' => 'Students and lecturers are added to groups by an admin.',
                 'marks' => 1,
                 'options' => [
                     ['text' => 'True', 'correct' => true],

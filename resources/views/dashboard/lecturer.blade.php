@@ -7,7 +7,7 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div>
                 <h2 class="dashboard-title mb-0">Welcome back, Lecturer!</h2>
-                <p class="text-muted small mb-0">Create groups & topics, then monitor student participation scores.</p>
+                <p class="text-muted small mb-0">Create topics in your assigned groups and monitor student participation scores.</p>
             </div>
             <a href="{{ route('participation.index') }}" class="btn btn-primary btn-sm dashboard-action-btn">
                 <i class="bi bi-bar-chart-fill me-1"></i> Participation

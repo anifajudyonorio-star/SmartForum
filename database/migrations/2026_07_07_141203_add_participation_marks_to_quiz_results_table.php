@@ -6,23 +6,41 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::table('quiz_results', function (Blueprint $table) {
-            //
-        });
+        if (! Schema::hasColumn('quiz_results', 'participation_marks')) {
+            Schema::table('quiz_results', function (Blueprint $table) {
+                $table->integer('participation_marks')->default(0);
+            });
+        }
+
+        if (! Schema::hasColumn('quiz_results', 'total_score')) {
+            Schema::table('quiz_results', function (Blueprint $table) {
+                $table->integer('total_score')->default(0);
+            });
+        }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
+        if (! Schema::hasTable('quiz_results')) {
+            return;
+        }
+
         Schema::table('quiz_results', function (Blueprint $table) {
-            //
+            $columns = [];
+
+            if (Schema::hasColumn('quiz_results', 'participation_marks')) {
+                $columns[] = 'participation_marks';
+            }
+
+            if (Schema::hasColumn('quiz_results', 'total_score')) {
+                $columns[] = 'total_score';
+            }
+
+            if ($columns !== []) {
+                $table->dropColumn($columns);
+            }
         });
     }
 };

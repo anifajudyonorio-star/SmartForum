@@ -11,11 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('devices', function (Blueprint $table) {
-            $table->string('status')
-                  ->default('offline')
-                  ->after('device_type');
-        });
+        // already added in create_devices_table migration
     }
 
     /**

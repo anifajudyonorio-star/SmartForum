@@ -8,15 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('quizzes', function (Blueprint $table) {
-            $table->integer('participation_marks')->default(0)->after('duration');
-        });
+        if (! Schema::hasColumn('quizzes', 'participation_marks')) {
+            Schema::table('quizzes', function (Blueprint $table) {
+                $table->integer('participation_marks')->default(0);
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('quizzes', function (Blueprint $table) {
-            $table->dropColumn('participation_marks');
-        });
+        if (Schema::hasColumn('quizzes', 'participation_marks')) {
+            Schema::table('quizzes', function (Blueprint $table) {
+                $table->dropColumn('participation_marks');
+            });
+        }
     }
 };

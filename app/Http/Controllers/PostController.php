@@ -26,7 +26,7 @@ class PostController extends Controller
         abort_unless(
             $topic->group && Auth::user()->isMemberOf($topic->group),
             403,
-            'Join the group to post in this topic.'
+            'You must be assigned to this group by an admin to post in this topic.'
         );
 
         $request->validate([

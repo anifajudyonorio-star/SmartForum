@@ -72,7 +72,7 @@
                 </div>
                 <div class="card-body d-grid gap-2 py-2">
                     <a href="{{ route('groups.index') }}" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-compass me-1"></i> Explore Groups
+                        <i class="bi bi-people me-1"></i> My Groups
                     </a>
                     <a href="{{ route('student.quizzes') }}" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-patch-question me-1"></i> Take a Quiz

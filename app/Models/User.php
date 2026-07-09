@@ -15,7 +15,7 @@ use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Notification;
 
-#[Fillable(['Fname', 'Lname', 'email', 'password', 'role'])]
+#[Fillable(['Fname', 'Lname', 'email', 'password', 'role', 'warnings', 'is_blacklisted', 'google_id', 'apple_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -72,25 +72,26 @@ class User extends Authenticatable
 
     public function canManageGroups(): bool
     {
-        return $this->isLecturer() || $this->isAdmin();
+        return $this->isAdmin();
     }
 
     public function canCreateTopics(): bool
     {
-        return $this->isLecturer() || $this->isAdmin();
+        return $this->isLecturer();
     }
 
     public function canJoinGroups(): bool
     {
-        return $this->isStudent() || $this->isAdmin();
+        return false;
+    }
+
+    public function canViewGroup(Group $group): bool
+    {
+        return $this->isAdmin() || $this->isMemberOf($group);
     }
 
     public function isMemberOf(Group $group): bool
     {
-        if ($this->isAdmin()) {
-            return true;
-        }
-
         return $group->isMember($this->id);
     }
 
