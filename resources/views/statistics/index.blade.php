@@ -4,7 +4,13 @@
 
 <div class="container-fluid px-0">
 
-    <h2 class="stats-page-title fly-in">Forum Statistics</h2>
+    <h2 class="stats-page-title fly-in">
+        @if(auth()->user()->isAdmin())
+            Forum Statistics
+        @else
+            My Group Statistics
+        @endif
+    </h2>
 
     <div class="card mb-3 fly-in">
         <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">

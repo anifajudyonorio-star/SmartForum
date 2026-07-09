@@ -10,6 +10,10 @@
     if ($user && $user->isStudent()) {
         $navItems[] = ['route' => 'student.quizzes', 'match' => 'student.*', 'label' => 'Quizzes', 'icon' => 'bi-patch-question-fill'];
     }
+
+    $showGroupAdminTools = $user && $user->canViewStatistics();
+    $showParticipation = $user && $user->canViewParticipation();
+    $showLecturerTools = $user && ($user->isLecturer() || $user->isAdmin());
 @endphp
 
 {{-- Desktop sidebar (fixed) --}}
@@ -35,7 +39,29 @@
                 </li>
             @endforeach
 
-            @if($user && ($user->isLecturer() || $user->isAdmin()))
+            @if($showGroupAdminTools || $showParticipation)
+                <li class="sidebar-section-label">Group Admin</li>
+                @if($showGroupAdminTools)
+                    <li class="sidebar-nav-item">
+                        <a class="sidebar-nav-link {{ request()->routeIs('statistics.*') ? 'active' : '' }}"
+                           href="{{ route('statistics.index') }}">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span>Statistics</span>
+                        </a>
+                    </li>
+                @endif
+                @if($showParticipation)
+                    <li class="sidebar-nav-item">
+                        <a class="sidebar-nav-link {{ request()->routeIs('participation.*') ? 'active' : '' }}"
+                           href="{{ route('participation.index') }}">
+                            <i class="bi bi-bar-chart-fill"></i>
+                            <span>Participation</span>
+                        </a>
+                    </li>
+                @endif
+            @endif
+
+            @if($showLecturerTools)
                 <li class="sidebar-section-label">Lecturer</li>
                 <li class="sidebar-nav-item">
                     <a class="sidebar-nav-link {{ request()->routeIs('quizzes.*') || request()->routeIs('quiz-categories.*') || request()->routeIs('questions.*') ? 'active' : '' }}"
@@ -44,24 +70,10 @@
                         <span>Quizzes</span>
                     </a>
                 </li>
-                <li class="sidebar-nav-item">
-                    <a class="sidebar-nav-link {{ request()->routeIs('participation.*') ? 'active' : '' }}"
-                       href="{{ route('participation.index') }}">
-                        <i class="bi bi-bar-chart-fill"></i>
-                        <span>Participation</span>
-                    </a>
-                </li>
             @endif
 
             @if($user && $user->isAdmin())
                 <li class="sidebar-section-label">Super Admin</li>
-                <li class="sidebar-nav-item">
-                    <a class="sidebar-nav-link {{ request()->routeIs('statistics.*') ? 'active' : '' }}"
-                       href="{{ route('statistics.index') }}">
-                        <i class="bi bi-graph-up-arrow"></i>
-                        <span>Statistics</span>
-                    </a>
-                </li>
                 <li class="sidebar-nav-item">
                     <a class="sidebar-nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}"
                        href="{{ route('admin.users') }}">
@@ -104,7 +116,29 @@
                 </li>
             @endforeach
 
-            @if($user && ($user->isLecturer() || $user->isAdmin()))
+            @if($showGroupAdminTools || $showParticipation)
+                <li class="sidebar-section-label">Group Admin</li>
+                @if($showGroupAdminTools)
+                    <li class="sidebar-nav-item">
+                        <a class="sidebar-nav-link {{ request()->routeIs('statistics.*') ? 'active' : '' }}"
+                           href="{{ route('statistics.index') }}">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span>Statistics</span>
+                        </a>
+                    </li>
+                @endif
+                @if($showParticipation)
+                    <li class="sidebar-nav-item">
+                        <a class="sidebar-nav-link {{ request()->routeIs('participation.*') ? 'active' : '' }}"
+                           href="{{ route('participation.index') }}">
+                            <i class="bi bi-bar-chart-fill"></i>
+                            <span>Participation</span>
+                        </a>
+                    </li>
+                @endif
+            @endif
+
+            @if($showLecturerTools)
                 <li class="sidebar-section-label">Lecturer</li>
                 <li class="sidebar-nav-item">
                     <a class="sidebar-nav-link {{ request()->routeIs('quizzes.*') || request()->routeIs('quiz-categories.*') || request()->routeIs('questions.*') ? 'active' : '' }}"
@@ -113,24 +147,10 @@
                         <span>Quizzes</span>
                     </a>
                 </li>
-                <li class="sidebar-nav-item">
-                    <a class="sidebar-nav-link {{ request()->routeIs('participation.*') ? 'active' : '' }}"
-                       href="{{ route('participation.index') }}">
-                        <i class="bi bi-bar-chart-fill"></i>
-                        <span>Participation</span>
-                    </a>
-                </li>
             @endif
 
             @if($user && $user->isAdmin())
                 <li class="sidebar-section-label">Super Admin</li>
-                <li class="sidebar-nav-item">
-                    <a class="sidebar-nav-link {{ request()->routeIs('statistics.*') ? 'active' : '' }}"
-                       href="{{ route('statistics.index') }}">
-                        <i class="bi bi-graph-up-arrow"></i>
-                        <span>Statistics</span>
-                    </a>
-                </li>
                 <li class="sidebar-nav-item">
                     <a class="sidebar-nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}"
                        href="{{ route('admin.users') }}">

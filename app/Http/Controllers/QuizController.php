@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Group;
 use App\Models\Quiz;
 use App\Models\Notification;
 use App\Models\QuizCategory;
@@ -11,7 +12,7 @@ class QuizController extends Controller
 {
     public function index()
 {
-    $quizzes = Quiz::with('category')
+    $quizzes = Quiz::with(['category', 'group'])
         ->withCount('questions')
         ->latest()
         ->get();
@@ -40,14 +41,16 @@ class QuizController extends Controller
     public function create()
     {
         $categories = QuizCategory::orderBy('category_name')->get();
+        $groups = Group::orderBy('Group_Name')->get();
 
-        return view('quizzes.create', compact('categories'));
+        return view('quizzes.create', compact('categories', 'groups'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
     'category_id' => 'required|exists:quiz_categories,id',
+    'group_id' => 'required|exists:groups,id',
     'title' => 'required|string|max:255',
     'description' => 'required|string',
     'duration' => 'required|integer|min:1',
@@ -58,6 +61,7 @@ class QuizController extends Controller
 
         Quiz::create([
     'category_id' => $request->category_id,
+    'group_id' => $request->group_id,
     'title' => $request->title,
     'description' => $request->description,
     'duration' => $request->duration,
@@ -75,14 +79,24 @@ class QuizController extends Controller
     public function edit(Quiz $quiz)
     {
         $categories = QuizCategory::orderBy('category_name')->get();
+        $groups = Group::orderBy('Group_Name')->get();
 
-        return view('quizzes.edit', compact('quiz', 'categories'));
+        return view('quizzes.edit', compact('quiz', 'categories', 'groups'));
+    }
+
+    public function review(Quiz $quiz)
+    {
+        $quiz->load(['questions.options', 'category', 'group']);
+        $quiz->loadCount('questions');
+
+        return view('quizzes.review', compact('quiz'));
     }
 
     public function update(Request $request, Quiz $quiz)
     {
         $request->validate([
     'category_id' => 'required|exists:quiz_categories,id',
+    'group_id' => 'required|exists:groups,id',
     'title' => 'required|string|max:255',
     'description' => 'required|string',
     'duration' => 'required|integer|min:1',
@@ -94,6 +108,7 @@ class QuizController extends Controller
 
         $quiz->update($request->only([
     'category_id',
+    'group_id',
     'title',
     'description',
     'duration',
@@ -115,11 +130,19 @@ class QuizController extends Controller
         ]);
     }
 
+    if ($quiz->status === 'Active') {
+        return back()->with('success', 'Quiz is already published.');
+    }
+
     $quiz->update([
         'status' => 'Active'
     ]);
 
-    $students = \App\Models\User::where('role', 'student')->get();
+    $students = \App\Models\User::where('role', 'student')
+        ->whereHas('groups', function ($query) use ($quiz) {
+            $query->where('groups.id', $quiz->group_id);
+        })
+        ->get();
 
     foreach ($students as $student) {
 
@@ -131,12 +154,18 @@ class QuizController extends Controller
 
             'Notification_Title' => 'New Quiz Available',
 
-            'Message' => 'A new quiz "' . $quiz->title . '" is now available. Please complete it before '
-                . $quiz->end_time->format('d M Y H:i'),
+            'Message' => 'A new quiz "' . $quiz->title . '" is scheduled for '
+                . $quiz->start_time->format('d M Y H:i')
+                . ' and closes on '
+                . $quiz->end_time->format('d M Y H:i') . '.',
 
             'Is_Read' => false,
 
             'Post_ID' => null,
+
+            'quiz_id' => $quiz->id,
+
+            'expires_at' => $quiz->end_time,
 
         ]);
 

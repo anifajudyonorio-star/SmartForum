@@ -13,15 +13,41 @@
                     <span class="badge" style="background:var(--primary-muted);color:var(--primary-dark);">
                         <i class="bi bi-question-circle me-1"></i>{{ $quiz->questions->count() }} questions
                     </span>
+                    <span class="badge bg-secondary">
+                        <i class="bi bi-calendar2-event me-1"></i>Scheduled: {{ $quiz->start_time->format('M j, Y g:i A') }}
+                    </span>
+                    <span class="badge bg-secondary">
+                        <i class="bi bi-calendar-x me-1"></i>Ends: {{ $quiz->end_time->format('M j, Y g:i A') }}
+                    </span>
                 </div>
             </div>
 
             <div class="text-sm-end">
                 <p class="small text-muted mb-1">Time remaining</p>
-                <h2 id="timer" class="text-success fw-bold mb-0">{{ sprintf('%02d', $quiz->duration) }}:00</h2>
+                <h2 id="timer" class="text-success fw-bold mb-0">
+                    @php
+                        $initial = $remainingSeconds ?? ($quiz->duration * 60);
+                        $mins = intdiv($initial, 60);
+                        $secs = $initial % 60;
+                    @endphp
+                    {{ sprintf('%02d', $mins) }}:{{ sprintf('%02d', $secs) }}
+                </h2>
             </div>
         </div>
     </div>
+
+    @if(now()->gte($quiz->end_time))
+        @php
+            $canView = auth()->user()->isAdmin() || auth()->user()->isLecturer() || 
+                (is_null($quiz->group_id) || auth()->user()->groups->contains($quiz->group_id));
+        @endphp
+
+        @if($canView)
+            <div class="mb-3">
+                <a href="{{ route('quizzes.report', $quiz) }}" class="btn btn-outline-primary">View performance report</a>
+            </div>
+        @endif
+    @endif
 
     <form id="quizForm" method="POST" action="{{ route('student.quiz.submit', $quiz) }}">
         @csrf
@@ -62,7 +88,7 @@
 </div>
 
 <script>
-let timeLeft = {{ $quiz->duration * 60 }};
+let timeLeft = {{ $remainingSeconds ?? ($quiz->duration * 60) }};
 
 const timer = document.getElementById('timer');
 const form = document.getElementById('quizForm');

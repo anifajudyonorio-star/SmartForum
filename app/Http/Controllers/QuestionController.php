@@ -11,9 +11,12 @@ class QuestionController extends Controller
 {
     public function index()
     {
-        $questions = Question::with(['quiz', 'options'])->latest()->get();
+        $quizzes = Quiz::with(['questions.options'])
+            ->whereHas('questions')
+            ->orderBy('title')
+            ->get();
 
-        return view('questions.index', compact('questions'));
+        return view('questions.index', compact('quizzes'));
     }
 
     public function create()

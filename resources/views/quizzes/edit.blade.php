@@ -21,11 +21,22 @@
                 @method('PUT')
 
                 <div class="mb-3">
-                    <label class="form-label">Quiz Category</label>
+                    <label class="form-label">Select Quiz Title</label>
                     <select name="category_id" class="form-select" required>
                         @foreach($categories as $category)
                             <option value="{{ $category->id }}" @selected(old('category_id', $quiz->category_id) == $category->id)>
                                 {{ $category->category_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Assign To Group</label>
+                    <select name="group_id" class="form-select" required>
+                        @foreach($groups as $group)
+                            <option value="{{ $group->id }}" @selected(old('group_id', $quiz->group_id) == $group->id)>
+                                {{ $group->Group_Name }}
                             </option>
                         @endforeach
                     </select>

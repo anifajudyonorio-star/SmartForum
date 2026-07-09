@@ -3,9 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Topic;
-use App\Models\GroupMember;
-use App\Models\User;
 
 class Group extends Model
 {
@@ -30,7 +27,7 @@ class Group extends Model
     {
         return $this->belongsToMany(User::class, 'group_members', 'Group_ID', 'User_ID')
             ->withTimestamps()
-            ->withPivot('Member_Status');
+            ->withPivot(['Member_Status', 'Member_Role', 'warnings']);
     }
 
     public function memberships()
@@ -43,6 +40,47 @@ class Group extends Model
         return $this->members()
             ->where('users.id', $userId)
             ->exists();
+    }
+
+    public function membership(int $userId): ?GroupMember
+    {
+        return $this->memberships()
+            ->where('User_ID', $userId)
+            ->first();
+    }
+
+    public function memberRole(int $userId): ?string
+    {
+        return $this->membership($userId)?->Member_Role;
+    }
+
+    public function memberStatus(int $userId): ?string
+    {
+        return $this->membership($userId)?->Member_Status;
+    }
+
+    public function isActiveMember(int $userId): bool
+    {
+        $membership = $this->membership($userId);
+
+        return $membership && $membership->isActive();
+    }
+
+    public function isGroupAdmin(int $userId): bool
+    {
+        return $this->memberRole($userId) === GroupMember::ROLE_ADMIN;
+    }
+
+    public function isGroupLecturer(int $userId): bool
+    {
+        return $this->memberRole($userId) === GroupMember::ROLE_LECTURER;
+    }
+
+    public function adminCount(): int
+    {
+        return $this->members()
+            ->wherePivot('Member_Role', GroupMember::ROLE_ADMIN)
+            ->count();
     }
 
     public function scopeByLecturers($query)

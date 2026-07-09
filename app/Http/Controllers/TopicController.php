@@ -12,16 +12,22 @@ class TopicController extends Controller
 {
     public function create(Group $group)
     {
-        abort_unless(Auth::user()->canCreateTopics(), 403, 'Only lecturers can create topics.');
-        abort_unless(Auth::user()->isMemberOf($group), 403, 'You must be a member of this group.');
+        abort_unless(
+            Auth::user()->canParticipateInGroup($group),
+            403,
+            'You must be an active member of this group to create topics.'
+        );
 
         return view('topics.create', compact('group'));
     }
 
     public function store(Request $request, Group $group)
     {
-        abort_unless(Auth::user()->canCreateTopics(), 403, 'Only lecturers can create topics.');
-        abort_unless(Auth::user()->isMemberOf($group), 403, 'You must be a member of this group.');
+        abort_unless(
+            Auth::user()->canParticipateInGroup($group),
+            403,
+            'You must be an active member of this group to create topics.'
+        );
 
         $request->validate([
             'Title' => 'required|max:255',
@@ -43,9 +49,9 @@ class TopicController extends Controller
     public function show(Topic $topic)
     {
         abort_unless(
-            Auth::user()->isMemberOf($topic->group),
+            Auth::user()->canViewGroup($topic->group),
             403,
-            'You must be assigned to this group to view and participate in this discussion.'
+            'You must be a member of this group to view and participate in this discussion.'
         );
 
         $topic->load('group');
@@ -151,11 +157,19 @@ class TopicController extends Controller
     private function canManageTopic(Topic $topic): bool
     {
         $user = Auth::user();
+        $group = $topic->group;
 
-        if ($user->isAdmin()) {
+        // System admin or group admin can manage any topic in the group.
+        if ($user->canManageGroup($group)) {
             return true;
         }
 
-        return $user->isLecturer() && (int) $topic->Created_By === $user->id;
+        // Topic creator can manage their own topic.
+        if ((int) $topic->Created_By === $user->id) {
+            return true;
+        }
+
+        // Group lecturers can manage topics.
+        return $user->isGroupLecturer($group);
     }
 }

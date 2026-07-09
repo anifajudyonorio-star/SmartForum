@@ -75,6 +75,24 @@ h5 { font-size: 1rem; }
     font-size: 1.05rem;
 }
 
+.app-back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 0.35rem 0.65rem;
+}
+
+.app-back-btn:hover,
+.app-back-btn:focus {
+    background: var(--primary-muted, #d1fae5);
+    border-color: var(--primary, #16a34a);
+    color: var(--primary-dark, #166534);
+}
+
 .app-content {
     padding: 1rem 1.25rem;
     margin-top: var(--header-height);

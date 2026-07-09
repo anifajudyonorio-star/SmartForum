@@ -34,7 +34,20 @@
                         <button id="sidebarToggle" class="btn btn-outline-success btn-sm d-md-none me-2" type="button" aria-label="Toggle sidebar">
                             <i class="bi bi-list"></i>
                         </button>
+                        <button type="button"
+                                id="appBackBtn"
+                                class="btn btn-outline-success btn-sm app-back-btn me-2"
+                                data-fallback="{{ route('dashboard') }}"
+                                aria-label="Go back to previous page"
+                                title="Go back">
+                            <i class="bi bi-arrow-left"></i>
+                            <span class="d-none d-sm-inline ms-1">Back</span>
+                        </button>
                     @endauth
+
+                    <button id="backBtn" onclick="history.back()" class="btn btn-sm btn-outline-secondary me-2 d-none" title="Go back">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
 
                     <a class="navbar-brand" href="{{ url('/') }}">
                         Smart Discussion
@@ -112,5 +125,11 @@
     @endauth
 
     @stack('scripts')
+    <script>
+        // Show back button only when there is browser history
+        if (window.history.length > 1) {
+            document.getElementById('backBtn').classList.remove('d-none');
+        }
+    </script>
 </body>
 </html>

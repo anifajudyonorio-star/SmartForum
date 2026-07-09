@@ -31,8 +31,8 @@ class AppServiceProvider extends ServiceProvider
 
             $user = auth()->user();
 
-            $view->with('unreadNotificationCount', $user->notifications()->where('Is_Read', false)->count());
-            $view->with('latestNotificationId', (int) $user->notifications()->max('id'));
+            $view->with('unreadNotificationCount', $user->notifications()->visible()->where('Is_Read', false)->count());
+            $view->with('latestNotificationId', (int) $user->notifications()->visible()->max('id'));
         });
     }
 }

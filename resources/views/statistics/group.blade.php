@@ -8,11 +8,14 @@
         <a href="{{ route('statistics.index') }}" class="btn btn-outline-secondary btn-sm mb-2">
             <i class="bi bi-arrow-left me-1"></i> All Statistics
         </a>
+        <a href="{{ route('groups.show', $group) }}" class="btn btn-outline-secondary btn-sm mb-2 ms-1">
+            <i class="bi bi-people me-1"></i> Open Group
+        </a>
         <h1 class="page-title">{{ $group->Group_Name }}</h1>
         <p class="page-subtitle">
             Group statistics
             @if($group->user)
-                &bull; Lecturer: {{ $group->user->name }}
+                &bull; Created by: {{ $group->user->name }}
             @endif
             &bull; <span class="badge bg-primary">{{ $group->Status }}</span>
         </p>

@@ -20,12 +20,24 @@
                 @csrf
 
                 <div class="mb-3">
-                    <label class="form-label">Quiz Category</label>
+                    <label class="form-label">Select Quiz Title</label>
                     <select name="category_id" class="form-select" required>
-                        <option value="">-- Select Category --</option>
+                        <option value="">-- Select Quiz Title --</option>
                         @foreach($categories as $category)
                             <option value="{{ $category->id }}" @selected(old('category_id') == $category->id)>
                                 {{ $category->category_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Assign To Group</label>
+                    <select name="group_id" class="form-select" required>
+                        <option value="">-- Select Group --</option>
+                        @foreach($groups as $group)
+                            <option value="{{ $group->id }}" @selected(old('group_id') == $group->id)>
+                                {{ $group->Group_Name }}
                             </option>
                         @endforeach
                     </select>

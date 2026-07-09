@@ -11,6 +11,7 @@ class NotificationController extends Controller
     {
         $notifications = Auth::user()
             ->notifications()
+            ->visible()
             ->latest()
             ->get();
 
@@ -24,6 +25,7 @@ class NotificationController extends Controller
         $query = Auth::user()
             ->notifications()
             ->with(['post.topic'])
+            ->visible()
             ->where('Is_Read', false);
 
         if ($afterId > 0) {
@@ -43,8 +45,8 @@ class NotificationController extends Controller
 
         return response()->json([
             'notifications' => $notifications,
-            'unread_count' => Auth::user()->notifications()->where('Is_Read', false)->count(),
-            'latest_id' => (int) Auth::user()->notifications()->max('id'),
+            'unread_count' => Auth::user()->notifications()->visible()->where('Is_Read', false)->count(),
+            'latest_id' => (int) Auth::user()->notifications()->visible()->max('id'),
         ]);
     }
 
@@ -65,7 +67,7 @@ class NotificationController extends Controller
             return response()->json([
                 'success' => true,
                 'url' => $url,
-                'unread_count' => auth()->user()->notifications()->where('Is_Read', false)->count(),
+                'unread_count' => auth()->user()->notifications()->visible()->where('Is_Read', false)->count(),
             ]);
         }
 

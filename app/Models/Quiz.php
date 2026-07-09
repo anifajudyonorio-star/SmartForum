@@ -11,6 +11,7 @@ class Quiz extends Model
 
     protected $fillable = [
     'category_id',
+    'group_id',
     'title',
     'description',
     'duration',
@@ -36,5 +37,10 @@ class Quiz extends Model
     public function questions()
     {
         return $this->hasMany(Question::class);
+    }
+
+    public function group()
+    {
+        return $this->belongsTo(Group::class, 'group_id');
     }
 }
