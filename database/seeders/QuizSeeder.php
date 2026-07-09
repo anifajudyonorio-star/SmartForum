@@ -33,6 +33,7 @@ class QuizSeeder extends Seeder
                 'category_id' => $category->id,
                 'description' => 'A short quiz to help students get familiar with the platform.',
                 'duration' => 15,
+                'participation_marks' => 2,
                 'start_time' => now()->subDay(),
                 'end_time' => now()->addMonths(3),
                 'status' => 'Active',

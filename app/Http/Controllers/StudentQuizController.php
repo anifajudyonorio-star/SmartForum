@@ -67,7 +67,7 @@ class StudentQuizController extends Controller
         }
     }
 
-    $participationMarks = $quiz->participation_marks;
+    $participationMarks = (int) ($quiz->participation_marks ?? 0);
     $totalScore = $score + $participationMarks;
 
     QuizResult::create([
