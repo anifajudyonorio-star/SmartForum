@@ -12,13 +12,14 @@ class Device extends Model
     protected $fillable = [
         'user_id',
         'device_name',
-        'device_type',
-        'status',
-        'last_sync_at',
+        'device_id',
+        'last_sync',
+        'is_online',
     ];
 
     protected $casts = [
-        'last_sync_at' => 'datetime',
+        'last_sync' => 'datetime',
+        'is_online' => 'boolean',
     ];
 
     /**
