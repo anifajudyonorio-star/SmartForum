@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Group;
+use App\Models\GroupMember;
 use App\Models\Topic;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -22,16 +23,30 @@ class GroupSeeder extends Seeder
         $group = Group::updateOrCreate(
             ['Group_Name' => 'Introduction to Computer Science'],
             [
-                'Description' => 'Demo discussion group for SmartForum. Admins create groups and assign members; lecturers create topics.',
+                'Description' => 'Demo discussion group for SmartForum. Anyone can create groups; the creator is admin and can assign roles.',
                 'Created_By' => $admin->id,
                 'Status' => 'Active',
             ]
         );
 
-        foreach ([$lecturer, $student] as $member) {
-            if (! $group->isMember($member->id)) {
-                $group->members()->attach($member->id, [
-                    'Member_Status' => 'Active',
+        $memberships = [
+            $admin->id => GroupMember::ROLE_ADMIN,
+            $lecturer->id => GroupMember::ROLE_LECTURER,
+            $student->id => GroupMember::ROLE_MEMBER,
+        ];
+
+        foreach ($memberships as $userId => $role) {
+            if ($group->isMember($userId)) {
+                $group->members()->updateExistingPivot($userId, [
+                    'Member_Status' => GroupMember::STATUS_ACTIVE,
+                    'Member_Role' => $role,
+                    'warnings' => 0,
+                ]);
+            } else {
+                $group->members()->attach($userId, [
+                    'Member_Status' => GroupMember::STATUS_ACTIVE,
+                    'Member_Role' => $role,
+                    'warnings' => 0,
                 ]);
             }
         }

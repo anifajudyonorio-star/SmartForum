@@ -11,13 +11,18 @@ use Illuminate\Support\Collection;
 
 class GroupStatisticsService
 {
-    public static function summaries(): Collection
+    public static function summaries(?Collection $groupIds = null): Collection
     {
-        return Group::query()
+        $query = Group::query()
             ->with('user')
             ->withCount(['topics', 'memberships as members_count'])
-            ->orderBy('Group_Name')
-            ->get()
+            ->orderBy('Group_Name');
+
+        if ($groupIds !== null) {
+            $query->whereIn('id', $groupIds);
+        }
+
+        return $query->get()
             ->map(function (Group $group) {
                 $topicIds = $group->topics()->pluck('id');
 

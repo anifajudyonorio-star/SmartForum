@@ -34,6 +34,15 @@
                         <button id="sidebarToggle" class="btn btn-outline-success btn-sm d-md-none me-2" type="button" aria-label="Toggle sidebar">
                             <i class="bi bi-list"></i>
                         </button>
+                        <button type="button"
+                                id="appBackBtn"
+                                class="btn btn-outline-success btn-sm app-back-btn me-2"
+                                data-fallback="{{ route('dashboard') }}"
+                                aria-label="Go back to previous page"
+                                title="Go back">
+                            <i class="bi bi-arrow-left"></i>
+                            <span class="d-none d-sm-inline ms-1">Back</span>
+                        </button>
                     @endauth
 
                     <a class="navbar-brand" href="{{ url('/') }}">

@@ -14,7 +14,13 @@ class PostController extends Controller
 {
     public function create(Topic $topic)
     {
-        abort_unless(Auth::user()->isMemberOf($topic->group), 403);
+        $topic->loadMissing('group');
+
+        abort_unless(
+            $topic->group && Auth::user()->canParticipateInGroup($topic->group),
+            403,
+            'You must be an active member of this group to post.'
+        );
 
         return view('posts.create', compact('topic'));
     }
@@ -24,9 +30,9 @@ class PostController extends Controller
         $topic->loadMissing('group');
 
         abort_unless(
-            $topic->group && Auth::user()->isMemberOf($topic->group),
+            $topic->group && Auth::user()->canParticipateInGroup($topic->group),
             403,
-            'You must be assigned to this group by an admin to post in this topic.'
+            'You must be an active member of this group to post in this topic.'
         );
 
         $request->validate([
@@ -140,12 +146,18 @@ class PostController extends Controller
     private function canManagePost(Post $post): bool
     {
         $user = Auth::user();
+        $post->loadMissing('topic.group');
 
         if ($user->isAdmin()) {
             return true;
         }
 
-        return (int) $post->Created_By === $user->id;
+        if ((int) $post->Created_By === $user->id) {
+            return true;
+        }
+
+        // Group admins can moderate posts in their group.
+        return $post->topic?->group && $user->canManageGroup($post->topic->group);
     }
 
     private function formatPostForChat(Post $post): array

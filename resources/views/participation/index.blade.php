@@ -10,15 +10,36 @@
                 <i data-feather="award" class="feather-icon me-1"></i>
                 Participation Leaderboard
             </h2>
-            <p class="text-muted small mb-0">Track student engagement across topics, posts, and replies.</p>
+            <p class="text-muted small mb-0">
+                @if($selectedGroup ?? null)
+                    Engagement in <strong>{{ $selectedGroup->Group_Name }}</strong>.
+                @else
+                    Track student engagement across topics, posts, and replies.
+                @endif
+            </p>
         </div>
 
-        @if($participants->count())
-            <span class="badge bg-primary">
-                <i data-feather="star" class="feather-icon-sm me-1"></i>
-                Top: {{ $participants->first()->name }}
-            </span>
-        @endif
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            @if(($availableGroups ?? collect())->count() > 1)
+                <form method="GET" action="{{ route('participation.index') }}" class="d-flex gap-2 align-items-center">
+                    <select name="group" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 180px;">
+                        <option value="">All my groups</option>
+                        @foreach($availableGroups as $g)
+                            <option value="{{ $g->id }}" @selected(($selectedGroup->id ?? null) == $g->id)>
+                                {{ $g->Group_Name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </form>
+            @endif
+
+            @if($participants->count())
+                <span class="badge bg-primary">
+                    <i data-feather="star" class="feather-icon-sm me-1"></i>
+                    Top: {{ $participants->first()->name }}
+                </span>
+            @endif
+        </div>
     </div>
 
     @if($participants->count())

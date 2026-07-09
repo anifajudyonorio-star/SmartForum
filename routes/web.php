@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\GroupModerationController;
 use App\Http\Controllers\TopicController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\NotificationController;
@@ -41,10 +42,16 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::middleware('role:admin')->group(function () {
-        Route::post('/groups/{group}/members', [GroupController::class, 'addMember'])->name('groups.members.add');
-        Route::delete('/groups/{group}/members/{user}', [GroupController::class, 'removeMember'])->name('groups.members.remove');
-    });
+    // Group member management — authorized in controller (group admins + system admins).
+    Route::post('/groups/{group}/members', [GroupController::class, 'addMember'])->name('groups.members.add');
+    Route::delete('/groups/{group}/members/{user}', [GroupController::class, 'removeMember'])->name('groups.members.remove');
+    Route::patch('/groups/{group}/members/{user}/role', [GroupController::class, 'updateMemberRole'])->name('groups.members.role');
+
+    // Group-scoped moderation (warn / suspend / block / reinstate).
+    Route::post('/groups/{group}/members/{user}/warn', [GroupModerationController::class, 'warn'])->name('groups.members.warn');
+    Route::post('/groups/{group}/members/{user}/suspend', [GroupModerationController::class, 'suspend'])->name('groups.members.suspend');
+    Route::post('/groups/{group}/members/{user}/block', [GroupModerationController::class, 'block'])->name('groups.members.block');
+    Route::post('/groups/{group}/members/{user}/reinstate', [GroupModerationController::class, 'reinstate'])->name('groups.members.reinstate');
 
     Route::resource('groups', GroupController::class);
 
@@ -75,16 +82,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/users/{user}/unblacklist', [AdminUserController::class, 'unblacklist'])->name('admin.users.unblacklist');
     });
 
-    Route::get('/statistics', [StatisticsController::class, 'index'])
-        ->middleware('role:admin')
-        ->name('statistics.index');
-    Route::get('/statistics/groups/{group}', [StatisticsController::class, 'group'])
-        ->middleware('role:admin')
-        ->name('statistics.group');
+    // Statistics & participation — authorized in controllers (system admin or group admin).
+    Route::get('/statistics', [StatisticsController::class, 'index'])->name('statistics.index');
+    Route::get('/statistics/groups/{group}', [StatisticsController::class, 'group'])->name('statistics.group');
 
-    Route::get('/participation', [ParticipationController::class, 'index'])
-        ->middleware('role:lecturer')
-        ->name('participation.index');
+    Route::get('/participation', [ParticipationController::class, 'index'])->name('participation.index');
+    Route::get('/groups/{group}/participation', [ParticipationController::class, 'group'])->name('participation.group');
 
     // Student quizzes
     Route::get('/student/quizzes', [StudentQuizController::class, 'index'])->name('student.quizzes');
