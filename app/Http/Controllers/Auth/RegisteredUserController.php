@@ -25,7 +25,10 @@ class RegisteredUserController extends Controller
             'Lname' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'in:student,lecturer'],
+            'role' => ['required', 'in:student'],
+            'terms' => ['accepted'],
+        ], [
+            'terms.accepted' => 'You must agree to the Terms & Conditions to create an account.',
         ]);
 
         $user = User::create([

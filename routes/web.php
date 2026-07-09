@@ -8,6 +8,8 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\ParticipationController;
+use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\QuizCategoryController;
@@ -20,6 +22,17 @@ Route::get('/', function () {
         ? redirect()->route('dashboard')
         : redirect()->route('login');
 });
+
+Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
+    ->where('provider', 'google|apple')
+    ->name('auth.social.redirect');
+
+Route::post('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
+    ->where('provider', 'google|apple')
+    ->name('auth.social.callback');
+
+Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
+    ->where('provider', 'google|apple');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard',[DashboardController::class,'index'])->name('dashboard');
@@ -49,6 +62,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
     Route::match(['get', 'patch'], '/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users');
+        Route::post('/admin/users', [AdminUserController::class, 'store'])->name('admin.users.store');
+        Route::post('/admin/users/{user}/warn', [AdminUserController::class, 'warn'])->name('admin.users.warn');
+        Route::post('/admin/users/{user}/blacklist', [AdminUserController::class, 'blacklist'])->name('admin.users.blacklist');
+        Route::post('/admin/users/{user}/unblacklist', [AdminUserController::class, 'unblacklist'])->name('admin.users.unblacklist');
+    });
 
     Route::get('/statistics', [StatisticsController::class, 'index'])
         ->middleware('role:admin')
