@@ -4,17 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Models\Quiz;
 use App\Models\QuizResult;
+use App\Models\QuizAttempt;
 use Illuminate\Http\Request;
 
 class StudentQuizController extends Controller
 {
     public function index()
     {
+        $groupIds = auth()->user()->groups()->pluck('groups.id');
+
         $quizzes = Quiz::withCount('questions')
-            ->where('start_time', '<=', now())
             ->where('end_time', '>=', now())
             ->whereHas('questions')
-            ->orderBy('title')
+            ->when($groupIds->isNotEmpty(), function ($query) use ($groupIds) {
+                $query->whereIn('group_id', $groupIds);
+            }, function ($query) {
+                $query->whereNull('group_id');
+            })
+            ->orderBy('start_time')
             ->get();
 
         $completedQuizIds = QuizResult::where('student_id', auth()->id())
@@ -25,19 +32,58 @@ class StudentQuizController extends Controller
 
     public function show(Quiz $quiz)
     {
-        
-
         if ($this->hasCompletedQuiz($quiz)) {
             return redirect()
                 ->route('student.quizzes')
                 ->withErrors(['quiz' => 'You have already completed this quiz.']);
         }
 
+        if ($quiz->group_id && ! auth()->user()->groups->contains($quiz->group_id)) {
+            return redirect()
+                ->route('student.quizzes')
+                ->withErrors(['quiz' => 'You are not assigned to this quiz.']);
+        }
+
+        if (! $this->quizIsAvailable($quiz)) {
+            return redirect()
+                ->route('student.quizzes')
+                ->withErrors(['quiz' => 'This quiz is not available yet.']);
+        }
+
         $quiz->load(['questions.options']);
 
         abort_if($quiz->questions->isEmpty(), 403, 'This quiz has no questions yet.');
 
-        return view('student.quizzes.show', compact('quiz'));
+        // Find existing in-progress attempt for this student, or create one.
+        $attempt = QuizAttempt::where('quiz_id', $quiz->id)
+            ->where('user_id', auth()->id())
+            ->where('status', 'In Progress')
+            ->latest()
+            ->first();
+
+        if (! $attempt) {
+            $attempt = QuizAttempt::create([
+                'quiz_id' => $quiz->id,
+                'user_id' => auth()->id(),
+                'started_at' => now(),
+                'status' => 'In Progress',
+            ]);
+        }
+
+        // Remaining seconds: constrained by per-attempt duration and global quiz end_time
+        $elapsed = now()->diffInSeconds($attempt->started_at);
+        $remainingByDuration = max(0, ($quiz->duration * 60) - $elapsed);
+        $remainingByEnd = max(0, $quiz->end_time->diffInSeconds(now()));
+        $remainingSeconds = min($remainingByDuration, $remainingByEnd);
+
+        if ($remainingSeconds <= 0) {
+            // No time left for this student to start/continue the quiz
+            return redirect()
+                ->route('student.quizzes')
+                ->withErrors(['quiz' => 'The quiz window has closed for you.']);
+        }
+
+        return view('student.quizzes.show', compact('quiz', 'attempt', 'remainingSeconds'));
     }
 
     public function submit(Request $request, Quiz $quiz)
@@ -46,6 +92,18 @@ class StudentQuizController extends Controller
         return redirect()
             ->route('student.quizzes')
             ->withErrors(['quiz' => 'You have already completed this quiz.']);
+    }
+
+    if ($quiz->group_id && ! auth()->user()->groups->contains($quiz->group_id)) {
+        return redirect()
+            ->route('student.quizzes')
+            ->withErrors(['quiz' => 'You are not assigned to this quiz.']);
+    }
+
+    if (! $this->quizIsAvailable($quiz)) {
+        return redirect()
+            ->route('student.quizzes')
+            ->withErrors(['quiz' => 'This quiz is not available yet.']);
     }
 
     $quiz->load(['questions.options']);
@@ -78,6 +136,21 @@ class StudentQuizController extends Controller
         'total_score' => $totalScore,
     ]);
 
+    // Mark attempt as submitted
+    $attempt = QuizAttempt::where('quiz_id', $quiz->id)
+        ->where('user_id', auth()->id())
+        ->where('status', 'In Progress')
+        ->latest()
+        ->first();
+
+    if ($attempt) {
+        $attempt->update([
+            'submitted_at' => now(),
+            'score' => $totalScore,
+            'status' => 'Submitted',
+        ]);
+    }
+
     $totalMarks = $quiz->questions->sum('marks');
 
     return view('student.quizzes.result', compact(
@@ -91,7 +164,7 @@ class StudentQuizController extends Controller
 
     private function quizIsAvailable(Quiz $quiz): bool
 {
-    return true;
+    return $quiz->start_time <= now() && $quiz->end_time >= now();
 }
 
     private function hasCompletedQuiz(Quiz $quiz): bool

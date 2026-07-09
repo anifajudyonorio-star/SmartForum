@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container">
-    <h2 class="mb-4">Edit Quiz Category</h2>
+    <h2 class="mb-4">Edit Quiz Title</h2>
 
     @if($errors->any())
         <div class="alert alert-danger">
@@ -21,7 +21,7 @@
                 @method('PUT')
 
                 <div class="mb-3">
-                    <label class="form-label">Category Name</label>
+                    <label class="form-label">Quiz Title</label>
                     <input type="text" name="category_name" class="form-control" value="{{ old('category_name', $quizCategory->category_name) }}" required>
                 </div>
 
@@ -30,7 +30,7 @@
                     <textarea name="description" class="form-control" rows="3">{{ old('description', $quizCategory->description) }}</textarea>
                 </div>
 
-                <button type="submit" class="btn btn-success">Update Category</button>
+                <button type="submit" class="btn btn-success">Update Quiz Title</button>
                 <a href="{{ route('quiz-categories.index') }}" class="btn btn-secondary">Cancel</a>
             </form>
         </div>

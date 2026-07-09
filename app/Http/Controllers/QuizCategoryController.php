@@ -33,7 +33,7 @@ class QuizCategoryController extends Controller
         ]);
 
         return redirect()->route('quiz-categories.index')
-            ->with('success', 'Category created successfully.');
+            ->with('success', 'Quiz title created successfully.');
     }
 
     public function edit(QuizCategory $quiz_category)
@@ -54,7 +54,7 @@ class QuizCategoryController extends Controller
         ]);
 
         return redirect()->route('quiz-categories.index')
-            ->with('success', 'Category updated successfully.');
+            ->with('success', 'Quiz title updated successfully.');
     }
 
     public function destroy(QuizCategory $quiz_category)
@@ -62,6 +62,6 @@ class QuizCategoryController extends Controller
         $quiz_category->delete();
 
         return redirect()->route('quiz-categories.index')
-            ->with('success', 'Category deleted successfully.');
+            ->with('success', 'Quiz title deleted successfully.');
     }
 }

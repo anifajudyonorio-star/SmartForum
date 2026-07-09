@@ -19,6 +19,12 @@
                 <div class="notif-body">
                     <p class="notif-title">{{ $notification->title }}</p>
                     <p class="notif-message">{{ $notification->message }}</p>
+                    @if($notification->Notification_Type === 'Quiz' && $notification->quiz)
+                        <div class="small text-muted mt-1">
+                            <div><i class="bi bi-calendar2-event me-1"></i>Scheduled: {{ $notification->quiz->start_time?->format('M j, Y g:i A') }}</div>
+                            <div><i class="bi bi-calendar-x me-1"></i>Ends: {{ $notification->quiz->end_time?->format('M j, Y g:i A') }}</div>
+                        </div>
+                    @endif
                     <span class="notif-time">{{ $notification->created_at->diffForHumans() }}</span>
                 </div>
             </a>

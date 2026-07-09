@@ -13,6 +13,8 @@ class Notification extends Model
         'Message',
         'Is_Read',
         'Post_ID',
+        'quiz_id',
+        'expires_at',
     ];
 
     protected $casts = [
@@ -26,7 +28,22 @@ class Notification extends Model
 
     public function getMessageAttribute(): ?string
     {
-        return $this->attributes['Message'] ?? null;
+        $message = $this->attributes['Message'] ?? null;
+
+        if ($this->Notification_Type === 'Quiz' && $this->quiz) {
+            $scheduledAt = $this->quiz->start_time?->format('M j, Y g:i A');
+            $endsAt = $this->quiz->end_time?->format('M j, Y g:i A');
+
+            if ($scheduledAt && $endsAt) {
+                $title = $this->quiz->title
+                    ? 'A new quiz "' . $this->quiz->title . '" is scheduled for ' . $scheduledAt . ' and closes on ' . $endsAt . '.'
+                    : 'A new quiz is scheduled for ' . $scheduledAt . ' and closes on ' . $endsAt . '.';
+
+                return blank($message) || $message === 'A new quiz is available.' ? $title : $message;
+            }
+        }
+
+        return $message;
     }
 
     public function getIsReadAttribute(): bool
@@ -42,5 +59,19 @@ class Notification extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_ID');
+    }
+
+    public function quiz()
+    {
+        return $this->belongsTo(Quiz::class, 'quiz_id');
+    }
+
+    public function scopeVisible($query)
+    {
+        return $query->where(function ($query) {
+            $query->whereNull('quiz_id')
+                ->orWhereNull('expires_at')
+                ->orWhere('expires_at', '>', now());
+        });
     }
 }

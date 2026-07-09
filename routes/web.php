@@ -94,12 +94,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/student/quizzes/{quiz}', [StudentQuizController::class, 'show'])->name('student.quiz.show');
     Route::post('/student/quizzes/{quiz}/submit', [StudentQuizController::class, 'submit'])->name('student.quiz.submit');
 
+    // Public quiz report for assigned members (visible after quiz ends)
+    Route::get('/quizzes/{quiz}/report', [PerformanceReportController::class, 'publicQuiz'])
+        ->middleware('auth')
+        ->name('quizzes.report');
+
     // Lecturer / admin quiz management
     Route::middleware('role:lecturer')->group(function () {
 
     Route::resource('quiz-categories', QuizCategoryController::class)->except(['show']);
 
     Route::resource('quizzes', QuizController::class)->except(['show']);
+    Route::get('/quizzes/{quiz}/review', [QuizController::class, 'review'])
+        ->name('quizzes.review');
 
     Route::patch('/quizzes/{quiz}/publish', [QuizController::class, 'publish'])
         ->name('quizzes.publish');
@@ -108,6 +115,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/reports', [PerformanceReportController::class, 'index'])
         ->name('reports.index');
+    Route::get('/reports/quizzes/{quiz}', [PerformanceReportController::class, 'quiz'])
+        ->name('reports.quiz');
 
 });
 
