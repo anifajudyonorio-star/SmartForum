@@ -31,7 +31,6 @@ class DashboardController extends Controller
 
         return [
             'myPosts' => Post::where('Created_By', Auth::id())->count(),
-            'myTopics' => Topic::where('Created_By', Auth::id())->count(),
             'myReplies' => Post::whereNotNull('Parent_Post_ID')
                 ->where('Created_By', Auth::id())
                 ->count(),
@@ -69,14 +68,12 @@ class DashboardController extends Controller
 
         foreach ($participants as $participant) {
             $participant->score =
-                $participant->topics_count +
                 $participant->posts_count +
                 $participant->replies_count;
         }
 
         return [
             'myGroups' => Auth::user()->groups()->count(),
-            'myTopics' => Topic::where('Created_By', Auth::id())->count(),
             'participants' => $participants->sortByDesc('score')->take(10),
         ];
     }

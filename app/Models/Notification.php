@@ -13,12 +13,15 @@ class Notification extends Model
         'Message',
         'Is_Read',
         'Post_ID',
+        'parent_post_id',
+        'reply_count',
         'quiz_id',
         'expires_at',
     ];
 
     protected $casts = [
         'Is_Read' => 'boolean',
+        'reply_count' => 'integer',
     ];
 
     public function getTitleAttribute(): ?string
@@ -54,6 +57,11 @@ class Notification extends Model
     public function post()
     {
         return $this->belongsTo(Post::class, 'Post_ID');
+    }
+
+    public function parentPost()
+    {
+        return $this->belongsTo(Post::class, 'parent_post_id');
     }
 
     public function user()
