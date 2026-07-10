@@ -54,13 +54,34 @@ class StudentQuizController extends Controller
 
         abort_if($quiz->questions->isEmpty(), 403, 'This quiz has no questions yet.');
 
-        // Find existing in-progress attempt for this student, or create one.
+        // Find existing in-progress attempt for this student.
         $attempt = QuizAttempt::where('quiz_id', $quiz->id)
             ->where('user_id', auth()->id())
             ->where('status', 'In Progress')
             ->latest()
             ->first();
 
+        // If there is a stale in-progress attempt (duration expired or quiz ended),
+        // mark it submitted/expired so the student can start a fresh attempt.
+        if ($attempt) {
+            $elapsed = now()->diffInSeconds($attempt->started_at);
+            $remainingByDuration = max(0, ($quiz->duration * 60) - $elapsed);
+            $remainingByEnd = max(0, $quiz->end_time->diffInSeconds(now()));
+            $remainingSeconds = min($remainingByDuration, $remainingByEnd);
+
+            if ($remainingSeconds <= 0) {
+                $attempt->update([
+                    'submitted_at' => now(),
+                    'score' => $attempt->score ?? 0,
+                    'status' => 'Auto Submitted',
+                ]);
+
+                // clear attempt so a new one will be created below
+                $attempt = null;
+            }
+        }
+
+        // If no valid in-progress attempt exists, create a new one.
         if (! $attempt) {
             $attempt = QuizAttempt::create([
                 'quiz_id' => $quiz->id,
