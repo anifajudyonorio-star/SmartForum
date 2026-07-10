@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Quiz;
 use App\Models\QuizResult;
 use App\Models\QuizAttempt;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 
 class StudentQuizController extends Controller
@@ -54,6 +55,23 @@ class StudentQuizController extends Controller
 
         abort_if($quiz->questions->isEmpty(), 403, 'This quiz has no questions yet.');
 
+        // Expire any stale 'In Progress' attempts for this user/quiz first.
+        $inProgress = QuizAttempt::where('quiz_id', $quiz->id)
+            ->where('user_id', auth()->id())
+            ->where('status', 'In Progress')
+            ->get();
+
+        foreach ($inProgress as $ip) {
+            $elapsed = now()->diffInSeconds($ip->started_at);
+            if ($elapsed > ($quiz->duration * 60) || now()->gt($quiz->end_time)) {
+                $ip->update([
+                    'submitted_at' => now(),
+                    'score' => $ip->score ?? 0,
+                    'status' => 'Auto Submitted',
+                ]);
+            }
+        }
+
         // Find existing in-progress attempt for this student.
         $attempt = QuizAttempt::where('quiz_id', $quiz->id)
             ->where('user_id', auth()->id())
@@ -98,6 +116,17 @@ class StudentQuizController extends Controller
         $remainingSeconds = min($remainingByDuration, $remainingByEnd);
 
         if ($remainingSeconds <= 0) {
+            // Log timing details for debugging why the window is closed.
+            Log::info('Quiz window closed for user', [
+                'quiz_id' => $quiz->id,
+                'user_id' => auth()->id(),
+                'started_at' => $attempt->started_at ?? null,
+                'elapsed' => $elapsed ?? null,
+                'remainingByDuration' => $remainingByDuration ?? null,
+                'remainingByEnd' => $remainingByEnd ?? null,
+                'remainingSeconds' => $remainingSeconds,
+            ]);
+
             // No time left for this student to start/continue the quiz
             return redirect()
                 ->route('student.quizzes')
