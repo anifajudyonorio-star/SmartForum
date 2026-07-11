@@ -31,6 +31,7 @@ class DashboardController extends Controller
 
         return [
             'myPosts' => Post::where('Created_By', Auth::id())->count(),
+            'myTopics' => Topic::where('Created_By', Auth::id())->count(),
             'myReplies' => Post::whereNotNull('Parent_Post_ID')
                 ->where('Created_By', Auth::id())
                 ->count(),
