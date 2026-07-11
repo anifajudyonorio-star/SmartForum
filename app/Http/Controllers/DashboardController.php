@@ -75,6 +75,7 @@ class DashboardController extends Controller
 
         return [
             'myGroups' => Auth::user()->groups()->count(),
+            'myTopics' => Topic::where('Created_By', Auth::id())->count(),
             'participants' => $participants->sortByDesc('score')->take(10),
         ];
     }
