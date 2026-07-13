@@ -1,6 +1,49 @@
 import './bootstrap';
 import './chat';
 import './notifications';
+import { initOfflineSync, queueAction } from './offline';
+import { initPushNotifications } from './push';
+import { initReadCache } from './cache';
+
+initOfflineSync();
+initPushNotifications();
+initReadCache();
+
+// Intercept post form when offline
+(function () {
+    const form = document.getElementById('chatForm');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        if (navigator.onLine) return;
+        e.preventDefault();
+        const topicId = document.getElementById('waChat')?.dataset.topicId;
+        const content = document.getElementById('messageInput')?.value.trim();
+        const parentId = document.getElementById('Parent_Post_ID')?.value || null;
+        if (!content) return;
+        queueAction('create_post', { topic_id: topicId, content, parent_post_id: parentId });
+        document.getElementById('messageInput').value = '';
+    });
+})();
+
+// Intercept quiz form when offline
+(function () {
+    const form = document.getElementById('quizForm');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        if (navigator.onLine) return;
+        e.preventDefault();
+        const action = form.getAttribute('action');
+        const quizId = action?.match(/\/quizzes\/(\d+)\//)?.[1];
+        if (!quizId) return;
+        const answers = {};
+        form.querySelectorAll('input[type="radio"]:checked').forEach((input) => {
+            const match = input.name.match(/question_(\d+)/);
+            if (match) answers[match[1]] = input.value;
+        });
+        queueAction('submit_quiz', { quiz_id: quizId, answers });
+        window.location.href = '/student/quizzes';
+    });
+})();
 
 // Global back button — return to previous page, or dashboard if no history
 (function () {
