@@ -1222,7 +1222,21 @@ body.chat-page {
 .notif-list {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
+}
+
+.notif-reply-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding-left: 0.35rem;
+    border-left: 2px solid var(--primary-muted, #d1fae5);
+    margin-left: 0.15rem;
+}
+
+.notif-reply-stack-item {
+    margin-left: calc(0.7rem * var(--stack-index, 0));
+    box-shadow: 0 1px 4px rgba(22, 101, 52, 0.06);
 }
 
 .notif-item {

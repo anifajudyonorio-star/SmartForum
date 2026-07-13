@@ -153,6 +153,20 @@
     bindQuoteScroll();
     scrollToBottom();
 
+    // Scroll to a specific message when opened from a notification link (#msg-123).
+    const hashTarget = window.location.hash?.replace('#', '');
+    if (hashTarget && hashTarget.startsWith('msg-')) {
+        const target = document.getElementById(hashTarget);
+        if (target) {
+            setTimeout(() => {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.style.transition = 'background 0.3s';
+                target.style.background = 'rgba(22, 163, 74, 0.12)';
+                setTimeout(() => { target.style.background = ''; }, 1200);
+            }, 150);
+        }
+    }
+
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();

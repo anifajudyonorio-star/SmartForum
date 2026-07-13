@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\Post;
 use App\Models\Notification;
+use App\Models\Post;
+use Illuminate\Support\Str;
 
 class NotificationService
 {
@@ -30,9 +31,10 @@ class NotificationService
             Notification::create([
                 'user_ID' => $parentPost->Created_By,
                 'Post_ID' => $reply->id,
+                'parent_post_id' => $parentPost->id,
                 'Notification_Type' => 'reply',
                 'Notification_Title' => $sender,
-                'Message' => 'Replied to your message',
+                'Message' => Str::limit($reply->Post_Content, 120),
                 'Is_Read' => false,
             ]);
         } catch (\Throwable $e) {

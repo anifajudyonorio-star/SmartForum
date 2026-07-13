@@ -69,7 +69,6 @@ class DashboardController extends Controller
 
         foreach ($participants as $participant) {
             $participant->score =
-                $participant->topics_count +
                 $participant->posts_count +
                 $participant->replies_count;
         }
