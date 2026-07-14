@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SyncController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\TopicController;
+use App\Http\Controllers\RecommendationController;
 
 // Issue a Sanctum token for the authenticated web user
 Route::middleware('auth')->post('/token', function (\Illuminate\Http\Request $request) {
@@ -25,4 +26,8 @@ Route::prefix('sync')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/pending', [SyncController::class, 'getPendingData']);
     Route::get('/status', [SyncController::class, 'status']);
 
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/recommendations', [RecommendationController::class, 'index']);
 });

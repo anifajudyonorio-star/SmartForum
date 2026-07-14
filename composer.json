@@ -7,10 +7,12 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "darkaonline/l5-swagger": "*",
         "laravel/framework": "^13.8",
         "laravel/sanctum": "^4.3",
         "laravel/socialite": "*",
         "laravel/tinker": "^3.0",
+        "laravel/ui": "^4.6",
         "socialiteproviders/apple": "*"
     },
     "require-dev": {
@@ -83,6 +85,11 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "policy": {
+            "advisories": {
+                "block": false
+            }
         }
     },
     "minimum-stability": "stable",

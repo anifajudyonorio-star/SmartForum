@@ -47,4 +47,8 @@ return [
         'redirect'      => env('APPLE_REDIRECT_URI', '/auth/apple/callback'),
     ],
 
+    'ml' => [
+        'url' => env('ML_SERVICE_URL', 'http://localhost:5000'),
+    ],
+
 ];
