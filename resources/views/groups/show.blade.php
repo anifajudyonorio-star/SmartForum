@@ -59,6 +59,198 @@
         </div>
     </div>
 
+    <div class="row g-2 g-md-3 mb-3 fly-in">
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card stat-card-compact h-100">
+                <div class="stat-card-icon"><i class="bi bi-people-fill"></i></div>
+                <p class="stat-label">Total Members</p>
+                <div class="stat-value">
+                    <p class="stat-number">{{ $groupStats['members_count'] }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card stat-card-compact h-100">
+                <div class="stat-card-icon"><i class="bi bi-bookmark-fill"></i></div>
+                <p class="stat-label">Total Topics</p>
+                <div class="stat-value">
+                    <p class="stat-number">{{ $groupStats['topics_count'] }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card stat-card-compact h-100">
+                <div class="stat-card-icon"><i class="bi bi-chat-dots-fill"></i></div>
+                <p class="stat-label">Total Posts</p>
+                <div class="stat-value">
+                    <p class="stat-number">{{ $groupStats['posts_count'] }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card stat-card-compact h-100">
+                <div class="stat-card-icon"><i class="bi bi-person-check-fill"></i></div>
+                <p class="stat-label">Active Members</p>
+                <div class="stat-value">
+                    <p class="stat-number">{{ $groupStats['active_members'] }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card stat-card-compact h-100">
+                <div class="stat-card-icon"><i class="bi bi-pause-circle-fill"></i></div>
+                <p class="stat-label">Suspended</p>
+                <div class="stat-value">
+                    <p class="stat-number">{{ $groupStats['suspended_members'] }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card stat-card-compact h-100">
+                <div class="stat-card-icon"><i class="bi bi-slash-circle-fill"></i></div>
+                <p class="stat-label">Blocked</p>
+                <div class="stat-value">
+                    <p class="stat-number">{{ $groupStats['blocked_members'] }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-2 g-md-3 mb-3 fly-in">
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card stat-card-compact stat-card-highlight h-100">
+                <div class="stat-card-icon"><i class="bi bi-trophy-fill"></i></div>
+                <p class="stat-label">Most Active Member</p>
+                <div class="stat-value">
+                    @if($groupStats['most_active_member'])
+                        <p class="stat-name">{{ $groupStats['most_active_member']['name'] }}</p>
+                        <p class="stat-meta">{{ $groupStats['most_active_member']['count'] }} {{ $groupStats['most_active_member']['label'] }}</p>
+                    @else
+                        <p class="stat-name text-muted">—</p>
+                        <p class="stat-meta">No posts yet</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card stat-card-compact stat-card-highlight h-100">
+                <div class="stat-card-icon"><i class="bi bi-journal-text"></i></div>
+                <p class="stat-label">Top Topic Creator</p>
+                <div class="stat-value">
+                    @if($groupStats['top_topic_creator'])
+                        <p class="stat-name">{{ $groupStats['top_topic_creator']['name'] }}</p>
+                        <p class="stat-meta">{{ $groupStats['top_topic_creator']['count'] }} {{ $groupStats['top_topic_creator']['label'] }}</p>
+                    @else
+                        <p class="stat-name text-muted">—</p>
+                        <p class="stat-meta">No topics yet</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card stat-card-compact stat-card-highlight h-100">
+                <div class="stat-card-icon"><i class="bi bi-fire"></i></div>
+                <p class="stat-label">Most Active Topic</p>
+                <div class="stat-value">
+                    @if($groupStats['most_active_topic'])
+                        <p class="stat-name" title="{{ $groupStats['most_active_topic']['name'] }}">{{ Str::limit($groupStats['most_active_topic']['name'], 22) }}</p>
+                        <p class="stat-meta">{{ $groupStats['most_active_topic']['count'] }} {{ $groupStats['most_active_topic']['label'] }}</p>
+                    @else
+                        <p class="stat-name text-muted">—</p>
+                        <p class="stat-meta">No posts yet</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card stat-card-compact h-100">
+                <div class="stat-card-icon"><i class="bi bi-calculator-fill"></i></div>
+                <p class="stat-label">Avg Posts / Topic</p>
+                <div class="stat-value">
+                    <p class="stat-number">{{ $groupStats['avg_posts_per_topic'] }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card stat-card-compact h-100">
+                <div class="stat-card-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                <p class="stat-label">Members with Warnings</p>
+                <div class="stat-value">
+                    <p class="stat-number">{{ $groupStats['members_with_warnings'] }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card stat-card-compact h-100">
+                <div class="stat-card-icon"><i class="bi bi-shield-fill-check"></i></div>
+                <p class="stat-label">Group Admins</p>
+                <div class="stat-value">
+                    <p class="stat-number">{{ $groupStats['admin_count'] }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-2 fly-in">
+        <h2 class="h6 fw-semibold mb-0">Discussion Topics</h2>
+
+        @if($canParticipate)
+            <a href="{{ route('topics.create', $group) }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> New Topic
+            </a>
+        @endif
+    </div>
+
+    @if(! $isMember && ! ($canManage ?? false))
+        <div class="alert alert-info small fly-in">
+            You are not a member of this group. Ask a group admin to add you.
+        </div>
+    @elseif($isMember && ! $canParticipate)
+        <div class="alert alert-warning small fly-in">
+            Your access in this group is restricted. You cannot create topics or post until a group admin reinstates you.
+        </div>
+    @endif
+
+    @if($topics->count())
+        <div class="topic-chat-list fly-in mb-3">
+            @foreach($topics as $topic)
+                @php $initials = strtoupper(substr($topic->Title, 0, 2)); @endphp
+                @if($isMember && auth()->user()->canViewGroup($group))
+                    <a href="{{ route('topics.show', $topic) }}" class="topic-chat-item">
+                        <div class="topic-chat-avatar">{{ $initials }}</div>
+                        <div class="topic-chat-content">
+                            <p class="topic-chat-title">{{ $topic->Title }}</p>
+                            <p class="topic-chat-desc">{{ Str::limit($topic->Topic_Description, 80) }}</p>
+                        </div>
+                        <i class="bi bi-chevron-right topic-chat-arrow"></i>
+                    </a>
+                @else
+                    <div class="topic-chat-item opacity-75">
+                        <div class="topic-chat-avatar">{{ $initials }}</div>
+                        <div class="topic-chat-content">
+                            <p class="topic-chat-title">{{ $topic->Title }}</p>
+                            <p class="topic-chat-desc">{{ Str::limit($topic->Topic_Description, 80) }}</p>
+                        </div>
+                    </div>
+                @endif
+            @endforeach
+        </div>
+    @else
+        <div class="groups-empty-state fly-in mb-3">
+            <div class="groups-empty-icon"><i class="bi bi-chat-square-text"></i></div>
+            <p class="text-muted mb-2">
+                @if($canParticipate)
+                    No topics yet. Create the first discussion.
+                @else
+                    No topics have been posted yet.
+                @endif
+            </p>
+            @if($canParticipate)
+                <a href="{{ route('topics.create', $group) }}" class="btn btn-primary btn-sm">Create Topic</a>
+            @endif
+        </div>
+    @endif
+
     <div class="card mb-3 fly-in">
         <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-semibold">
@@ -287,66 +479,6 @@
             @endif
         </div>
     </div>
-
-    <div class="d-flex justify-content-between align-items-center mb-2 fly-in">
-        <h2 class="h6 fw-semibold mb-0">Discussion Topics</h2>
-
-        @if($canParticipate)
-            <a href="{{ route('topics.create', $group) }}" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus-lg me-1"></i> New Topic
-            </a>
-        @endif
-    </div>
-
-    @if(! $isMember && ! ($canManage ?? false))
-        <div class="alert alert-info small fly-in">
-            You are not a member of this group. Ask a group admin to add you.
-        </div>
-    @elseif($isMember && ! $canParticipate)
-        <div class="alert alert-warning small fly-in">
-            Your access in this group is restricted. You cannot create topics or post until a group admin reinstates you.
-        </div>
-    @endif
-
-    @if($topics->count())
-        <div class="topic-chat-list fly-in">
-            @foreach($topics as $topic)
-                @php $initials = strtoupper(substr($topic->Title, 0, 2)); @endphp
-                @if($isMember && auth()->user()->canViewGroup($group))
-                    <a href="{{ route('topics.show', $topic) }}" class="topic-chat-item">
-                        <div class="topic-chat-avatar">{{ $initials }}</div>
-                        <div class="topic-chat-content">
-                            <p class="topic-chat-title">{{ $topic->Title }}</p>
-                            <p class="topic-chat-desc">{{ Str::limit($topic->Topic_Description, 80) }}</p>
-                        </div>
-                        <i class="bi bi-chevron-right topic-chat-arrow"></i>
-                    </a>
-                @else
-                    <div class="topic-chat-item opacity-75">
-                        <div class="topic-chat-avatar">{{ $initials }}</div>
-                        <div class="topic-chat-content">
-                            <p class="topic-chat-title">{{ $topic->Title }}</p>
-                            <p class="topic-chat-desc">{{ Str::limit($topic->Topic_Description, 80) }}</p>
-                        </div>
-                    </div>
-                @endif
-            @endforeach
-        </div>
-    @else
-        <div class="groups-empty-state fly-in">
-            <div class="groups-empty-icon"><i class="bi bi-chat-square-text"></i></div>
-            <p class="text-muted mb-2">
-                @if($canParticipate)
-                    No topics yet. Create the first discussion.
-                @else
-                    No topics have been posted yet.
-                @endif
-            </p>
-            @if($canParticipate)
-                <a href="{{ route('topics.create', $group) }}" class="btn btn-primary btn-sm">Create Topic</a>
-            @endif
-        </div>
-    @endif
 
     <a href="{{ route('groups.index') }}" class="btn btn-outline-secondary btn-sm mt-3">
         <i class="bi bi-arrow-left me-1"></i> Back to Groups

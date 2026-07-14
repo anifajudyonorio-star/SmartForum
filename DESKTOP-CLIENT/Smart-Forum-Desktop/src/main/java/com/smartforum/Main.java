@@ -1,23 +1,31 @@
 package com.smartforum;
 
+import com.smartforum.util.SessionManager;
 import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 public class Main extends Application {
 
     @Override
-    public void start(Stage stage) {
-        Label label = new Label("Welcome to Smart Discussion Forum Desktop");
+    public void start(Stage stage) throws Exception {
+        // TODO: replace with real login flow once colleague pushes login screen
+        // For now set a test session so the chat screen loads
+        SessionManager.getInstance().setSession(
+                System.getProperty("sf.token", ""),
+                Integer.parseInt(System.getProperty("sf.userId", "1")),
+                System.getProperty("sf.userName", "Test User")
+        );
 
-        StackPane root = new StackPane(label);
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/com/smartforum/chat.fxml"));
+        Scene scene = new Scene(loader.load());
 
-        Scene scene = new Scene(root, 600, 400);
-
-        stage.setTitle("Smart Discussion Forum");
+        stage.setTitle("SmartForum — Desktop");
         stage.setScene(scene);
+        stage.setMinWidth(700);
+        stage.setMinHeight(500);
         stage.show();
     }
 

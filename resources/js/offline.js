@@ -70,6 +70,7 @@ export function queueAction(actionType, payload, pendingEl) {
     if (pendingEl) pendingEl.dataset.pendingId = pendingId;
     const count = queue.length;
     showBanner(`You're offline. ${count} action${count > 1 ? 's' : ''} queued — will sync when reconnected.`);
+    return pendingId;
 }
 
 async function registerDevice() {
@@ -88,6 +89,7 @@ async function registerDevice() {
 async function flushQueue() {
     const queue = getQueue();
     if (!queue.length) return;
+    if (window._networkForced === false) return; // forced offline
     if (!await ensureToken()) return;
 
     try {
@@ -112,15 +114,20 @@ async function flushQueue() {
 
         saveQueue([]);
         updateSyncStatus();
+        localStorage.setItem("last_sync_time", new Date());
         const data = await syncRes.json();
         const conflicts = data.conflicts ?? [];
         const errors    = data.errors    ?? [];
 
         // Upgrade all pending ticks to sent
-        document.querySelectorAll('[data-pending-id] .msg-tick--pending').forEach((tick) => {
-            tick.classList.replace('msg-tick--pending', 'msg-tick--sent');
-            tick.title = 'Sent';
-            tick.innerHTML = '&#10003;&#10003;';
+        document.querySelectorAll('[data-pending-id]').forEach((msg) => {
+            const tick = msg.querySelector('.msg-tick--pending');
+            if (tick) {
+                tick.classList.replace('msg-tick--pending', 'msg-tick--sent');
+                tick.title = 'Sent';
+                tick.innerHTML = '&#10003;&#10003;';
+            }
+            delete msg.dataset.pendingId;
         });
 
         if (conflicts.length) {
@@ -163,27 +170,68 @@ export async function initOfflineSync() {
     if (!navigator.onLine) {
         showBanner("You're offline. Actions will be saved and synced when you reconnect.");
     }
+
+    // Init network toggle button
+    const stored = localStorage.getItem('sf_network_forced');
+    window._networkForced = stored === 'false' ? false : null;
+
+    // Apply stored state to button on page load
+    if (window._networkForced === false) {
+        const btn = document.getElementById('networkToggleBtn');
+        const icon = document.getElementById('networkToggleIcon');
+        const text = document.getElementById('networkToggleText');
+        if (btn) {
+            btn.classList.replace('btn-outline-success', 'btn-outline-danger');
+            btn.classList.add('active');
+        }
+        if (icon) icon.className = 'bi bi-wifi-off';
+        if (text) text.textContent = 'Offline';
+        showBanner("You're offline. Actions will be saved and synced when you reconnect.");
+    }
+
+    window._toggleNetwork = function () {
+        const btn = document.getElementById('networkToggleBtn');
+        const icon = document.getElementById('networkToggleIcon');
+        const text = document.getElementById('networkToggleText');
+
+        if (window._networkForced !== false) {
+            // Go offline
+            window._networkForced = false;
+            localStorage.setItem('sf_network_forced', 'false');
+            btn.classList.replace('btn-outline-success', 'btn-outline-danger');
+            btn.classList.add('active');
+            icon.className = 'bi bi-wifi-off';
+            if (text) text.textContent = 'Offline';
+            showBanner("You're offline. Actions will be saved and synced when you reconnect.");
+            updateSyncStatus();
+        } else {
+            // Go online
+            window._networkForced = null;
+            localStorage.removeItem('sf_network_forced');
+            btn.classList.replace('btn-outline-danger', 'btn-outline-success');
+            btn.classList.remove('active');
+            icon.className = 'bi bi-wifi';
+            if (text) text.textContent = 'Online';
+            showBanner('Reconnected. Syncing…', 'info');
+            updateSyncStatus();
+            registerDevice().then(() => flushQueue());
+        }
+    };
 }
 // ------------------------------
 // Dashboard Sync Card
 // ------------------------------
 
 function updateSyncStatus() {
-
     const status = document.getElementById('sync-status');
     const pending = document.getElementById('pending-count');
     const lastSync = document.getElementById('last-sync');
 
+    const isOnline = window._networkForced !== false && navigator.onLine;
+
     if (status) {
-
-        if (navigator.onLine) {
-            status.innerHTML = "🟢 Online";
-            status.className = "badge bg-success";
-        } else {
-            status.innerHTML = "🔴 Offline";
-            status.className = "badge bg-danger";
-        }
-
+        status.innerHTML = isOnline ? "🟢 Online" : "🔴 Offline";
+        status.className = isOnline ? "badge bg-success" : "badge bg-danger";
     }
 
     if (pending) {
@@ -191,15 +239,9 @@ function updateSyncStatus() {
     }
 
     if (lastSync) {
-
         const time = localStorage.getItem("last_sync_time");
-
-        if (time) {
-            lastSync.innerHTML = new Date(time).toLocaleString();
-        }
-
+        if (time) lastSync.innerHTML = new Date(time).toLocaleString();
     }
-
 }
 
 window.addEventListener("online", updateSyncStatus);

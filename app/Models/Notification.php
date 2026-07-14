@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Notification extends Model
 {
@@ -32,6 +33,20 @@ class Notification extends Model
     public function getMessageAttribute(): ?string
     {
         $message = $this->attributes['Message'] ?? null;
+
+        if ($this->Notification_Type === 'reply') {
+            if ($message && preg_match('/^Reply #\d+/i', $message)) {
+                $this->loadMissing('post.user');
+
+                if ($this->post?->Post_Content) {
+                    return Str::limit($this->post->Post_Content, 120);
+                }
+
+                $message = preg_replace('/^Reply #\d+\s*[—-]\s*/iu', '', $message);
+                $message = preg_replace('/\d+\s+replies to your message\s*\(latest from [^)]+\)/iu', '', $message);
+                $message = trim($message);
+            }
+        }
 
         if ($this->Notification_Type === 'Quiz' && $this->quiz) {
             $scheduledAt = $this->quiz->start_time?->format('M j, Y g:i A');
