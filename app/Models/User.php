@@ -9,13 +9,14 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['Fname', 'Lname', 'email', 'password', 'role', 'warnings', 'is_blacklisted', 'google_id', 'apple_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * Get the attributes that should be cast.
@@ -140,7 +141,10 @@ class User extends Authenticatable
 
     public function administeredGroups()
     {
-        return $this->groups()->wherePivot('Member_Role', GroupMember::ROLE_ADMIN);
+        return $this->belongsToMany(Group::class, 'group_members', 'User_ID', 'Group_ID')
+            ->withTimestamps()
+            ->withPivot(['Member_Status', 'Member_Role', 'warnings'])
+            ->wherePivot('Member_Role', GroupMember::ROLE_ADMIN);
     }
 
     public function administersAnyGroup(): bool
@@ -169,7 +173,7 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Group::class, 'group_members', 'User_ID', 'Group_ID')
             ->withTimestamps()
-            ->withPivot(['Member_Status', 'Member_Role', 'warnings']);
+            ->withPivot(['Member_Status']);
     }
 
     public function groupMemberships()

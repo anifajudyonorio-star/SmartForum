@@ -47,6 +47,44 @@ class TopicController extends Controller
             ->with('success', 'Topic created successfully.');
     }
 
+    public function apiShow(Topic $topic)
+    {
+        abort_unless(Auth::user()->isMemberOf($topic->group), 403);
+
+        $topic->load('group');
+
+        $posts = Post::with(['user', 'parent.user', 'hiddenFromUsers'])
+            ->where('Topic_ID', $topic->id)
+            ->visibleTo(Auth::user())
+            ->oldest()
+            ->get()
+            ->map(fn ($post) => [
+                'id'            => $post->id,
+                'content'       => $post->Post_Content,
+                'user_name'     => $post->user->name ?? 'User',
+                'user_initials' => strtoupper(substr($post->user->name ?? 'U', 0, 2)),
+                'is_mine'       => (int) $post->Created_By === Auth::id(),
+                'created_at'    => $post->created_at->format('g:i A'),
+                'created_human' => $post->created_at->diffForHumans(),
+                'parent'        => $post->parent ? [
+                    'id'        => $post->parent->id,
+                    'user_name' => $post->parent->user->name ?? 'User',
+                    'content'   => $post->parent->Post_Content,
+                ] : null,
+            ]);
+
+        return response()->json([
+            'topic' => [
+                'id'          => $topic->id,
+                'title'       => $topic->Title,
+                'description' => $topic->Topic_Description,
+                'group_name'  => $topic->group->Group_Name ?? '',
+            ],
+            'posts'     => $posts,
+            'cached_at' => now()->toISOString(),
+        ]);
+    }
+
     public function show(Topic $topic)
     {
         abort_unless(

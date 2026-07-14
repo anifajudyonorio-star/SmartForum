@@ -49,6 +49,9 @@
                     </span>
                 @endif
                 <span class="wa-bubble-time">{{ $post->created_at->format('g:i A') }}</span>
+                @if($mine)
+                    <span class="msg-tick msg-tick--sent" title="Sent">&#10003;&#10003;</span>
+                @endif
             </div>
         </div>
     </div>

@@ -2,13 +2,27 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SyncController;
+use App\Http\Controllers\PushController;
+use App\Http\Controllers\TopicController;
 
-Route::prefix('sync')->group(function () {
+// Issue a Sanctum token for the authenticated web user
+Route::middleware('auth')->post('/token', function (\Illuminate\Http\Request $request) {
+    $token = $request->user()->createToken('offline-sync')->plainTextToken;
+    return response()->json(['token' => $token]);
+});
 
+Route::middleware('auth:sanctum')->get('/topics/{topic}', [TopicController::class, 'apiShow']);
+
+Route::prefix('push')->middleware(['auth:sanctum'])->group(function () {
+    Route::post('/subscribe', [PushController::class, 'subscribe']);
+    Route::delete('/unsubscribe', [PushController::class, 'unsubscribe']);
+});
+
+Route::prefix('sync')->middleware(['auth:sanctum'])->group(function () {
+    Route::post('/device', [SyncController::class, 'registerDevice']);
     Route::post('/upload', [SyncController::class, 'uploadOfflineData']);
-
     Route::post('/', [SyncController::class, 'sync']);
-
     Route::get('/pending', [SyncController::class, 'getPendingData']);
+    Route::get('/status', [SyncController::class, 'status']);
 
 });

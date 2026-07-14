@@ -43,6 +43,7 @@ class DashboardController extends Controller
                 ->get(),
             'latestPosts' => Post::with('topic')
                 ->whereIn('Topic_ID', Topic::whereIn('Group_ID', $groupIds)->pluck('id'))
+                ->where('created_at', '>=', now()->subDay())
                 ->latest()
                 ->take(5)
                 ->get(),
