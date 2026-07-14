@@ -1,4 +1,24 @@
 // WhatsApp-style chat interactions
+
+// Build a pending (offline-queued) message bubble
+export function buildPendingBubble(content, pendingId) {
+    const now = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const div = document.createElement('div');
+    div.innerHTML = `
+        <div class="wa-msg mine" data-pending-id="${pendingId}">
+            <div class="wa-bubble-wrap">
+                <div class="wa-bubble">
+                    <p class="wa-bubble-text">${content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>
+                    <div class="wa-bubble-meta">
+                        <span class="wa-bubble-time">${now}</span>
+                        <span class="msg-tick msg-tick--pending" title="Pending">&#10003;</span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    return div.firstElementChild;
+}
+
 (function () {
     const chat = document.getElementById('waChat');
     if (!chat) return;
@@ -95,6 +115,7 @@
                         <div class="wa-bubble-meta">
                             ${hiddenBadge}
                             <span class="wa-bubble-time">${escapeHtml(post.created_at)}</span>
+                            <span class="msg-tick msg-tick--sent" title="Sent">&#10003;&#10003;</span>
                         </div>
                     </div>
                 </div>
@@ -170,6 +191,7 @@
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (!navigator.onLine) return; // handled by offline.js
             const content = input?.value?.trim();
             if (!content) return;
 
@@ -208,7 +230,7 @@
                 clearExcludeSelections();
                 scrollToBottom();
             } catch {
-                form.submit();
+                // fetch failed (e.g. went offline mid-request) — do nothing, no navigation
             } finally {
                 sendBtn.disabled = false;
             }

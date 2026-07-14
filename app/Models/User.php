@@ -141,7 +141,10 @@ class User extends Authenticatable
 
     public function administeredGroups()
     {
-        return $this->groups();
+        return $this->belongsToMany(Group::class, 'group_members', 'User_ID', 'Group_ID')
+            ->withTimestamps()
+            ->withPivot(['Member_Status', 'Member_Role', 'warnings'])
+            ->wherePivot('Member_Role', GroupMember::ROLE_ADMIN);
     }
 
     public function administersAnyGroup(): bool

@@ -213,6 +213,26 @@ class SyncService
             'Created_By'        => $action->user_id,
         ]);
     }
+    public function status(Request $request)
+{
+    $user = $request->user();
+
+    $device = Device::where('user_id', $user->id)
+        ->latest()
+        ->first();
+
+    $pending = SyncQueue::where('user_id', $user->id)
+        ->where('is_synced', false)
+        ->count();
+
+    return response()->json([
+        'success' => true,
+        'online' => optional($device)->is_online ?? false,
+        'device_name' => optional($device)->device_name,
+        'last_sync' => optional($device?->last_sync)?->format('d M Y H:i:s'),
+        'pending_actions' => $pending,
+    ]);
+}
 
     private function processSubmitQuiz(SyncQueue $action): void
     {

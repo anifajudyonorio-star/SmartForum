@@ -23,4 +23,6 @@ Route::prefix('sync')->middleware(['auth:sanctum'])->group(function () {
     Route::post('/upload', [SyncController::class, 'uploadOfflineData']);
     Route::post('/', [SyncController::class, 'sync']);
     Route::get('/pending', [SyncController::class, 'getPendingData']);
+    Route::get('/status', [SyncController::class, 'status']);
+
 });

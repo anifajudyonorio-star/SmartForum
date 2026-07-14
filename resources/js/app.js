@@ -1,5 +1,6 @@
 import './bootstrap';
 import './chat';
+import { buildPendingBubble } from './chat';
 import './notifications';
 import { initOfflineSync, queueAction } from './offline';
 import { initPushNotifications } from './push';
@@ -20,8 +21,35 @@ initReadCache();
         const content = document.getElementById('messageInput')?.value.trim();
         const parentId = document.getElementById('Parent_Post_ID')?.value || null;
         if (!content) return;
-        queueAction('create_post', { topic_id: topicId, content, parent_post_id: parentId });
+
+        // Render pending bubble with one grey tick
+        const exportArea = document.getElementById('chatExportArea');
+        const empty = document.getElementById('chatEmpty');
+        if (empty) empty.remove();
+        const bubble = buildPendingBubble(content, null);
+        exportArea?.appendChild(bubble);
+        document.getElementById('chatMessages')?.scrollTo({ top: 999999, behavior: 'smooth' });
+
+        queueAction('create_post', { topic_id: topicId, content, parent_post_id: parentId }, bubble);
         document.getElementById('messageInput').value = '';
+        const input = document.getElementById('messageInput');
+        if (input) { input.style.height = 'auto'; }
+    });
+})();
+
+// Intercept topic creation form when offline
+(function () {
+    const form = document.getElementById('topicCreateForm');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        if (navigator.onLine) return;
+        e.preventDefault();
+        const groupId = form.dataset.groupId;
+        const title = form.querySelector('input[name="Title"]')?.value.trim();
+        const description = form.querySelector('textarea[name="Topic_Description"]')?.value.trim();
+        if (!title) return;
+        queueAction('create_topic', { group_id: groupId, title, description });
+        alert('You\'re offline. Your topic will be created when you reconnect.');
     });
 })();
 
@@ -41,7 +69,7 @@ initReadCache();
             if (match) answers[match[1]] = input.value;
         });
         queueAction('submit_quiz', { quiz_id: quizId, answers });
-        window.location.href = '/student/quizzes';
+        alert('You\'re offline. Your quiz answers have been saved and will be submitted when you reconnect.');
     });
 })();
 

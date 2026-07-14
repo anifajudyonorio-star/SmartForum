@@ -1713,3 +1713,51 @@ body.chat-page {
     }
     span { padding: 0 .75rem; }
 }
+
+// ── Offline banner ─────────────────────────────────────────
+.offline-banner {
+    position: fixed;
+    bottom: calc(3.5rem + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(120%);
+    z-index: 1070;
+    min-width: 280px;
+    max-width: calc(100vw - 2rem);
+    padding: 0.65rem 1.1rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+    background: #f59e0b;
+    color: #fff;
+
+    &.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+
+    &.offline-banner-warning  { background: #f59e0b; color: #fff; }
+    &.offline-banner-info     { background: #3b82f6; color: #fff; }
+    &.offline-banner-success  { background: var(--primary); color: #fff; }
+    &.offline-banner-danger   { background: #ef4444; color: #fff; }
+
+    @media (min-width: 768px) {
+        bottom: 1.5rem;
+        left: calc(var(--sidebar-width) + 50%);
+    }
+}
+
+// ── Message delivery ticks ─────────────────────────────────
+.msg-tick {
+    font-size: 0.72rem;
+    line-height: 1;
+    letter-spacing: -0.15em;
+    flex-shrink: 0;
+
+    &--pending { color: #9ca3af; }   // one grey tick
+    &--sent    { color: #53bdeb; }   // two blue ticks
+}
