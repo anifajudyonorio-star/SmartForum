@@ -191,7 +191,31 @@ export function buildPendingBubble(content, pendingId) {
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!navigator.onLine) return; // handled by offline.js
+            const isOffline = window._networkForced === false || !navigator.onLine;
+
+            if (isOffline) {
+                const content = input?.value?.trim();
+                if (!content) return;
+                const topicId = chat.dataset.topicId;
+                const parentId = parentInput?.value || null;
+
+                const exportArea = document.getElementById('chatExportArea');
+                const empty = document.getElementById('chatEmpty');
+                if (empty) empty.remove();
+                const bubble = buildPendingBubble(content, 'tmp');
+                exportArea?.appendChild(bubble);
+                scrollToBottom();
+
+                if (typeof queueAction === 'function') {
+                    const pendingId = queueAction('create_post', { topic_id: topicId, content, parent_post_id: parentId }, bubble);
+                    bubble.dataset.pendingId = pendingId;
+                }
+
+                input.value = '';
+                autoGrow(input);
+                clearReply();
+                return;
+            }
             const content = input?.value?.trim();
             if (!content) return;
 

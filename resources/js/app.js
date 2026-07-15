@@ -6,43 +6,19 @@ import { initOfflineSync, queueAction } from './offline';
 import { initPushNotifications } from './push';
 import { initReadCache } from './cache';
 
+window.queueAction = queueAction;
+
 initOfflineSync();
 initPushNotifications();
 initReadCache();
-
-// Intercept post form when offline
-(function () {
-    const form = document.getElementById('chatForm');
-    if (!form) return;
-    form.addEventListener('submit', function (e) {
-        if (navigator.onLine) return;
-        e.preventDefault();
-        const topicId = document.getElementById('waChat')?.dataset.topicId;
-        const content = document.getElementById('messageInput')?.value.trim();
-        const parentId = document.getElementById('Parent_Post_ID')?.value || null;
-        if (!content) return;
-
-        // Render pending bubble with one grey tick
-        const exportArea = document.getElementById('chatExportArea');
-        const empty = document.getElementById('chatEmpty');
-        if (empty) empty.remove();
-        const bubble = buildPendingBubble(content, null);
-        exportArea?.appendChild(bubble);
-        document.getElementById('chatMessages')?.scrollTo({ top: 999999, behavior: 'smooth' });
-
-        queueAction('create_post', { topic_id: topicId, content, parent_post_id: parentId }, bubble);
-        document.getElementById('messageInput').value = '';
-        const input = document.getElementById('messageInput');
-        if (input) { input.style.height = 'auto'; }
-    });
-})();
 
 // Intercept topic creation form when offline
 (function () {
     const form = document.getElementById('topicCreateForm');
     if (!form) return;
     form.addEventListener('submit', function (e) {
-        if (navigator.onLine) return;
+        const isOffline = window._networkForced === false || !navigator.onLine;
+        if (!isOffline) return;
         e.preventDefault();
         const groupId = form.dataset.groupId;
         const title = form.querySelector('input[name="Title"]')?.value.trim();
@@ -58,7 +34,8 @@ initReadCache();
     const form = document.getElementById('quizForm');
     if (!form) return;
     form.addEventListener('submit', function (e) {
-        if (navigator.onLine) return;
+        const isOffline = window._networkForced === false || !navigator.onLine;
+        if (!isOffline) return;
         e.preventDefault();
         const action = form.getAttribute('action');
         const quizId = action?.match(/\/quizzes\/(\d+)\//)?.[1];

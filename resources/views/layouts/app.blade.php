@@ -58,6 +58,13 @@ use Illuminate\Support\Facades\Auth;
                         Smart Discussion
                     </a>
 
+                    @auth
+                        <button id="networkToggleBtn" class="btn btn-sm btn-outline-success ms-auto me-2" title="Toggle network" onclick="window._toggleNetwork()">
+                            <i class="bi bi-wifi" id="networkToggleIcon"></i>
+                            <span class="d-none d-md-inline ms-1" id="networkToggleText">Online</span>
+                        </button>
+                    @endauth
+
                     <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
                         <span class="navbar-toggler-icon"></span>
                     </button>
@@ -66,6 +73,8 @@ use Illuminate\Support\Facades\Auth;
                         <ul class="navbar-nav me-auto"></ul>
 
                         <ul class="navbar-nav ms-auto">
+                            @auth
+                            @endauth
                             @guest
                                 @if (Route::has('login'))
                                     <li class="nav-item">
