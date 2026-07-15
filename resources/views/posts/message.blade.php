@@ -7,6 +7,9 @@
     <div class="wa-bubble-wrap">
         <div class="wa-bubble">
             <div class="wa-bubble-actions">
+                <button type="button" class="wa-action-btn copy-btn" title="Copy">
+                    <i class="bi bi-clipboard"></i>
+                </button>
                 <button type="button" class="wa-action-btn reply-btn"
                         data-post="{{ $post->id }}"
                         data-user="{{ $post->user->name }}"

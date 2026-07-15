@@ -36,7 +36,12 @@ export function buildMessageHtml(post) {
             </div>`;
     }
     const actions = post.is_mine
-        ? `<a href="/posts/${post.id}/edit" class="wa-action-btn" title="Edit"><i class="bi bi-pencil-fill"></i></a>`
+        ? `<a href="/posts/${post.id}/edit" class="wa-action-btn" title="Edit"><i class="bi bi-pencil-fill"></i></a>
+           <form action="/posts/${post.id}" method="POST" class="d-inline" onsubmit="return confirm('Delete this message?')">
+               <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]')?.content || ''}">
+               <input type="hidden" name="_method" value="DELETE">
+               <button type="submit" class="wa-action-btn" title="Delete"><i class="bi bi-trash-fill"></i></button>
+           </form>`
         : '';
     const hiddenBadge = post.is_mine && post.hidden_count > 0
         ? `<span class="wa-hidden-badge" title="Hidden from ${post.hidden_count} member(s)"><i class="bi bi-eye-slash"></i> ${post.hidden_count}</span>`
@@ -46,6 +51,9 @@ export function buildMessageHtml(post) {
             <div class="wa-bubble-wrap">
                 <div class="wa-bubble">
                     <div class="wa-bubble-actions">
+                        <button type="button" class="wa-action-btn copy-btn" title="Copy">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
                         <button type="button" class="wa-action-btn reply-btn"
                                 data-post="${post.id}"
                                 data-user="${escapeHtml(post.user_name)}"
@@ -114,6 +122,69 @@ export function buildMessageHtml(post) {
         if (excludeToggle) excludeToggle.classList.remove('active');
     }
 
+    function copyTextSync(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '0';
+        textarea.style.left = '0';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, text.length);
+
+        let copied = false;
+        try {
+            copied = document.execCommand('copy');
+        } catch {
+            copied = false;
+        }
+
+        document.body.removeChild(textarea);
+        return copied;
+    }
+
+    function copyText(text, btn) {
+        if (!text) return;
+
+        const done = () => {
+            const original = btn.title;
+            btn.title = 'Copied!';
+            setTimeout(() => { btn.title = original; }, 1500);
+        };
+
+        if (copyTextSync(text)) {
+            done();
+            return;
+        }
+
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).then(done).catch(() => copyTextSync(text) && done());
+        }
+    }
+
+    function bindCopyButtons() {
+        const area = document.getElementById('chatExportArea');
+        if (!area || area.dataset.copyBound) return;
+        area.dataset.copyBound = '1';
+
+        area.addEventListener('mousedown', (event) => {
+            const btn = event.target.closest('.copy-btn');
+            if (!btn) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const bubble = btn.closest('.wa-bubble');
+            const textEl = bubble?.querySelector('.wa-bubble-text');
+            const text = (textEl?.innerText || textEl?.textContent || '').trim();
+            copyText(text, btn);
+        }, true);
+    }
+
     function bindReplyButtons(scope) {
         (scope || document).querySelectorAll('.reply-btn').forEach((btn) => {
             if (btn.dataset.bound) return;
@@ -161,6 +232,7 @@ export function buildMessageHtml(post) {
     }
 
     bindReplyButtons();
+    bindCopyButtons();
     bindQuoteScroll();
     scrollToBottom();
 
