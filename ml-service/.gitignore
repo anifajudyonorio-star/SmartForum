@@ -1,0 +1,26 @@
+#virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+#package manager
+node_modules/
+
+#python caching and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+#machine learning data and models
+#data/
+#models/*.pkl
+#models/*.h5
+#models/*.pt
+
+#ide configurations
+.vscode/
+.idea/
+
+#environment  secrets
+.env
