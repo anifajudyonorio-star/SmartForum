@@ -11,7 +11,7 @@ class QuizResult extends Model
 
     protected $fillable = [
         'quiz_id',
-        'student_id',
+        'user_id',
         'score',
         'participation_marks',
         'total_score',
@@ -22,8 +22,14 @@ class QuizResult extends Model
         return $this->belongsTo(Quiz::class);
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    // Alias kept for any legacy references
     public function student()
     {
-        return $this->belongsTo(User::class,'student_id');
+        return $this->user();
     }
 }

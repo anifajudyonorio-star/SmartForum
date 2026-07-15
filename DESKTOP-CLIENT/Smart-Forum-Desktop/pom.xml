@@ -25,11 +25,20 @@
             <artifactId>javafx-controls</artifactId>
             <version>24.0.1</version>
         </dependency>
-
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
             <version>24.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>5.3.1</version>
         </dependency>
     </dependencies>
 
@@ -41,6 +50,10 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>com.smartforum.Main</mainClass>
+                    <options>
+                        <option>--add-opens</option>
+                        <option>javafx.graphics/com.sun.javafx.application=ALL-UNNAMED</option>
+                    </options>
                 </configuration>
             </plugin>
         </plugins>

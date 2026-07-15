@@ -100,5 +100,43 @@
     </div>
 
 </div>
+<div class="card dashboard-card mt-3 fly-in">
+    <div class="card-header bg-white border-0">
+        <h6 class="mb-0 fw-semibold">
+            <i class="bi bi-arrow-repeat text-success me-1"></i>
+            Offline Synchronization
+        </h6>
+    </div>
+
+    <div class="card-body">
+
+        <p class="mb-2">
+            <strong>Status:</strong>
+            <span id="sync-status" class="badge bg-success">
+                Online
+            </span>
+        </p>
+
+        <p class="mb-2">
+            <strong>Pending Actions:</strong>
+            <span id="pending-count">0</span>
+        </p>
+
+        <p class="mb-3">
+            <strong>Last Sync:</strong>
+            <span id="last-sync">
+                Never
+            </span>
+        </p>
+
+        <button
+            class="btn btn-primary btn-sm"
+            id="sync-now-btn">
+            <i class="bi bi-arrow-repeat"></i>
+            Sync Now
+        </button>
+
+    </div>
+</div>
 
 @endsection

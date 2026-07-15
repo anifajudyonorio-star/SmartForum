@@ -59,6 +59,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/groups/{group}/topics', [TopicController::class, 'store'])->name('topics.store');
 
     Route::get('/topics/search', [TopicController::class, 'search'])->name('topics.search');
+    Route::get('/topics', [TopicController::class, 'index'])->name('topics.index');
     Route::get('/topics/{topic}', [TopicController::class, 'show'])->name('topics.show');
     Route::get('/topics/{topic}/edit', [TopicController::class, 'edit'])->name('topics.edit');
     Route::put('/topics/{topic}', [TopicController::class, 'update'])->name('topics.update');

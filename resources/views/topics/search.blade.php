@@ -10,6 +10,36 @@
         <p class="text-muted small mb-0">Find discussions in your assigned groups by title or description.</p>
     </div>
 
+    @if(isset($recommendedTopics) && $recommendedTopics->isNotEmpty())
+        <div class="card dashboard-card border-info mb-3 fly-in fly-in-delay-1">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-stars me-1"></i> Recommended for you
+                    </h5>
+                    <span class="badge bg-info text-dark">AI suggestions</span>
+                </div>
+
+                <div class="row g-2">
+                    @foreach($recommendedTopics as $topic)
+                        <div class="col-12 col-md-6 col-xl-4">
+                            <div class="border rounded-3 p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <h6 class="fw-semibold mb-0">{{ $topic->Title }}</h6>
+                                    <span class="badge bg-warning text-dark">{{ number_format($topic->recommendation_score, 2) }}</span>
+                                </div>
+                                <p class="small text-muted mb-2">{{ Str::limit($topic->Topic_Description, 100) }}</p>
+                                <a href="{{ route('topics.show', $topic) }}" class="btn btn-outline-success btn-sm">
+                                    View recommendation
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="card dashboard-card mb-3 fly-in fly-in-delay-1">
         <div class="card-body">
             <form action="{{ route('topics.search') }}" method="GET" class="row g-2 align-items-end">

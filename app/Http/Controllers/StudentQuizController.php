@@ -130,7 +130,7 @@ class StudentQuizController extends Controller
 
     QuizResult::create([
         'quiz_id' => $quiz->id,
-        'student_id' => auth()->id(),
+        'user_id' => auth()->id(),
         'score' => $score,
         'participation_marks' => $participationMarks,
         'total_score' => $totalScore,
@@ -170,7 +170,7 @@ class StudentQuizController extends Controller
     private function hasCompletedQuiz(Quiz $quiz): bool
     {
         return QuizResult::where('quiz_id', $quiz->id)
-            ->where('student_id', auth()->id())
+            ->where('user_id', auth()->id())
             ->exists();
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Group;
+use App\Models\GroupMember;
 use App\Models\Post;
 use App\Models\Topic;
 use App\Models\User;
@@ -11,6 +12,122 @@ use Illuminate\Support\Collection;
 
 class GroupStatisticsService
 {
+    /**
+     * Summary counts shown on the group show page (members, topics, posts, member statuses).
+     */
+    public static function overviewStats(Collection $members, Collection $topics): array
+    {
+        $topicIds = $topics->pluck('id');
+
+        $statusCounts = [
+            GroupMember::STATUS_ACTIVE => 0,
+            GroupMember::STATUS_SUSPENDED => 0,
+            GroupMember::STATUS_BLOCKED => 0,
+        ];
+
+        foreach ($members as $member) {
+            $status = $member->pivot->Member_Status ?? GroupMember::STATUS_ACTIVE;
+            if (isset($statusCounts[$status])) {
+                $statusCounts[$status]++;
+            }
+        }
+
+        return [
+            'members_count' => $members->count(),
+            'topics_count' => $topics->count(),
+            'posts_count' => $topicIds->isEmpty()
+                ? 0
+                : Post::whereIn('Topic_ID', $topicIds)->count(),
+            'active_members' => $statusCounts[GroupMember::STATUS_ACTIVE],
+            'suspended_members' => $statusCounts[GroupMember::STATUS_SUSPENDED],
+            'blocked_members' => $statusCounts[GroupMember::STATUS_BLOCKED],
+            'most_active_member' => self::topMemberByPosts($members, $topicIds),
+            'top_topic_creator' => self::topMemberByTopics($members, $topics),
+            'most_active_topic' => self::mostActiveTopic($topics, $topicIds),
+            'members_with_warnings' => $members->filter(
+                fn ($member) => ((int) ($member->pivot->warnings ?? 0)) > 0
+            )->count(),
+            'admin_count' => $members->filter(
+                fn ($member) => ($member->pivot->Member_Role ?? GroupMember::ROLE_MEMBER) === GroupMember::ROLE_ADMIN
+            )->count(),
+            'avg_posts_per_topic' => $topics->count() > 0
+                ? round((($topicIds->isEmpty()
+                    ? 0
+                    : Post::whereIn('Topic_ID', $topicIds)->count()) / $topics->count()), 1)
+                : 0,
+        ];
+    }
+
+    private static function topMemberByPosts(Collection $members, Collection $topicIds): ?array
+    {
+        if ($topicIds->isEmpty()) {
+            return null;
+        }
+
+        $topUser = User::query()
+            ->whereIn('id', $members->pluck('id'))
+            ->withCount(['posts' => fn ($query) => $query->whereIn('Topic_ID', $topicIds)])
+            ->orderByDesc('posts_count')
+            ->first();
+
+        if (! $topUser || $topUser->posts_count === 0) {
+            return null;
+        }
+
+        return [
+            'name' => $topUser->name,
+            'count' => $topUser->posts_count,
+            'label' => $topUser->posts_count === 1 ? 'post' : 'posts',
+        ];
+    }
+
+    private static function topMemberByTopics(Collection $members, Collection $topics): ?array
+    {
+        if ($topics->isEmpty()) {
+            return null;
+        }
+
+        $creatorCounts = $topics->groupBy('Created_By')->map->count()->sortDesc();
+        $topCreatorId = $creatorCounts->keys()->first();
+        $topicCount = $creatorCounts->first();
+
+        if (! $topCreatorId || $topicCount === 0) {
+            return null;
+        }
+
+        $creator = $members->firstWhere('id', $topCreatorId)
+            ?? User::find($topCreatorId);
+
+        return [
+            'name' => $creator?->name ?? 'Unknown',
+            'count' => $topicCount,
+            'label' => $topicCount === 1 ? 'topic' : 'topics',
+        ];
+    }
+
+    private static function mostActiveTopic(Collection $topics, Collection $topicIds): ?array
+    {
+        if ($topicIds->isEmpty()) {
+            return null;
+        }
+
+        $mostActiveTopic = Topic::query()
+            ->whereIn('id', $topicIds)
+            ->withCount('posts')
+            ->orderByDesc('posts_count')
+            ->first();
+
+        if (! $mostActiveTopic || $mostActiveTopic->posts_count === 0) {
+            return null;
+        }
+
+        return [
+            'name' => $mostActiveTopic->Title,
+            'count' => $mostActiveTopic->posts_count,
+            'label' => $mostActiveTopic->posts_count === 1 ? 'post' : 'posts',
+        ];
+    }
+
     public static function summaries(?Collection $groupIds = null): Collection
     {
         $query = Group::query()

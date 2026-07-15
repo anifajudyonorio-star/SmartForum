@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Group;
 use App\Models\Topic;
 use App\Models\Post;
+use App\Services\MachineLearningService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -44,6 +45,44 @@ class TopicController extends Controller
         return redirect()
             ->route('groups.show', $group)
             ->with('success', 'Topic created successfully.');
+    }
+
+    public function apiShow(Topic $topic)
+    {
+        abort_unless(Auth::user()->isMemberOf($topic->group), 403);
+
+        $topic->load('group');
+
+        $posts = Post::with(['user', 'parent.user', 'hiddenFromUsers'])
+            ->where('Topic_ID', $topic->id)
+            ->visibleTo(Auth::user())
+            ->oldest()
+            ->get()
+            ->map(fn ($post) => [
+                'id'            => $post->id,
+                'content'       => $post->Post_Content,
+                'user_name'     => $post->user->name ?? 'User',
+                'user_initials' => strtoupper(substr($post->user->name ?? 'U', 0, 2)),
+                'is_mine'       => (int) $post->Created_By === Auth::id(),
+                'created_at'    => $post->created_at->format('g:i A'),
+                'created_human' => $post->created_at->diffForHumans(),
+                'parent'        => $post->parent ? [
+                    'id'        => $post->parent->id,
+                    'user_name' => $post->parent->user->name ?? 'User',
+                    'content'   => $post->parent->Post_Content,
+                ] : null,
+            ]);
+
+        return response()->json([
+            'topic' => [
+                'id'          => $topic->id,
+                'title'       => $topic->Title,
+                'description' => $topic->Topic_Description,
+                'group_name'  => $topic->group->Group_Name ?? '',
+            ],
+            'posts'     => $posts,
+            'cached_at' => now()->toISOString(),
+        ]);
     }
 
     public function show(Topic $topic)
@@ -106,7 +145,7 @@ class TopicController extends Controller
             ->with('success', 'Topic deleted successfully.');
     }
 
-    public function search(Request $request)
+    public function search(Request $request, MachineLearningService $mlService)
     {
         $search = trim((string) $request->query('search', ''));
         $user = Auth::user();
@@ -123,6 +162,7 @@ class TopicController extends Controller
                 return view('topics.search', [
                     'topics' => collect(),
                     'search' => $search,
+                    'recommendedTopics' => collect(),
                 ]);
             }
 
@@ -137,13 +177,15 @@ class TopicController extends Controller
         }
 
         $topics = $query->latest()->get();
+        $recommendedTopics = $this->loadRecommendedTopics($mlService, $user);
 
-        return view('topics.search', compact('topics', 'search'));
+        return view('topics.search', compact('topics', 'search', 'recommendedTopics'));
     }
 
-    public function index()
+    public function index(MachineLearningService $mlService)
     {
-        $groupIds = Auth::user()->groups()->pluck('groups.id');
+        $user = Auth::user();
+        $groupIds = $user->groups()->pluck('groups.id');
 
         $topics = Topic::with(['user', 'group'])
             ->withCount('posts')
@@ -151,7 +193,45 @@ class TopicController extends Controller
             ->latest()
             ->get();
 
-        return view('topics.index', compact('topics'));
+        $recommendedTopics = $this->loadRecommendedTopics($mlService, $user);
+
+        return view('topics.index', compact('topics', 'recommendedTopics'));
+    }
+
+    private function loadRecommendedTopics(MachineLearningService $mlService, $user)
+    {
+        $groupIds = $user->groups()->pluck('groups.id');
+
+        $recommendations = collect($mlService->getRecommendations($user->id))
+            ->filter(fn ($item) => isset($item['id']))
+            ->values();
+
+        $recommendedTopicIds = $recommendations->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        if ($recommendedTopicIds === []) {
+            return collect();
+        }
+
+        $query = Topic::with(['user', 'group'])
+            ->whereIn('id', $recommendedTopicIds);
+
+        if (! $user->isAdmin()) {
+            if ($groupIds->isEmpty()) {
+                return collect();
+            }
+
+            $query->whereIn('Group_ID', $groupIds);
+        }
+
+        return $query->get()
+            ->map(function ($topic) use ($recommendations) {
+                $match = $recommendations->firstWhere('id', (int) $topic->id);
+                $topic->recommendation_score = $match['score'] ?? 0;
+
+                return $topic;
+            })
+            ->sortByDesc('recommendation_score')
+            ->values();
     }
 
     private function canManageTopic(Topic $topic): bool
