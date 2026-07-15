@@ -10,7 +10,8 @@
 
 <div class="wa-chat" id="waChat"
      data-topic-id="{{ $topic->id }}"
-     data-store-url="{{ route('posts.store', $topic) }}">
+     data-store-url="{{ route('posts.store', $topic) }}"
+     data-topic-api-url="{{ url('/api/topics/' . $topic->id) }}">
 
     <header class="wa-chat-header">
         <a href="{{ route('groups.show', $topic->group) }}" class="wa-chat-back" aria-label="Back to group">

@@ -1,25 +1,30 @@
-<!doctype html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+@php
+use Illuminate\Support\Facades\Auth;
+@endphp
 
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 
-    @auth
-        <meta name="notifications-poll-url" content="{{ route('notifications.poll') }}">
-        <meta name="notifications-last-id" content="{{ $latestNotificationId ?? 0 }}">
-        <meta name="notifications-unread" content="{{ $unreadNotificationCount ?? 0 }}">
-    @endauth
+@if(Auth::check())
+<script>
+    window.currentUserId = {{ auth()->id() }};
+</script>
+@endif
 
-    <title>Smart Discussion</title>
+@auth
+    <meta name="notifications-poll-url" content="{{ route('notifications.poll') }}">
+    <meta name="notifications-last-id" content="{{ $latestNotificationId ?? 0 }}">
+    <meta name="notifications-unread" content="{{ $unreadNotificationCount ?? 0 }}">
+    <meta name="vapid-public-key" content="{{ config('webpush.vapid.public_key') }}">
+@endauth
 
-    <link rel="dns-prefetch" href="//fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=Nunito:400,500,600,700" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<title>Smart Discussion</title>
 
-    @vite(['resources/sass/app.scss', 'resources/js/app.js'])
-    @stack('styles')
+<link rel="dns-prefetch" href="//fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=Nunito:400,500,600,700" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+@vite(['resources/sass/app.scss', 'resources/js/app.js'])
+@stack('styles')
 </head>
 <body class="@yield('body-class')">
     <div id="app" class="app-shell">
@@ -44,6 +49,13 @@
                         Smart Discussion
                     </a>
 
+                    @auth
+                        <button id="networkToggleBtn" class="btn btn-sm btn-outline-success ms-auto me-2" title="Toggle network" onclick="window._toggleNetwork()">
+                            <i class="bi bi-wifi" id="networkToggleIcon"></i>
+                            <span class="d-none d-md-inline ms-1" id="networkToggleText">Online</span>
+                        </button>
+                    @endauth
+
                     <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
                         <span class="navbar-toggler-icon"></span>
                     </button>
@@ -52,6 +64,8 @@
                         <ul class="navbar-nav me-auto"></ul>
 
                         <ul class="navbar-nav ms-auto">
+                            @auth
+                            @endauth
                             @guest
                                 @if (Route::has('login'))
                                     <li class="nav-item">
@@ -113,6 +127,7 @@
 
     @auth
         <div id="notifToastStack" class="wa-notif-stack" aria-live="polite"></div>
+        <div id="offlineBanner" class="offline-banner" role="alert" aria-live="assertive"></div>
     @endauth
 
     @stack('scripts')
