@@ -16,11 +16,8 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-<<<<<<< Updated upstream
     use HasFactory, Notifiable, HasApiTokens;
-=======
     use HasApiTokens, HasFactory, Notifiable;
->>>>>>> Stashed changes
 
     /**
      * Get the attributes that should be cast.
