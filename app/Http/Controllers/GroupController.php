@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\User;
+use App\Services\GroupStatisticsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -96,6 +97,8 @@ class GroupController extends Controller
                 ->get(['id', 'Fname', 'Lname', 'email', 'role']);
         }
 
+        $groupStats = GroupStatisticsService::overviewStats($members, $topics);
+
         return view('groups.show', compact(
             'group',
             'topics',
@@ -103,7 +106,8 @@ class GroupController extends Controller
             'canManage',
             'groupRole',
             'members',
-            'availableUsers'
+            'availableUsers',
+            'groupStats'
         ));
     }
 

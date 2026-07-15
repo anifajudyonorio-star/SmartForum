@@ -14,6 +14,36 @@
 
     </div>
 
+    @if($recommendedTopics->isNotEmpty())
+
+        <div class="card border-info shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="fw-bold mb-0">✨ Recommended for you</h4>
+                    <span class="badge bg-info text-dark">AI suggestions</span>
+                </div>
+
+                <div class="row">
+                    @foreach($recommendedTopics as $topic)
+                        <div class="col-lg-6 mb-3">
+                            <div class="border rounded-3 p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="fw-semibold mb-0">{{ $topic->Title }}</h5>
+                                    <span class="badge bg-warning text-dark">{{ number_format($topic->recommendation_score, 2) }}</span>
+                                </div>
+                                <p class="text-muted small mb-3">{{ Str::limit($topic->Topic_Description, 120) }}</p>
+                                <a href="{{ route('topics.show', $topic) }}" class="btn btn-outline-success btn-sm">
+                                    View recommendation
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
+    @endif
+
     @if($topics->count())
 
         <div class="row">

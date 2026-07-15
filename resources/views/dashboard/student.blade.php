@@ -84,21 +84,51 @@
                 <div class="card-header bg-white py-2 border-0">
                     <h6 class="mb-0 fw-semibold"><i class="bi bi-chat-left-text me-1 text-primary"></i>Latest Posts</h6>
                 </div>
-                <div class="card-body py-2">
-                    @forelse($latestPosts as $post)
-                        <div class="mb-2">
-                            <strong class="small">{{ Str::limit($post->Post_Content, 50) }}</strong>
-                            <br>
-                            <small class="text-muted">{{ $post->created_at->diffForHumans() }}</small>
-                        </div>
-                    @empty
-                        <p class="text-muted small mb-0">No recent posts.</p>
-                    @endforelse
+                <div class="card-body py-2" id="latest-posts-list">
+                    @include('dashboard.partials.latest-posts', ['latestPosts' => $latestPosts])
                 </div>
             </div>
         </div>
     </div>
 
+</div>
+<div class="card dashboard-card mt-3 fly-in">
+    <div class="card-header bg-white border-0">
+        <h6 class="mb-0 fw-semibold">
+            <i class="bi bi-arrow-repeat text-success me-1"></i>
+            Offline Synchronization
+        </h6>
+    </div>
+
+    <div class="card-body">
+
+        <p class="mb-2">
+            <strong>Status:</strong>
+            <span id="sync-status" class="badge bg-success">
+                Online
+            </span>
+        </p>
+
+        <p class="mb-2">
+            <strong>Pending Actions:</strong>
+            <span id="pending-count">0</span>
+        </p>
+
+        <p class="mb-3">
+            <strong>Last Sync:</strong>
+            <span id="last-sync">
+                Never
+            </span>
+        </p>
+
+        <button
+            class="btn btn-primary btn-sm"
+            id="sync-now-btn">
+            <i class="bi bi-arrow-repeat"></i>
+            Sync Now
+        </button>
+
+    </div>
 </div>
 
 @endsection

@@ -51,7 +51,7 @@
 
             @endif
 
-            <form action="{{ route('topics.store', $group) }}" method="POST">
+            <form id="topicCreateForm" action="{{ route('topics.store', $group) }}" method="POST" data-group-id="{{ $group->id }}">
 
                 @csrf
 
