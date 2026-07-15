@@ -1,23 +1,20 @@
 package com.smartforum;
 
 import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 public class Main extends Application {
 
     @Override
-    public void start(Stage stage) {
-        Label label = new Label("Welcome to Smart Discussion Forum Desktop");
-
-        StackPane root = new StackPane(label);
-
-        Scene scene = new Scene(root, 600, 400);
-
+    public void start(Stage stage) throws Exception {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/smartforum/auth-view.fxml"));
+        Scene scene = new Scene(loader.load(), 480, 600);
+        scene.setFill(javafx.scene.paint.Color.web("#0a0f1e"));
         stage.setTitle("Smart Discussion Forum");
         stage.setScene(scene);
+        stage.setResizable(false);
         stage.show();
     }
 
