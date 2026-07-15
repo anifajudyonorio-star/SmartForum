@@ -1,6 +1,11 @@
 // WhatsApp-style chat interactions
 
-// Build a pending (offline-queued) message bubble
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 export function buildPendingBubble(content, pendingId) {
     const now = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     const div = document.createElement('div');
@@ -17,6 +22,50 @@ export function buildPendingBubble(content, pendingId) {
             </div>
         </div>`;
     return div.firstElementChild;
+}
+
+export function buildMessageHtml(post) {
+    const mine = post.is_mine ? 'mine' : 'theirs';
+    const nameBlock = post.is_mine ? '' : `<div class="wa-bubble-name">${escapeHtml(post.user_name)}</div>`;
+    let quoteBlock = '';
+    if (post.parent) {
+        quoteBlock = `
+            <div class="wa-quote reply-quote" data-scroll-to="msg-${post.parent.id}">
+                <div class="wa-quote-author">${escapeHtml(post.parent.user_name)}</div>
+                <p class="wa-quote-text">${escapeHtml(post.parent.content.substring(0, 120))}</p>
+            </div>`;
+    }
+    const actions = post.is_mine
+        ? `<a href="/posts/${post.id}/edit" class="wa-action-btn" title="Edit"><i class="bi bi-pencil-fill"></i></a>`
+        : '';
+    const hiddenBadge = post.is_mine && post.hidden_count > 0
+        ? `<span class="wa-hidden-badge" title="Hidden from ${post.hidden_count} member(s)"><i class="bi bi-eye-slash"></i> ${post.hidden_count}</span>`
+        : '';
+    return `
+        <div class="wa-msg ${mine}" id="msg-${post.id}" data-msg-id="${post.id}">
+            <div class="wa-bubble-wrap">
+                <div class="wa-bubble">
+                    <div class="wa-bubble-actions">
+                        <button type="button" class="wa-action-btn reply-btn"
+                                data-post="${post.id}"
+                                data-user="${escapeHtml(post.user_name)}"
+                                data-content="${escapeHtml(post.content.substring(0, 80))}"
+                                title="Reply">
+                            <i class="bi bi-reply-fill"></i>
+                        </button>
+                        ${actions}
+                    </div>
+                    ${nameBlock}
+                    ${quoteBlock}
+                    <p class="wa-bubble-text">${escapeHtml(post.content)}</p>
+                    <div class="wa-bubble-meta">
+                        ${hiddenBadge}
+                        <span class="wa-bubble-time">${escapeHtml(post.created_at)}</span>
+                        <span class="msg-tick msg-tick--sent" title="Sent">&#10003;&#10003;</span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
 }
 
 (function () {
@@ -38,9 +87,7 @@ export function buildPendingBubble(content, pendingId) {
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
 
     function scrollToBottom() {
-        if (messagesEl) {
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-        }
+        if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
     function autoGrow(el) {
@@ -62,64 +109,9 @@ export function buildPendingBubble(content, pendingId) {
     }
 
     function clearExcludeSelections() {
-        form?.querySelectorAll('.exclude-user-checkbox:checked').forEach((cb) => {
-            cb.checked = false;
-        });
+        form?.querySelectorAll('.exclude-user-checkbox:checked').forEach((cb) => { cb.checked = false; });
         if (excludePanel) excludePanel.classList.add('d-none');
         if (excludeToggle) excludeToggle.classList.remove('active');
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    function buildMessageHtml(post) {
-        const mine = post.is_mine ? 'mine' : 'theirs';
-        const nameBlock = post.is_mine ? '' : `<div class="wa-bubble-name">${escapeHtml(post.user_name)}</div>`;
-        let quoteBlock = '';
-        if (post.parent) {
-            quoteBlock = `
-                <div class="wa-quote reply-quote" data-scroll-to="msg-${post.parent.id}">
-                    <div class="wa-quote-author">${escapeHtml(post.parent.user_name)}</div>
-                    <p class="wa-quote-text">${escapeHtml(post.parent.content.substring(0, 120))}</p>
-                </div>`;
-        }
-
-        const actions = post.is_mine
-            ? `<a href="/posts/${post.id}/edit" class="wa-action-btn" title="Edit"><i class="bi bi-pencil-fill"></i></a>`
-            : '';
-
-        const hiddenBadge = post.is_mine && post.hidden_count > 0
-            ? `<span class="wa-hidden-badge" title="Hidden from ${post.hidden_count} member(s)"><i class="bi bi-eye-slash"></i> ${post.hidden_count}</span>`
-            : '';
-
-        return `
-            <div class="wa-msg ${mine}" id="msg-${post.id}" data-msg-id="${post.id}">
-                <div class="wa-bubble-wrap">
-                    <div class="wa-bubble">
-                        <div class="wa-bubble-actions">
-                            <button type="button" class="wa-action-btn reply-btn"
-                                    data-post="${post.id}"
-                                    data-user="${escapeHtml(post.user_name)}"
-                                    data-content="${escapeHtml(post.content.substring(0, 80))}"
-                                    title="Reply">
-                                <i class="bi bi-reply-fill"></i>
-                            </button>
-                            ${actions}
-                        </div>
-                        ${nameBlock}
-                        ${quoteBlock}
-                        <p class="wa-bubble-text">${escapeHtml(post.content)}</p>
-                        <div class="wa-bubble-meta">
-                            ${hiddenBadge}
-                            <span class="wa-bubble-time">${escapeHtml(post.created_at)}</span>
-                            <span class="msg-tick msg-tick--sent" title="Sent">&#10003;&#10003;</span>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
     }
 
     function bindReplyButtons(scope) {
@@ -159,9 +151,7 @@ export function buildPendingBubble(content, pendingId) {
         autoGrow(input);
     }
 
-    if (cancelReply) {
-        cancelReply.addEventListener('click', clearReply);
-    }
+    if (cancelReply) cancelReply.addEventListener('click', clearReply);
 
     if (excludeToggle && excludePanel) {
         excludeToggle.addEventListener('click', () => {
@@ -174,7 +164,6 @@ export function buildPendingBubble(content, pendingId) {
     bindQuoteScroll();
     scrollToBottom();
 
-    // Scroll to a specific message when opened from a notification link (#msg-123).
     const hashTarget = window.location.hash?.replace('#', '');
     if (hashTarget && hashTarget.startsWith('msg-')) {
         const target = document.getElementById(hashTarget);
@@ -202,6 +191,7 @@ export function buildPendingBubble(content, pendingId) {
                 const exportArea = document.getElementById('chatExportArea');
                 const empty = document.getElementById('chatEmpty');
                 if (empty) empty.remove();
+
                 const bubble = buildPendingBubble(content, 'tmp');
                 exportArea?.appendChild(bubble);
                 scrollToBottom();
@@ -216,6 +206,7 @@ export function buildPendingBubble(content, pendingId) {
                 clearReply();
                 return;
             }
+
             const content = input?.value?.trim();
             if (!content) return;
 
@@ -254,7 +245,7 @@ export function buildPendingBubble(content, pendingId) {
                 clearExcludeSelections();
                 scrollToBottom();
             } catch {
-                // fetch failed (e.g. went offline mid-request) — do nothing, no navigation
+                // fetch failed — do nothing
             } finally {
                 sendBtn.disabled = false;
             }
@@ -277,7 +268,6 @@ export function buildPendingBubble(content, pendingId) {
                 clone.querySelectorAll('.wa-bubble-actions').forEach((el) => el.remove());
                 wrapper.appendChild(clone);
             }
-
             html2pdf().set({
                 margin: 10,
                 filename: `discussion-${topicTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`,

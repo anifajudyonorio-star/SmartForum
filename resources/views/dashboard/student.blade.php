@@ -84,16 +84,8 @@
                 <div class="card-header bg-white py-2 border-0">
                     <h6 class="mb-0 fw-semibold"><i class="bi bi-chat-left-text me-1 text-primary"></i>Latest Posts</h6>
                 </div>
-                <div class="card-body py-2">
-                    @forelse($latestPosts as $post)
-                        <div class="mb-2">
-                            <strong class="small">{{ Str::limit($post->Post_Content, 50) }}</strong>
-                            <br>
-                            <small class="text-muted">{{ $post->created_at->diffForHumans() }}</small>
-                        </div>
-                    @empty
-                        <p class="text-muted small mb-0">No recent posts.</p>
-                    @endforelse
+                <div class="card-body py-2" id="latest-posts-list">
+                    @include('dashboard.partials.latest-posts', ['latestPosts' => $latestPosts])
                 </div>
             </div>
         </div>

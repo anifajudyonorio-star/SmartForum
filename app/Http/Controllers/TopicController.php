@@ -85,6 +85,22 @@ class TopicController extends Controller
         ]);
     }
 
+    public function postsFragment(Topic $topic)
+    {
+        abort_unless(
+            Auth::user()->canViewGroup($topic->group),
+            403
+        );
+
+        $posts = Post::with(['user', 'parent.user', 'hiddenFromUsers'])
+            ->where('Topic_ID', $topic->id)
+            ->visibleTo(Auth::user())
+            ->oldest()
+            ->get();
+
+        return view('posts.fragment', compact('posts'));
+    }
+
     public function show(Topic $topic)
     {
         abort_unless(
