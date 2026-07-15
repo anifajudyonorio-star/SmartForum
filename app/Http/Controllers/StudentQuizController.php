@@ -31,7 +31,7 @@ class StudentQuizController extends Controller
         return view('student.quizzes.index', compact('quizzes', 'completedQuizIds'));
     }
 
-    public function show(Quiz $quiz)
+    public function show(Request $request, Quiz $quiz)
     {
         if ($this->hasCompletedQuiz($quiz)) {
             return redirect()
@@ -52,6 +52,13 @@ class StudentQuizController extends Controller
         }
 
         $quiz->load(['questions.options']);
+
+        // If the student hasn't explicitly started the quiz, show a preview
+        // page with a Start button. This avoids creating attempts automatically
+        // and prevents immediate expiry caused by stale attempts.
+        if (! $request->query('start')) {
+            return view('student.quizzes.preview', compact('quiz'));
+        }
 
         abort_if($quiz->questions->isEmpty(), 403, 'This quiz has no questions yet.');
 
