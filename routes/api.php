@@ -7,13 +7,11 @@ use App\Http\Controllers\PushController;
 use App\Http\Controllers\TopicController;
 use App\Http\Controllers\RecommendationController;
 
-<<<<<<< Updated upstream
 // Issue a Sanctum token for the authenticated web user
 Route::middleware('auth')->post('/token', function (\Illuminate\Http\Request $request) {
     $token = $request->user()->createToken('offline-sync')->plainTextToken;
     return response()->json(['token' => $token]);
 });
-=======
 // Desktop client auth
 Route::post('/login', [AuthApiController::class, 'login']);
 Route::post('/register', [AuthApiController::class, 'register']);
@@ -31,9 +29,6 @@ Route::middleware('auth:sanctum')->get('/user', function (\Illuminate\Http\Reque
         ],
     ]);
 });
-
-Route::prefix('sync')->group(function () {
->>>>>>> Stashed changes
 
 Route::middleware('auth:sanctum')->get('/topics/{topic}', [TopicController::class, 'apiShow']);
 
