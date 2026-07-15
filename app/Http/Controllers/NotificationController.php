@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class NotificationController extends Controller
 {
@@ -13,7 +14,7 @@ class NotificationController extends Controller
         $notifications = Auth::user()
             ->notifications()
             ->visible()
-            ->with(['post', 'quiz'])
+            ->with(['post.topic.group', 'post.user', 'parentPost.user', 'quiz'])
             ->latest()
             ->get();
 
@@ -80,7 +81,7 @@ class NotificationController extends Controller
     }
 
     /**
-     * Group reply notifications to the same post for stacked display.
+     * Group related notifications into threaded display groups.
      */
     private function groupForDisplay(Collection $notifications): Collection
     {
@@ -92,7 +93,23 @@ class NotificationController extends Controller
 
                 if (! isset($groups[$key])) {
                     $groups[$key] = [
-                        'type' => 'reply_stack',
+                        'type' => 'reply_thread',
+                        'latest_at' => $notification->created_at,
+                        'items' => [],
+                    ];
+                }
+
+                $groups[$key]['items'][] = $notification;
+
+                if ($notification->created_at->gt($groups[$key]['latest_at'])) {
+                    $groups[$key]['latest_at'] = $notification->created_at;
+                }
+            } elseif ($notification->Notification_Type === 'PostCreated' && $notification->post?->Topic_ID) {
+                $key = 'topic_'.$notification->post->Topic_ID;
+
+                if (! isset($groups[$key])) {
+                    $groups[$key] = [
+                        'type' => 'topic_thread',
                         'latest_at' => $notification->created_at,
                         'items' => [],
                     ];
@@ -113,8 +130,9 @@ class NotificationController extends Controller
         }
 
         foreach ($groups as &$group) {
-            if ($group['type'] === 'reply_stack') {
+            if (in_array($group['type'], ['reply_thread', 'topic_thread'], true)) {
                 usort($group['items'], fn ($a, $b) => $a->created_at <=> $b->created_at);
+                $group = $this->enrichThreadGroup($group);
             }
         }
         unset($group);
@@ -122,6 +140,37 @@ class NotificationController extends Controller
         return collect($groups)
             ->sortByDesc(fn ($group) => $group['latest_at'])
             ->values();
+    }
+
+    private function enrichThreadGroup(array $group): array
+    {
+        $items = collect($group['items']);
+        $first = $items->first();
+
+        $group['count'] = $items->count();
+        $group['unread_count'] = $items->where('is_read', false)->count();
+        $group['has_unread'] = $group['unread_count'] > 0;
+
+        if ($group['type'] === 'reply_thread') {
+            $parent = $first?->parentPost;
+            $topic = $first?->post?->topic;
+
+            $group['heading'] = 'Replies to your message';
+            $group['context'] = $topic?->Title;
+            $group['context_url'] = $topic ? route('topics.show', $topic) : null;
+            $group['quote'] = $parent ? Str::limit($parent->Post_Content, 100) : null;
+            $group['icon'] = 'bi-reply-fill';
+        } else {
+            $topic = $first?->post?->topic;
+
+            $group['heading'] = 'New posts in discussion';
+            $group['context'] = $topic?->Title;
+            $group['context_url'] = $topic ? route('topics.show', $topic) : null;
+            $group['quote'] = $topic?->group?->Group_Name;
+            $group['icon'] = 'bi-chat-left-text-fill';
+        }
+
+        return $group;
     }
 
     private function notificationUrl($notification): string
