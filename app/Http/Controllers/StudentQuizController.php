@@ -25,7 +25,7 @@ class StudentQuizController extends Controller
             ->orderBy('start_time')
             ->get();
 
-        $completedQuizIds = QuizResult::where('student_id', auth()->id())
+        $completedQuizIds = QuizResult::where('user_id', auth()->id())
             ->pluck('quiz_id');
 
         return view('student.quizzes.index', compact('quizzes', 'completedQuizIds'));
