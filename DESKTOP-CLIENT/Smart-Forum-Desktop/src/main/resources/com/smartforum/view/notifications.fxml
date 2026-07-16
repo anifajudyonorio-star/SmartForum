@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.NotificationViewController">
+   <content>
+      <VBox spacing="12.0" styleClass="dashboard-content">
+         <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-header">
+            <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+               <Label styleClass="dashboard-title" text="🔔 Notifications" />
+               <Label styleClass="dashboard-subtitle" text="Related activity is grouped so you can follow conversations easily." />
+            </VBox>
+            <Label fx:id="unreadCountLabel" styleClass="badge-primary" text="0 unread" />
+         </HBox>
+
+         <VBox fx:id="notificationsBox" spacing="8.0" />
+      </VBox>
+   </content>
+</ScrollPane>

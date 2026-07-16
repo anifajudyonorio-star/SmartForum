@@ -34,7 +34,8 @@ public class OAuthCallbackServer {
                         }
                     }
 
-                    String html = "<html><body style='font-family:sans-serif;background:#0a0f1e;color:white;"
+                    String html = "<html><head><link rel=\"stylesheet\" href=\"https://fonts.bunny.net/css?family=Nunito:400,500,600,700\"></head>"
+                            + "<body style='font-family:\"Nunito\",sans-serif;background:#0a0f1e;color:white;"
                             + "display:flex;align-items:center;justify-content:center;height:100vh;margin:0'>"
                             + "<div style='text-align:center'>"
                             + "<h2 style='color:#4ade80'>&#10003; Signed in successfully!</h2>"

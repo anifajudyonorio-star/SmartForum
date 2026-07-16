@@ -18,6 +18,15 @@ public class SessionManager {
     public int getUserId() { return userId; }
     public String getUserName() { return userName; }
 
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public void setUser(int userId, String userName) {
+        this.userId = userId;
+        this.userName = userName;
+    }
+
     public void setSession(String token, int userId, String userName) {
         this.token = token;
         this.userId = userId;

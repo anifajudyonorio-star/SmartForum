@@ -1,5 +1,5 @@
 /* ── Root ── */
-.root { -fx-font-family: "Segoe UI", sans-serif; -fx-font-size: 13px; -fx-background-color: #dcfce7; }
+.root { -fx-font-family: "Nunito", sans-serif; -fx-font-size: 13px; -fx-background-color: #dcfce7; }
 
 /* ── Topic panel ── */
 .topic-panel { -fx-background-color: #166534; }

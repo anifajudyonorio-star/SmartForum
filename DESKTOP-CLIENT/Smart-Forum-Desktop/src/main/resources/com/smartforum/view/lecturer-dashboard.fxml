@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.VBox?>
+
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.LecturerDashboardController">
+   <content>
+      <VBox spacing="12.0" styleClass="dashboard-content">
+         <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-header">
+            <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+               <Label styleClass="dashboard-title" text="Welcome back, Lecturer!" />
+               <Label styleClass="dashboard-subtitle" text="Create topics in your assigned groups and monitor student participation scores." />
+            </VBox>
+            <Button mnemonicParsing="false" onAction="#onViewParticipation" styleClass="btn-primary" text="📊  Participation" />
+         </HBox>
+
+         <GridPane hgap="10.0" vgap="10.0">
+            <columnConstraints>
+               <ColumnConstraints hgrow="SOMETIMES" minWidth="160.0" percentWidth="33.3" />
+               <ColumnConstraints hgrow="SOMETIMES" minWidth="160.0" percentWidth="33.3" />
+               <ColumnConstraints hgrow="SOMETIMES" minWidth="160.0" percentWidth="33.3" />
+            </columnConstraints>
+            <VBox spacing="4.0" styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+               <Label styleClass="stat-card-icon" text="👥" />
+               <Label styleClass="stat-label" text="My Groups" />
+               <Label fx:id="myGroupsLabel" styleClass="stat-number" text="0" />
+            </VBox>
+            <VBox spacing="4.0" styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+               <Label styleClass="stat-card-icon" text="🔖" />
+               <Label styleClass="stat-label" text="My Topics" />
+               <Label fx:id="myTopicsLabel" styleClass="stat-number" text="0" />
+            </VBox>
+            <VBox spacing="4.0" styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="0">
+               <Label styleClass="stat-card-icon" text="✓" />
+               <Label styleClass="stat-label" text="Active Participants" />
+               <Label fx:id="participantsCountLabel" styleClass="stat-number" text="0" />
+            </VBox>
+         </GridPane>
+
+         <VBox spacing="0.0" styleClass="dashboard-card">
+            <HBox styleClass="dashboard-card-header">
+               <Label styleClass="dashboard-card-title" text="📊 Student Participation" />
+            </HBox>
+            <TableView fx:id="participantsTable" prefHeight="320.0" styleClass="dashboard-table" VBox.vgrow="ALWAYS">
+               <columns>
+                  <TableColumn fx:id="nameColumn" prefWidth="220.0" text="Name" />
+                  <TableColumn fx:id="topicsColumn" prefWidth="90.0" text="Topics" />
+                  <TableColumn fx:id="postsColumn" prefWidth="90.0" text="Posts" />
+                  <TableColumn fx:id="repliesColumn" prefWidth="90.0" text="Replies" />
+                  <TableColumn fx:id="scoreColumn" prefWidth="90.0" text="Score" />
+               </columns>
+            </TableView>
+         </VBox>
+      </VBox>
+   </content>
+</ScrollPane>

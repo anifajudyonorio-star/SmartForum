@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.ParticipationViewController">
+   <content>
+      <VBox spacing="12.0" styleClass="dashboard-content">
+         <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-header">
+            <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+               <Label styleClass="dashboard-title" text="🏆 Participation Leaderboard" />
+               <Label fx:id="headerSubtitleLabel" styleClass="dashboard-subtitle" text="Track student engagement across topics, posts, and replies." />
+            </VBox>
+            <Label fx:id="topParticipantLabel" styleClass="badge-primary" text="" />
+         </HBox>
+
+         <HBox alignment="CENTER_LEFT" spacing="8.0">
+            <Label styleClass="form-label" text="Filter by group:" />
+            <ComboBox fx:id="groupFilterCombo" prefWidth="220.0" />
+         </HBox>
+
+         <VBox fx:id="participantsBox" spacing="10.0" />
+      </VBox>
+   </content>
+</ScrollPane>

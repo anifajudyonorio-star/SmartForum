@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.StudentDashboardController">
+   <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" style="-fx-background-color: transparent; -fx-background: transparent;" vbarPolicy="AS_NEEDED">
+      <content>
+         <VBox maxWidth="1.7976931348623157E308" spacing="12.0" styleClass="dashboard-content">
+            <VBox spacing="4.0" styleClass="dashboard-header">
+               <Label fx:id="welcomeTitleLabel" styleClass="dashboard-title" text="Welcome back!" />
+               <Label styleClass="dashboard-subtitle" text="Participate in discussions and stay connected with your classmates." />
+            </VBox>
+
+            <GridPane hgap="10.0" maxWidth="1.7976931348623157E308" vgap="10.0">
+               <columnConstraints>
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="120.0" percentWidth="25.0" />
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="120.0" percentWidth="25.0" />
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="120.0" percentWidth="25.0" />
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="120.0" percentWidth="25.0" />
+               </columnConstraints>
+               <VBox maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="stat-card" GridPane.columnIndex="0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
+                  <Label styleClass="stat-card-icon" text="💬" />
+                  <Label styleClass="stat-label" text="My Posts" />
+                  <Label fx:id="myPostsLabel" styleClass="stat-number" text="0" />
+               </VBox>
+               <VBox maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="stat-card" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
+                  <Label styleClass="stat-card-icon" text="🔖" />
+                  <Label styleClass="stat-label" text="My Topics" />
+                  <Label fx:id="myTopicsLabel" styleClass="stat-number" text="0" />
+               </VBox>
+               <VBox maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="stat-card" GridPane.columnIndex="2" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
+                  <Label styleClass="stat-card-icon" text="↩" />
+                  <Label styleClass="stat-label" text="Replies" />
+                  <Label fx:id="myRepliesLabel" styleClass="stat-number" text="0" />
+               </VBox>
+               <VBox maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="stat-card" GridPane.columnIndex="3" GridPane.hgrow="ALWAYS" GridPane.rowIndex="0">
+                  <Label styleClass="stat-card-icon" text="👥" />
+                  <Label styleClass="stat-label" text="Discussion Groups" />
+                  <Label fx:id="groupsLabel" styleClass="stat-number" text="0" />
+               </VBox>
+            </GridPane>
+
+            <HBox maxWidth="1.7976931348623157E308" spacing="12.0">
+               <VBox HBox.hgrow="ALWAYS" maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="dashboard-card">
+                  <HBox styleClass="dashboard-card-header">
+                     <Label styleClass="dashboard-card-title" text="🕐 Recent Topics" />
+                  </HBox>
+                  <VBox fx:id="recentTopicsBox" spacing="0.0" styleClass="dashboard-card-body" />
+               </VBox>
+
+               <VBox maxWidth="280.0" minWidth="240.0" prefWidth="280.0" spacing="12.0">
+                  <VBox spacing="0.0" styleClass="dashboard-card">
+                     <HBox styleClass="dashboard-card-header">
+                        <Label styleClass="dashboard-card-title" text="⚡ Quick Actions" />
+                     </HBox>
+                     <VBox spacing="8.0" styleClass="dashboard-card-body">
+                        <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" styleClass="btn-outline" text="👥  My Groups" />
+                        <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" styleClass="btn-outline" text="❓  Take a Quiz" />
+                     </VBox>
+                  </VBox>
+
+                  <VBox spacing="0.0" styleClass="dashboard-card" VBox.vgrow="ALWAYS">
+                     <HBox styleClass="dashboard-card-header">
+                        <Label styleClass="dashboard-card-title" text="💬 Latest Posts" />
+                     </HBox>
+                     <VBox fx:id="latestPostsBox" spacing="0.0" styleClass="dashboard-card-body" />
+                  </VBox>
+               </VBox>
+            </HBox>
+         </VBox>
+      </content>
+   </ScrollPane>
+</StackPane>

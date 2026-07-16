@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.String?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="rootPane" prefHeight="720.0" prefWidth="1100.0" styleClass="app-shell" stylesheets="@../css/app.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.MainShellController">
+   <left>
+      <VBox maxHeight="1.7976931348623157E308" minHeight="0.0" styleClass="sidebar">
+         <VBox spacing="2.0" styleClass="sidebar-brand-block">
+            <Label styleClass="sidebar-brand" text="Smart Discussion" />
+            <Label styleClass="sidebar-brand-sub" text="Learning forum" />
+         </VBox>
+
+         <ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;" VBox.vgrow="ALWAYS">
+            <content>
+               <VBox spacing="2.0" styleClass="sidebar-nav-list">
+                  <Button fx:id="dashboardNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showDashboard" text="Dashboard">
+                     <styleClass>
+                        <String fx:value="sidebar-nav-btn" />
+                        <String fx:value="active" />
+                     </styleClass>
+                  </Button>
+                  <Button fx:id="groupsNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showGroups" styleClass="sidebar-nav-btn" text="Groups" />
+                  <Button fx:id="topicSearchNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showTopicSearch" styleClass="sidebar-nav-btn" text="Search Topics" />
+                  <Button fx:id="notificationsNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showNotifications" styleClass="sidebar-nav-btn" text="Notifications" />
+
+                  <VBox fx:id="groupAdminSection" managed="false" spacing="2.0" visible="false">
+                     <Label styleClass="sidebar-section-label" text="GROUP ADMIN" />
+                     <Button fx:id="statisticsNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showStatisticsFromNav" styleClass="sidebar-nav-btn" text="Statistics" />
+                     <Button fx:id="participationNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showParticipationFromNav" styleClass="sidebar-nav-btn" text="Participation" />
+                  </VBox>
+               </VBox>
+            </content>
+         </ScrollPane>
+      </VBox>
+   </left>
+   <center>
+      <BorderPane>
+         <top>
+            <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="top-bar">
+               <Button fx:id="backNavBtn" managed="false" mnemonicParsing="false" onAction="#onBack" styleClass="top-bar-back" text="←" visible="false" />
+               <Label fx:id="pageTitleLabel" styleClass="top-bar-title" text="Smart Discussion" />
+               <Label styleClass="top-bar-online-badge" text="● Online" />
+               <HBox HBox.hgrow="ALWAYS" />
+               <Label fx:id="topBarUserAvatar" styleClass="top-bar-user-avatar" text="S" />
+               <Label fx:id="topBarUserLabel" styleClass="top-bar-user" text="Super Admin" />
+            </HBox>
+         </top>
+         <center>
+            <StackPane fx:id="contentArea" BorderPane.alignment="CENTER">
+               <padding>
+                  <Insets bottom="16.0" left="20.0" right="20.0" top="16.0" />
+               </padding>
+            </StackPane>
+         </center>
+      </BorderPane>
+   </center>
+</BorderPane>
