@@ -1,24 +1,24 @@
 package com.smartforum;
 
-import com.smartforum.model.ForumUser;
-import com.smartforum.service.AppSession;
-import com.smartforum.util.SessionManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
+import javafx.stage.Stage;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
-import javafx.stage.Stage;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+
+import com.smartforum.model.ForumUser;
+import com.smartforum.service.AppSession;
 
 import java.awt.Desktop;
-import java.io.IOException;
 import java.net.URI;
 
 public class AuthController {
@@ -177,8 +177,7 @@ public class AuthController {
                 if (response.isSuccess()) {
                     try {
                         var user = response.body().getAsJsonObject("user");
-                        UserSession session = UserSession.getInstance();
-                        session.setUser(
+                        UserSession.getInstance().setUser(
                             user.get("id").getAsInt(),
                             user.get("Fname").getAsString(),
                             user.get("Lname").getAsString(),
@@ -186,7 +185,8 @@ public class AuthController {
                             user.get("role").getAsString(),
                             response.body().get("token").getAsString()
                         );
-                        openDashboard(session);
+                        showSuccess("Welcome back, " + UserSession.getInstance().getFname() + "!");
+                        navigateToDashboard();
                     } catch (Exception e) {
                         showError("Login successful but failed to load user data.");
                     }
@@ -237,8 +237,7 @@ public class AuthController {
     public void handleGoogleSignIn() {
         new OAuthCallbackServer().start(params -> Platform.runLater(() -> {
             try {
-                UserSession session = UserSession.getInstance();
-                session.setUser(
+                UserSession.getInstance().setUser(
                     Integer.parseInt(params.get("id")),
                     params.get("fname"),
                     params.get("lname"),
@@ -246,7 +245,8 @@ public class AuthController {
                     params.get("role"),
                     params.get("token")
                 );
-                openDashboard(session);
+                showSuccess("Welcome, " + UserSession.getInstance().getFname() + "!");
+                navigateToDashboard();
             } catch (Exception e) {
                 showError("Google sign in failed: " + e.getMessage());
             }
@@ -295,32 +295,30 @@ public class AuthController {
         registerPane.setDisable(loading);
     }
 
-    private void openDashboard(UserSession session) {
-        SessionManager.getInstance().setSession(
-                session.getToken(),
-                session.getId(),
-                session.getFullName()
-        );
-        AppSession.getInstance().setCurrentUser(new ForumUser(
-                session.getId(),
-                session.getFullName(),
-                session.getEmail(),
-                session.getRole()
-        ));
-
+    private void navigateToDashboard() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/smartforum/view/main-shell.fxml"));
-            Parent root = loader.load();
+            UserSession us = UserSession.getInstance();
+
+            // Sync AppSession so MainShellController gets the real logged-in user
+            AppSession.getInstance().setCurrentUser(new ForumUser(
+                us.getId(),
+                us.getFname() + " " + us.getLname(),
+                us.getEmail(),
+                us.getRole()
+            ));
+
+            // Students go straight to the student dashboard inside the shell;
+            // admins and lecturers use the main shell which picks the right dashboard via AppSession
+            String fxml = "/com/smartforum/view/main-shell.fxml";
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
+            Scene scene = new Scene(loader.load());
             Stage stage = (Stage) signInPane.getScene().getWindow();
-            Scene scene = new Scene(root, 1100, 720);
-            stage.setTitle("Smart Discussion");
-            stage.setMinWidth(900);
-            stage.setMinHeight(600);
-            stage.setResizable(true);
             stage.setScene(scene);
-            stage.centerOnScreen();
-        } catch (IOException e) {
-            showError("Could not open dashboard: " + e.getMessage());
+            stage.setMaximized(true);
+            stage.setResizable(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError("Failed to load dashboard: " + e.getMessage());
         }
     }
 }

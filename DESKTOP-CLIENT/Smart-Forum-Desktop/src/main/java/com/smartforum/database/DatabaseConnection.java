@@ -60,6 +60,43 @@ public class DatabaseConnection {
                 ")"
         );
 
+        statement.execute(
+            "CREATE TABLE IF NOT EXISTS quiz_results (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "quiz_id INTEGER NOT NULL," +
+                "student_name TEXT NOT NULL," +
+                "category_id INTEGER DEFAULT 0," +
+                "score INTEGER DEFAULT 0," +
+                "total_marks INTEGER DEFAULT 0," +
+                "participation_marks INTEGER DEFAULT 0," +
+                "total_score INTEGER DEFAULT 0," +
+                "submitted_at TEXT," +
+                "FOREIGN KEY(quiz_id) REFERENCES quizzes(id)" +
+                ")"
+        );
+
+        statement.execute(
+            "CREATE TABLE IF NOT EXISTS category_students (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "category_id INTEGER NOT NULL," +
+                "student_name TEXT NOT NULL," +
+                "UNIQUE(category_id, student_name)," +
+                "FOREIGN KEY(category_id) REFERENCES quiz_categories(id)" +
+                ")"
+        );
+
+        statement.execute(
+            "CREATE TABLE IF NOT EXISTS announcements (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "category_id INTEGER NOT NULL," +
+                "title TEXT NOT NULL," +
+                "message TEXT NOT NULL," +
+                "created_by TEXT," +
+                "created_at TEXT," +
+                "FOREIGN KEY(category_id) REFERENCES quiz_categories(id)" +
+                ")"
+        );
+
         statement.close();
     }
 }

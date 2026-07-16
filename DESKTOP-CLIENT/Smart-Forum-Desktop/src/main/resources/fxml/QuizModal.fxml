@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/24.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.smartforum.controller.QuizModalController"
+            prefWidth="760" prefHeight="580"
+            style="-fx-background-color:#f8f9fa;">
+
+    <!-- HEADER — matches Laravel show.blade.php page-header with timer -->
+    <top>
+        <VBox style="-fx-background-color:white;-fx-border-color:#dee2e6;-fx-border-width:0 0 1 0;">
+            <padding><Insets top="16" right="24" bottom="14" left="24"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="12">
+                <VBox HBox.hgrow="ALWAYS" spacing="3">
+                    <Label fx:id="lblQuizTitle"
+                           style="-fx-font-size:20;-fx-font-weight:bold;-fx-text-fill:#212529;"/>
+                    <HBox spacing="8">
+                        <Label fx:id="lblProgress"
+                               style="-fx-font-size:12;-fx-text-fill:white;-fx-background-color:#6c757d;-fx-padding:2 8;-fx-background-radius:10;"/>
+                        <Label fx:id="lblDurationBadge"
+                               style="-fx-font-size:12;-fx-text-fill:white;-fx-background-color:#0d6efd;-fx-padding:2 8;-fx-background-radius:10;"/>
+                    </HBox>
+                </VBox>
+                <!-- Timer — matches Laravel countdown -->
+                <VBox alignment="CENTER_RIGHT" spacing="2">
+                    <Label text="Time remaining" style="-fx-font-size:11;-fx-text-fill:#6c757d;"/>
+                    <Label fx:id="lblTimer"
+                           style="-fx-font-size:26;-fx-font-weight:bold;-fx-text-fill:#198754;"/>
+                </VBox>
+            </HBox>
+        </VBox>
+    </top>
+
+    <center>
+        <StackPane>
+            <padding><Insets top="20" right="24" bottom="16" left="24"/></padding>
+
+            <!-- QUIZ PANE — matches Laravel question cards -->
+            <VBox fx:id="quizPane" spacing="16">
+
+                <!-- Question card — matches Laravel card shadow-sm mb-3 -->
+                <VBox style="-fx-background-color:white;-fx-border-color:#dee2e6;-fx-border-width:1;-fx-background-radius:6;-fx-border-radius:6;-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.08),6,0,0,2);">
+                    <padding><Insets top="16" right="20" bottom="16" left="20"/></padding>
+                    <VBox spacing="14">
+                        <Label fx:id="lblQuestion" wrapText="true"
+                               style="-fx-font-size:15;-fx-font-weight:bold;-fx-text-fill:#212529;"/>
+                        <Separator/>
+                        <!-- Radio options — matches Laravel form-check -->
+                        <VBox spacing="10">
+                            <RadioButton fx:id="rbA" wrapText="true"
+                                         style="-fx-font-size:13;-fx-text-fill:#212529;"/>
+                            <RadioButton fx:id="rbB" wrapText="true"
+                                         style="-fx-font-size:13;-fx-text-fill:#212529;"/>
+                            <RadioButton fx:id="rbC" wrapText="true"
+                                         style="-fx-font-size:13;-fx-text-fill:#212529;"/>
+                            <RadioButton fx:id="rbD" wrapText="true"
+                                         style="-fx-font-size:13;-fx-text-fill:#212529;"/>
+                        </VBox>
+                    </VBox>
+                </VBox>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <!-- Action buttons — matches Laravel d-flex gap-2 -->
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Button fx:id="btnPrev" text="◀ Previous" onAction="#prevQuestion"
+                            style="-fx-background-color:#6c757d;-fx-text-fill:white;-fx-padding:8 18;-fx-background-radius:4;-fx-cursor:hand;"/>
+                    <Button fx:id="btnNext" text="Next ▶" onAction="#nextQuestion"
+                            style="-fx-background-color:#0d6efd;-fx-text-fill:white;-fx-padding:8 18;-fx-background-radius:4;-fx-cursor:hand;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="btnSubmit" text="Submit Quiz" onAction="#submitQuiz" visible="false"
+                            style="-fx-background-color:#198754;-fx-text-fill:white;-fx-font-weight:bold;-fx-padding:8 22;-fx-background-radius:4;-fx-cursor:hand;"/>
+                </HBox>
+
+            </VBox>
+
+            <!-- RESULT PANE — matches Laravel result.blade.php card -->
+            <VBox fx:id="resultPane" spacing="0" visible="false" managed="false">
+
+                <!-- Green card header -->
+                <VBox style="-fx-background-color:#198754;-fx-background-radius:6 6 0 0;">
+                    <padding><Insets top="14" right="20" bottom="14" left="20"/></padding>
+                    <Label text="Quiz Results"
+                           style="-fx-font-size:18;-fx-font-weight:bold;-fx-text-fill:white;"/>
+                </VBox>
+
+                <!-- Result table body -->
+                <VBox spacing="0"
+                      style="-fx-background-color:white;-fx-border-color:#dee2e6;-fx-border-width:0 1 1 1;-fx-background-radius:0 0 6 6;-fx-border-radius:0 0 6 6;-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.08),6,0,0,2);">
+
+                    <HBox style="-fx-border-color:#dee2e6;-fx-border-width:0 0 1 0;">
+                        <padding><Insets top="12" right="20" bottom="12" left="20"/></padding>
+                        <Label text="Quiz" style="-fx-font-weight:bold;-fx-min-width:160;-fx-font-size:13;"/>
+                        <Label fx:id="lblResultQuizTitle" style="-fx-font-size:13;"/>
+                    </HBox>
+
+                    <HBox style="-fx-border-color:#dee2e6;-fx-border-width:0 0 1 0;">
+                        <padding><Insets top="12" right="20" bottom="12" left="20"/></padding>
+                        <Label text="Student" style="-fx-font-weight:bold;-fx-min-width:160;-fx-font-size:13;"/>
+                        <Label fx:id="lblStudentResult" style="-fx-font-size:13;"/>
+                    </HBox>
+
+                    <HBox style="-fx-border-color:#dee2e6;-fx-border-width:0 0 1 0;">
+                        <padding><Insets top="12" right="20" bottom="12" left="20"/></padding>
+                        <Label text="Quiz Score" style="-fx-font-weight:bold;-fx-min-width:160;-fx-font-size:13;"/>
+                        <Label fx:id="lblScoreResult" style="-fx-font-size:13;"/>
+                    </HBox>
+
+                    <HBox style="-fx-border-color:#dee2e6;-fx-border-width:0 0 1 0;">
+                        <padding><Insets top="12" right="20" bottom="12" left="20"/></padding>
+                        <Label text="Participation Marks" style="-fx-font-weight:bold;-fx-min-width:160;-fx-font-size:13;"/>
+                        <Label fx:id="lblParticipationResult" style="-fx-font-size:13;"/>
+                    </HBox>
+
+                    <!-- Final score row — matches Laravel table-success -->
+                    <HBox style="-fx-background-color:#d1e7dd;-fx-border-color:#dee2e6;-fx-border-width:0 0 1 0;">
+                        <padding><Insets top="12" right="20" bottom="12" left="20"/></padding>
+                        <Label text="Final Score" style="-fx-font-weight:bold;-fx-min-width:160;-fx-font-size:13;"/>
+                        <Label fx:id="lblFinalScore" style="-fx-font-size:14;-fx-font-weight:bold;"/>
+                    </HBox>
+
+                    <HBox style="-fx-border-color:#dee2e6;-fx-border-width:0 0 1 0;">
+                        <padding><Insets top="12" right="20" bottom="12" left="20"/></padding>
+                        <Label text="Percentage" style="-fx-font-weight:bold;-fx-min-width:160;-fx-font-size:13;"/>
+                        <Label fx:id="lblPercentResult" style="-fx-font-size:13;-fx-text-fill:#0d6efd;"/>
+                    </HBox>
+
+                    <HBox style="-fx-border-color:#dee2e6;-fx-border-width:0 0 0 0;">
+                        <padding><Insets top="12" right="20" bottom="12" left="20"/></padding>
+                        <Label fx:id="lblFeedback" style="-fx-font-size:14;"/>
+                    </HBox>
+
+                    <HBox>
+                        <padding><Insets top="14" right="20" bottom="16" left="20"/></padding>
+                        <Button text="Back to Quizzes" onAction="#closeModal"
+                                style="-fx-background-color:#0d6efd;-fx-text-fill:white;-fx-padding:8 20;-fx-background-radius:4;-fx-cursor:hand;"/>
+                    </HBox>
+
+                </VBox>
+
+            </VBox>
+
+        </StackPane>
+    </center>
+
+</BorderPane>

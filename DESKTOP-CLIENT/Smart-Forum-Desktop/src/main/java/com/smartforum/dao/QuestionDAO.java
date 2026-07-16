@@ -52,6 +52,32 @@ public class QuestionDAO {
         return questions;
     }
 
+    public List<Question> getQuestionsByQuizId(int quizId) {
+        List<Question> questions = new ArrayList<>();
+        String sql = "SELECT q.*, qu.title FROM questions q JOIN quizzes qu ON q.quiz_id = qu.id WHERE q.quiz_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, quizId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Question question = new Question();
+                question.setId(rs.getInt("id"));
+                question.setQuizId(rs.getInt("quiz_id"));
+                question.setQuizTitle(rs.getString("title"));
+                question.setQuestion(rs.getString("question"));
+                question.setOptionA(rs.getString("option_a"));
+                question.setOptionB(rs.getString("option_b"));
+                question.setOptionC(rs.getString("option_c"));
+                question.setOptionD(rs.getString("option_d"));
+                question.setCorrectAnswer(rs.getString("correct_answer"));
+                questions.add(question);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return questions;
+    }
+
     public boolean updateQuestion(Question question) {
         String sql = "UPDATE questions SET quiz_id=?, question=?, option_a=?, option_b=?, option_c=?, option_d=?, correct_answer=? WHERE id=?";
         try (Connection conn = DatabaseConnection.getConnection();

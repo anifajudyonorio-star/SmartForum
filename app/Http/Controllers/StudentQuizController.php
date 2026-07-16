@@ -25,7 +25,7 @@ class StudentQuizController extends Controller
             ->orderBy('start_time')
             ->get();
 
-        $completedQuizIds = QuizResult::where('user_id', auth()->id())
+        $completedQuizIds = QuizResult::where('student_id', auth()->id())
             ->pluck('quiz_id');
 
         return view('student.quizzes.index', compact('quizzes', 'completedQuizIds'));
@@ -187,7 +187,7 @@ class StudentQuizController extends Controller
 
     QuizResult::create([
         'quiz_id' => $quiz->id,
-        'user_id' => auth()->id(),
+        'student_id' => auth()->id(),
         'score' => $score,
         'participation_marks' => $participationMarks,
         'total_score' => $totalScore,
@@ -227,7 +227,7 @@ class StudentQuizController extends Controller
     private function hasCompletedQuiz(Quiz $quiz): bool
     {
         return QuizResult::where('quiz_id', $quiz->id)
-            ->where('user_id', auth()->id())
+            ->where('student_id', auth()->id())
             ->exists();
     }
 }

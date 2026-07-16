@@ -34,6 +34,7 @@ public class MainShellController implements ShellNavigator {
     @FXML private Button groupsNavBtn;
     @FXML private Button topicSearchNavBtn;
     @FXML private Button notificationsNavBtn;
+    @FXML private Button quizzesNavBtn;
     @FXML private VBox groupAdminSection;
     @FXML private Button statisticsNavBtn;
     @FXML private Button participationNavBtn;
@@ -56,7 +57,7 @@ public class MainShellController implements ShellNavigator {
 
         navButtons.addAll(List.of(
                 dashboardNavBtn, groupsNavBtn, topicSearchNavBtn, notificationsNavBtn,
-                statisticsNavBtn, participationNavBtn, quizNavBtn
+                quizzesNavBtn, statisticsNavBtn, participationNavBtn, quizNavBtn
         ));
 
         var user = AppSession.getInstance().getCurrentUser();
@@ -79,6 +80,7 @@ public class MainShellController implements ShellNavigator {
         setNavIcon(groupsNavBtn, BootstrapIcons.PEOPLE_FILL);
         setNavIcon(topicSearchNavBtn, BootstrapIcons.SEARCH);
         setNavIcon(notificationsNavBtn, BootstrapIcons.BELL_FILL);
+        setNavIcon(quizzesNavBtn, BootstrapIcons.PATCH_QUESTION_FILL);
         setNavIcon(statisticsNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(participationNavBtn, BootstrapIcons.BAR_CHART_FILL);
         setNavIcon(quizNavBtn, BootstrapIcons.PATCH_QUESTION);
@@ -90,6 +92,39 @@ public class MainShellController implements ShellNavigator {
         button.setGraphic(fontIcon);
         button.setContentDisplay(ContentDisplay.LEFT);
         button.setGraphicTextGap(10);
+    }
+
+    @FXML
+    private void showQuizzesFromNav() {
+        resetBackStack();
+        showQuizzesInternal();
+    }
+
+    @Override
+    public void showQuizzes() {
+        navigateWithBack(this::showQuizzesInternal);
+    }
+
+    private void showQuizzesInternal() {
+        if (AppSession.getInstance().isStudent()) {
+            try {
+                URL resource = getClass().getResource("/fxml/TakeQuiz.fxml");
+                if (resource == null) throw new IOException("TakeQuiz.fxml not found at /fxml/TakeQuiz.fxml");
+                FXMLLoader loader = new FXMLLoader(resource);
+                Node view = loader.load();
+                TakeQuizController ctrl = loader.getController();
+                ctrl.loadForStudent(AppSession.getInstance().getCurrentUser().getName());
+                fillContentArea(view);
+                contentArea.getChildren().setAll(view);
+                activeContentKey = "TakeQuiz.fxml";
+                pageTitleLabel.setText(APP_TITLE);
+                setActiveNav(quizzesNavBtn);
+            } catch (Exception e) {
+                showLoadError("TakeQuiz.fxml", e);
+            }
+        } else {
+            loadView("quiz-management.fxml", quizzesNavBtn, null);
+        }
     }
 
     @FXML
@@ -349,6 +384,8 @@ public class MainShellController implements ShellNavigator {
             admin.setNavigator(this);
         } else if (controller instanceof LecturerDashboardController lecturer) {
             lecturer.setNavigator(this);
+        } else if (controller instanceof StudentDashboardController student) {
+            student.setNavigator(this);
         }
     }
 
