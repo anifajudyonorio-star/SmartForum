@@ -27,9 +27,8 @@ class QuizResult extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    // Alias kept for any legacy references
     public function student()
     {
-        return $this->user();
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

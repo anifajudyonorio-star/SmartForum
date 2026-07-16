@@ -37,6 +37,7 @@ Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard',[DashboardController::class,'index'])->name('dashboard');
+    Route::get('/dashboard/latest-posts', [DashboardController::class, 'latestPosts'])->name('dashboard.latest-posts');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -61,6 +62,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/topics/search', [TopicController::class, 'search'])->name('topics.search');
     Route::get('/topics', [TopicController::class, 'index'])->name('topics.index');
     Route::get('/topics/{topic}', [TopicController::class, 'show'])->name('topics.show');
+    Route::get('/topics/{topic}/posts-fragment', [TopicController::class, 'postsFragment'])->name('topics.posts-fragment');
     Route::get('/topics/{topic}/edit', [TopicController::class, 'edit'])->name('topics.edit');
     Route::put('/topics/{topic}', [TopicController::class, 'update'])->name('topics.update');
     Route::delete('/topics/{topic}', [TopicController::class, 'destroy'])->name('topics.destroy');

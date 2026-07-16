@@ -119,16 +119,54 @@ async function flushQueue() {
         const conflicts = data.conflicts ?? [];
         const errors    = data.errors    ?? [];
 
-        // Upgrade all pending ticks to sent
-        document.querySelectorAll('[data-pending-id]').forEach((msg) => {
-            const tick = msg.querySelector('.msg-tick--pending');
-            if (tick) {
-                tick.classList.replace('msg-tick--pending', 'msg-tick--sent');
-                tick.title = 'Sent';
-                tick.innerHTML = '&#10003;&#10003;';
+        // If on a topic page — reload the chat from server (includes the synced message)
+        const chat = document.getElementById('waChat');
+        if (chat) {
+            const topicId = chat.dataset.topicId;
+            const exportArea = document.getElementById('chatExportArea');
+            const messagesEl = document.getElementById('chatMessages');
+            if (topicId && exportArea) {
+                const postsRes = await fetch(`/topics/${topicId}/posts-fragment`, {
+                    headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+                }).catch(() => null);
+
+                if (postsRes && postsRes.ok) {
+                    exportArea.innerHTML = await postsRes.text();
+                    if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+                } else {
+                    // Fragment failed — just upgrade the ticks so message stays visible
+                    document.querySelectorAll('[data-pending-id]').forEach((msg) => {
+                        const tick = msg.querySelector('.msg-tick--pending');
+                        if (tick) {
+                            tick.classList.replace('msg-tick--pending', 'msg-tick--sent');
+                            tick.title = 'Sent';
+                            tick.innerHTML = '&#10003;&#10003;';
+                        }
+                        msg.removeAttribute('data-pending-id');
+                    });
+                }
             }
-            delete msg.dataset.pendingId;
-        });
+        } else {
+            // Not on chat page — just upgrade ticks
+            document.querySelectorAll('[data-pending-id]').forEach((msg) => {
+                const tick = msg.querySelector('.msg-tick--pending');
+                if (tick) {
+                    tick.classList.replace('msg-tick--pending', 'msg-tick--sent');
+                    tick.title = 'Sent';
+                    tick.innerHTML = '&#10003;&#10003;';
+                }
+                msg.removeAttribute('data-pending-id');
+            });
+        }
+
+        // Refresh latest posts on dashboard
+        const latestPostsCard = document.getElementById('latest-posts-list');
+        if (latestPostsCard) {
+            const dpRes = await fetch('/dashboard/latest-posts', {
+                headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+            }).catch(() => null);
+            if (dpRes && dpRes.ok) latestPostsCard.innerHTML = await dpRes.text();
+        }
 
         if (conflicts.length) {
             const reasons = conflicts.map(c => c.reason).join(' | ');

@@ -10,6 +10,20 @@ use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
+    public function latestPosts()
+    {
+        $groupIds = Auth::user()->groups()->pluck('groups.id');
+
+        $latestPosts = Post::with('topic')
+            ->whereIn('Topic_ID', Topic::whereIn('Group_ID', $groupIds)->pluck('id'))
+            ->where('created_at', '>=', now()->subDay())
+            ->latest()
+            ->take(5)
+            ->get();
+
+        return view('dashboard.partials.latest-posts', compact('latestPosts'));
+    }
+
     public function index()
     {
         $user = Auth::user();
