@@ -106,9 +106,25 @@ public class MainShellController implements ShellNavigator {
     }
 
     private void showQuizzesInternal() {
-        boolean isStudent = AppSession.getInstance().isStudent();
-        String fxml = isStudent ? "quiz-management.fxml" : "quiz-management.fxml";
-        loadView(fxml, quizzesNavBtn, null);
+        if (AppSession.getInstance().isStudent()) {
+            try {
+                URL resource = getClass().getResource("/fxml/TakeQuiz.fxml");
+                if (resource == null) throw new IOException("TakeQuiz.fxml not found at /fxml/TakeQuiz.fxml");
+                FXMLLoader loader = new FXMLLoader(resource);
+                Node view = loader.load();
+                TakeQuizController ctrl = loader.getController();
+                ctrl.loadForStudent(AppSession.getInstance().getCurrentUser().getName());
+                fillContentArea(view);
+                contentArea.getChildren().setAll(view);
+                activeContentKey = "TakeQuiz.fxml";
+                pageTitleLabel.setText(APP_TITLE);
+                setActiveNav(quizzesNavBtn);
+            } catch (Exception e) {
+                showLoadError("TakeQuiz.fxml", e);
+            }
+        } else {
+            loadView("quiz-management.fxml", quizzesNavBtn, null);
+        }
     }
 
     @FXML

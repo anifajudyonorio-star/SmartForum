@@ -38,7 +38,6 @@ public class TakeQuizController {
         colQStart.setCellValueFactory(new PropertyValueFactory<>("startDate"));
         colQEnd.setCellValueFactory(new PropertyValueFactory<>("endDate"));
 
-        // Status column — shows "Available" or "Upcoming"
         colQStatus.setCellValueFactory(cd -> {
             Quiz q = cd.getValue();
             String status = "Available";
@@ -51,12 +50,16 @@ public class TakeQuizController {
             return new SimpleStringProperty(status);
         });
 
-        // Questions count column
         colQQuestions.setCellValueFactory(cd ->
             new SimpleIntegerProperty(
                 new QuestionDAO().getQuestionsByQuizId(cd.getValue().getId()).size()
             ).asObject()
         );
+    }
+
+    public void loadForStudent(String name) {
+        txtStudentName.setText(name);
+        onNameEntered();
     }
 
     @FXML
