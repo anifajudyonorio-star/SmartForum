@@ -49,7 +49,7 @@ class TopicController extends Controller
 
     public function apiShow(Topic $topic)
     {
-        abort_unless(Auth::user()->isMemberOf($topic->group), 403);
+        abort_unless(Auth::user()->canViewGroup($topic->group), 403);
 
         $topic->load('group');
 
@@ -58,29 +58,16 @@ class TopicController extends Controller
             ->visibleTo(Auth::user())
             ->oldest()
             ->get()
-            ->map(fn ($post) => [
-                'id'            => $post->id,
-                'content'       => $post->Post_Content,
-                'user_name'     => $post->user->name ?? 'User',
-                'user_initials' => strtoupper(substr($post->user->name ?? 'U', 0, 2)),
-                'is_mine'       => (int) $post->Created_By === Auth::id(),
-                'created_at'    => $post->created_at->format('g:i A'),
-                'created_human' => $post->created_at->diffForHumans(),
-                'parent'        => $post->parent ? [
-                    'id'        => $post->parent->id,
-                    'user_name' => $post->parent->user->name ?? 'User',
-                    'content'   => $post->parent->Post_Content,
-                ] : null,
-            ]);
+            ->map(fn ($post) => app(\App\Http\Controllers\Api\PostApiController::class)->formatPost($post));
 
         return response()->json([
             'topic' => [
-                'id'          => $topic->id,
-                'title'       => $topic->Title,
+                'id' => $topic->id,
+                'title' => $topic->Title,
                 'description' => $topic->Topic_Description,
-                'group_name'  => $topic->group->Group_Name ?? '',
+                'group_name' => $topic->group->Group_Name ?? '',
             ],
-            'posts'     => $posts,
+            'posts' => $posts,
             'cached_at' => now()->toISOString(),
         ]);
     }

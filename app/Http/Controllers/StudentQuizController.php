@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Quiz;
 use App\Models\QuizResult;
 use App\Models\QuizAttempt;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 
 class StudentQuizController extends Controller
@@ -30,7 +31,7 @@ class StudentQuizController extends Controller
         return view('student.quizzes.index', compact('quizzes', 'completedQuizIds'));
     }
 
-    public function show(Quiz $quiz)
+    public function show(Request $request, Quiz $quiz)
     {
         if ($this->hasCompletedQuiz($quiz)) {
             return redirect()
@@ -52,15 +53,60 @@ class StudentQuizController extends Controller
 
         $quiz->load(['questions.options']);
 
+        // If the student hasn't explicitly started the quiz, show a preview
+        // page with a Start button. This avoids creating attempts automatically
+        // and prevents immediate expiry caused by stale attempts.
+        if (! $request->query('start')) {
+            return view('student.quizzes.preview', compact('quiz'));
+        }
+
         abort_if($quiz->questions->isEmpty(), 403, 'This quiz has no questions yet.');
 
-        // Find existing in-progress attempt for this student, or create one.
+        // Expire any stale 'In Progress' attempts for this user/quiz first.
+        $inProgress = QuizAttempt::where('quiz_id', $quiz->id)
+            ->where('user_id', auth()->id())
+            ->where('status', 'In Progress')
+            ->get();
+
+        foreach ($inProgress as $ip) {
+            $elapsed = now()->diffInSeconds($ip->started_at);
+            if ($elapsed > ($quiz->duration * 60) || now()->gt($quiz->end_time)) {
+                $ip->update([
+                    'submitted_at' => now(),
+                    'score' => $ip->score ?? 0,
+                    'status' => 'Auto Submitted',
+                ]);
+            }
+        }
+
+        // Find existing in-progress attempt for this student.
         $attempt = QuizAttempt::where('quiz_id', $quiz->id)
             ->where('user_id', auth()->id())
             ->where('status', 'In Progress')
             ->latest()
             ->first();
 
+        // If there is a stale in-progress attempt (duration expired or quiz ended),
+        // mark it submitted/expired so the student can start a fresh attempt.
+        if ($attempt) {
+            $elapsed = now()->diffInSeconds($attempt->started_at);
+            $remainingByDuration = max(0, ($quiz->duration * 60) - $elapsed);
+            $remainingByEnd = max(0, $quiz->end_time->diffInSeconds(now()));
+            $remainingSeconds = min($remainingByDuration, $remainingByEnd);
+
+            if ($remainingSeconds <= 0) {
+                $attempt->update([
+                    'submitted_at' => now(),
+                    'score' => $attempt->score ?? 0,
+                    'status' => 'Auto Submitted',
+                ]);
+
+                // clear attempt so a new one will be created below
+                $attempt = null;
+            }
+        }
+
+        // If no valid in-progress attempt exists, create a new one.
         if (! $attempt) {
             $attempt = QuizAttempt::create([
                 'quiz_id' => $quiz->id,
@@ -77,6 +123,17 @@ class StudentQuizController extends Controller
         $remainingSeconds = min($remainingByDuration, $remainingByEnd);
 
         if ($remainingSeconds <= 0) {
+            // Log timing details for debugging why the window is closed.
+            Log::info('Quiz window closed for user', [
+                'quiz_id' => $quiz->id,
+                'user_id' => auth()->id(),
+                'started_at' => $attempt->started_at ?? null,
+                'elapsed' => $elapsed ?? null,
+                'remainingByDuration' => $remainingByDuration ?? null,
+                'remainingByEnd' => $remainingByEnd ?? null,
+                'remainingSeconds' => $remainingSeconds,
+            ]);
+
             // No time left for this student to start/continue the quiz
             return redirect()
                 ->route('student.quizzes')

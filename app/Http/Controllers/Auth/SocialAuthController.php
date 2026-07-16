@@ -11,9 +11,11 @@ class SocialAuthController extends Controller
 {
     public function redirect(string $provider)
     {
+        // Store desktop flag in session so callback knows to return a token page
         if (request()->query('desktop')) {
             session(['oauth_desktop' => true]);
         }
+
         return Socialite::driver($provider)->redirect();
     }
 
@@ -53,6 +55,7 @@ class SocialAuthController extends Controller
 
         Auth::login($user, true);
 
+        // Desktop client — redirect to local server with token and user data
         if (session()->pull('oauth_desktop')) {
             $token = $user->createToken('desktop-google')->plainTextToken;
             $params = http_build_query([
@@ -63,6 +66,7 @@ class SocialAuthController extends Controller
                 'email' => $user->email,
                 'role'  => $user->role,
             ]);
+
             return redirect('http://localhost:9876?' . $params);
         }
 
