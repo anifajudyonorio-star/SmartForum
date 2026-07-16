@@ -3,148 +3,108 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.Font?>
 
 <BorderPane xmlns="http://javafx.com/javafx/24.0.1"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.smartforum.controller.QuestionController"
-            prefWidth="1200"
-            prefHeight="750">
+            style="-fx-background-color:#f8f9fa;">
 
+    <!-- PAGE HEADER -->
     <top>
-        <HBox alignment="CENTER">
-            <padding>
-                <Insets top="15" bottom="15"/>
-            </padding>
-
-            <children>
-                <Label text="Question Management">
-                    <font>
-                        <Font size="26"/>
-                    </font>
-                </Label>
-            </children>
-        </HBox>
+        <VBox style="-fx-background-color:white;-fx-border-color:#dee2e6;-fx-border-width:0 0 1 0;">
+            <padding><Insets top="20" right="24" bottom="16" left="24"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="12">
+                <VBox HBox.hgrow="ALWAYS" spacing="2">
+                    <Label text="Questions"
+                           style="-fx-font-size:22;-fx-font-weight:bold;-fx-text-fill:#212529;"/>
+                    <Label text="Add and manage questions for each quiz."
+                           style="-fx-font-size:13;-fx-text-fill:#6c757d;"/>
+                </VBox>
+                <Button text="Add New Question" onAction="#saveQuestion"
+                        style="-fx-background-color:#0d6efd;-fx-text-fill:white;-fx-font-size:13;-fx-padding:7 16;-fx-background-radius:5;-fx-cursor:hand;"/>
+            </HBox>
+        </VBox>
     </top>
 
     <center>
+        <VBox spacing="16">
+            <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
 
-        <VBox spacing="15">
+            <!-- FORM CARD -->
+            <VBox spacing="12"
+                  style="-fx-background-color:white;-fx-border-color:#dee2e6;-fx-border-width:1;-fx-background-radius:6;-fx-border-radius:6;-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.08),6,0,0,2);">
+                <padding><Insets top="16" right="20" bottom="16" left="20"/></padding>
 
-            <padding>
-                <Insets top="15" left="20" right="20" bottom="15"/>
-            </padding>
+                <HBox spacing="12" alignment="CENTER_LEFT">
+                    <VBox spacing="4" prefWidth="220">
+                        <Label text="Quiz" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <ComboBox fx:id="cmbQuiz" maxWidth="Infinity" style="-fx-font-size:13;"/>
+                    </VBox>
+                    <VBox spacing="4" prefWidth="160">
+                        <Label text="Correct Answer" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <ComboBox fx:id="cmbCorrect" maxWidth="Infinity" style="-fx-font-size:13;"/>
+                    </VBox>
+                </HBox>
 
-            <GridPane hgap="10" vgap="10">
+                <VBox spacing="4">
+                    <Label text="Question" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                    <TextArea fx:id="txtQuestion" prefRowCount="3" wrapText="true"
+                              promptText="Enter the question text"
+                              style="-fx-font-size:13;-fx-border-color:#ced4da;-fx-border-radius:4;-fx-background-radius:4;"/>
+                </VBox>
 
-                <columnConstraints>
-                    <ColumnConstraints prefWidth="170"/>
-                    <ColumnConstraints prefWidth="350"/>
-                    <ColumnConstraints prefWidth="170"/>
-                    <ColumnConstraints prefWidth="350"/>
-                </columnConstraints>
+                <HBox spacing="12">
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label text="Option A" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <TextField fx:id="txtOptionA" promptText="Option A"
+                                   style="-fx-font-size:13;-fx-padding:7 10;-fx-border-color:#ced4da;-fx-border-radius:4;-fx-background-radius:4;"/>
+                    </VBox>
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label text="Option B" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <TextField fx:id="txtOptionB" promptText="Option B"
+                                   style="-fx-font-size:13;-fx-padding:7 10;-fx-border-color:#ced4da;-fx-border-radius:4;-fx-background-radius:4;"/>
+                    </VBox>
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label text="Option C" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <TextField fx:id="txtOptionC" promptText="Option C"
+                                   style="-fx-font-size:13;-fx-padding:7 10;-fx-border-color:#ced4da;-fx-border-radius:4;-fx-background-radius:4;"/>
+                    </VBox>
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label text="Option D" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <TextField fx:id="txtOptionD" promptText="Option D"
+                                   style="-fx-font-size:13;-fx-padding:7 10;-fx-border-color:#ced4da;-fx-border-radius:4;-fx-background-radius:4;"/>
+                    </VBox>
+                </HBox>
 
-                <children>
+                <HBox spacing="8">
+                    <Button text="Save Question" onAction="#saveQuestion"
+                            style="-fx-background-color:#198754;-fx-text-fill:white;-fx-padding:6 16;-fx-background-radius:4;-fx-cursor:hand;"/>
+                    <Button text="Update" onAction="#updateQuestion"
+                            style="-fx-background-color:#ffc107;-fx-text-fill:#212529;-fx-padding:6 16;-fx-background-radius:4;-fx-cursor:hand;"/>
+                    <Button text="Delete" onAction="#deleteQuestion"
+                            style="-fx-background-color:#dc3545;-fx-text-fill:white;-fx-padding:6 16;-fx-background-radius:4;-fx-cursor:hand;"/>
+                    <Button text="Clear" onAction="#clearFields"
+                            style="-fx-background-color:#6c757d;-fx-text-fill:white;-fx-padding:6 16;-fx-background-radius:4;-fx-cursor:hand;"/>
+                </HBox>
+            </VBox>
 
-                    <Label text="Quiz"/>
-                    <ComboBox fx:id="cmbQuiz"
-                              GridPane.columnIndex="1"/>
-
-                    <Label text="Correct Answer"
-                           GridPane.columnIndex="2"/>
-
-                    <ComboBox fx:id="cmbCorrect"
-                              GridPane.columnIndex="3"/>
-
-                    <Label text="Question"
-                           GridPane.rowIndex="1"/>
-
-                    <TextArea fx:id="txtQuestion"
-                              prefRowCount="3"
-                              GridPane.rowIndex="1"
-                              GridPane.columnIndex="1"
-                              GridPane.columnSpan="3"/>
-
-                    <Label text="Option A"
-                           GridPane.rowIndex="2"/>
-
-                    <TextField fx:id="txtOptionA"
-                               GridPane.rowIndex="2"
-                               GridPane.columnIndex="1"/>
-
-                    <Label text="Option B"
-                           GridPane.rowIndex="2"
-                           GridPane.columnIndex="2"/>
-
-                    <TextField fx:id="txtOptionB"
-                               GridPane.rowIndex="2"
-                               GridPane.columnIndex="3"/>
-
-                    <Label text="Option C"
-                           GridPane.rowIndex="3"/>
-
-                    <TextField fx:id="txtOptionC"
-                               GridPane.rowIndex="3"
-                               GridPane.columnIndex="1"/>
-
-                    <Label text="Option D"
-                           GridPane.rowIndex="3"
-                           GridPane.columnIndex="2"/>
-
-                    <TextField fx:id="txtOptionD"
-                               GridPane.rowIndex="3"
-                               GridPane.columnIndex="3"/>
-
-                </children>
-
-            </GridPane>
-
-            <HBox spacing="10">
-
-                <Button fx:id="btnSave"
-                        text="Save"
-                        onAction="#saveQuestion"/>
-
-                <Button fx:id="btnUpdate"
-                        text="Update"
-                        onAction="#updateQuestion"/>
-
-                <Button fx:id="btnDelete"
-                        text="Delete"
-                        onAction="#deleteQuestion"/>
-
-                <Button fx:id="btnClear"
-                        text="Clear"
-                        onAction="#clearFields"/>
-
-            </HBox>
-
-            <TableView fx:id="tblQuestions" VBox.vgrow="ALWAYS">
-
-                <columns>
-
-                    <TableColumn fx:id="colId"
-                                 text="ID"
-                                 prefWidth="60"/>
-
-                    <TableColumn fx:id="colQuiz"
-                                 text="Quiz"
-                                 prefWidth="180"/>
-
-                    <TableColumn fx:id="colQuestion"
-                                 text="Question"
-                                 prefWidth="350"/>
-
-                    <TableColumn fx:id="colCorrect"
-                                 text="Correct"
-                                 prefWidth="100"/>
-
-                </columns>
-
-            </TableView>
+            <!-- TABLE CARD — matches Laravel: ID / Question / Correct Answer -->
+            <VBox VBox.vgrow="ALWAYS"
+                  style="-fx-background-color:white;-fx-border-color:#dee2e6;-fx-border-width:1;-fx-background-radius:6;-fx-border-radius:6;-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.08),6,0,0,2);">
+                <TableView fx:id="tblQuestions" VBox.vgrow="ALWAYS"
+                           style="-fx-background-color:transparent;-fx-border-color:transparent;">
+                    <columns>
+                        <TableColumn fx:id="colId"       text="ID"             prefWidth="60"/>
+                        <TableColumn fx:id="colQuiz"     text="Quiz"           prefWidth="180"/>
+                        <TableColumn fx:id="colQuestion" text="Question"       prefWidth="420"/>
+                        <TableColumn fx:id="colCorrect"  text="Correct Answer" prefWidth="120"/>
+                    </columns>
+                    <placeholder><Label text="No questions found."
+                                        style="-fx-text-fill:#6c757d;-fx-font-size:13;"/></placeholder>
+                </TableView>
+            </VBox>
 
         </VBox>
-
     </center>
 
 </BorderPane>

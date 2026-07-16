@@ -48,15 +48,28 @@ return new class extends Migration
 
             Schema::drop('moderation_logs_old');
         } else {
-            if (! Schema::hasColumn('moderation_logs', 'group_id')) {
+            // For MySQL: if table is missing key columns, recreate it cleanly
+            if (! Schema::hasColumn('moderation_logs', 'action')) {
+                Schema::drop('moderation_logs');
+                Schema::create('moderation_logs', function (Blueprint $table) {
+                    $table->id();
+                    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                    $table->foreignId('admin_id')->constrained('users')->cascadeOnDelete();
+                    $table->unsignedBigInteger('group_id')->nullable()->index();
+                    $table->string('action');
+                    $table->text('reason')->nullable();
+                    $table->timestamps();
+                });
+            } else {
+                if (! Schema::hasColumn('moderation_logs', 'group_id')) {
+                    Schema::table('moderation_logs', function (Blueprint $table) {
+                        $table->unsignedBigInteger('group_id')->nullable()->index();
+                    });
+                }
                 Schema::table('moderation_logs', function (Blueprint $table) {
-                    $table->unsignedBigInteger('group_id')->nullable()->after('admin_id')->index();
+                    $table->string('action')->change();
                 });
             }
-
-            Schema::table('moderation_logs', function (Blueprint $table) {
-                $table->string('action')->change();
-            });
         }
     }
 

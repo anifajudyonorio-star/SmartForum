@@ -45,7 +45,7 @@ class PerformanceReportController extends Controller
             $members = User::where('role', 'student')->get();
         }
 
-        $results = QuizResult::where('quiz_id', $quiz->id)->get()->keyBy('user_id');
+        $results = QuizResult::where('quiz_id', $quiz->id)->get()->keyBy('student_id');
 
         $rows = $members->map(function ($member) use ($results) {
             $result = $results->get($member->id);

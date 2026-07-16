@@ -3,160 +3,107 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.Font?>
 
 <BorderPane xmlns="http://javafx.com/javafx/24.0.1"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.smartforum.controller.QuizController"
-            prefWidth="1100"
-            prefHeight="700">
+            style="-fx-background-color:#f8f9fa;">
 
+    <!-- PAGE HEADER -->
     <top>
-        <HBox alignment="CENTER">
-            <padding>
-                <Insets top="15" bottom="15"/>
-            </padding>
-
-            <children>
-                <Label text="Quiz Management">
-                    <font>
-                        <Font size="26"/>
-                    </font>
-                </Label>
-            </children>
-
-        </HBox>
+        <VBox style="-fx-background-color:white;-fx-border-color:#dee2e6;-fx-border-width:0 0 1 0;">
+            <padding><Insets top="20" right="24" bottom="16" left="24"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="12">
+                <VBox HBox.hgrow="ALWAYS" spacing="2">
+                    <Label text="Manage Quizzes"
+                           style="-fx-font-size:22;-fx-font-weight:bold;-fx-text-fill:#212529;"/>
+                    <Label text="Create quiz titles, quizzes, and questions. Publish when ready."
+                           style="-fx-font-size:13;-fx-text-fill:#6c757d;"/>
+                </VBox>
+                <Button text="Create Quiz" onAction="#saveQuiz"
+                        style="-fx-background-color:#0d6efd;-fx-text-fill:white;-fx-font-size:13;-fx-padding:7 16;-fx-background-radius:5;-fx-cursor:hand;"/>
+            </HBox>
+        </VBox>
     </top>
 
     <center>
+        <VBox spacing="16">
+            <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
 
-        <VBox spacing="15">
+            <!-- FORM CARD -->
+            <VBox spacing="12"
+                  style="-fx-background-color:white;-fx-border-color:#dee2e6;-fx-border-width:1;-fx-background-radius:6;-fx-border-radius:6;-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.08),6,0,0,2);">
+                <padding><Insets top="16" right="20" bottom="16" left="20"/></padding>
 
-            <padding>
-                <Insets top="15" left="20" right="20" bottom="15"/>
-            </padding>
+                <HBox spacing="12">
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label text="Select Quiz Title" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <ComboBox fx:id="cmbCategory" maxWidth="Infinity"
+                                  style="-fx-font-size:13;-fx-padding:4 8;"/>
+                    </VBox>
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label text="Quiz Title" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <TextField fx:id="txtTitle" promptText="Enter quiz title"
+                                   style="-fx-font-size:13;-fx-padding:7 10;-fx-border-color:#ced4da;-fx-border-radius:4;-fx-background-radius:4;"/>
+                    </VBox>
+                    <VBox spacing="4">
+                        <Label text="Duration (min)" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <Spinner fx:id="spDuration" prefWidth="100"
+                                 style="-fx-font-size:13;"/>
+                    </VBox>
+                    <VBox spacing="4">
+                        <Label text="Total Marks" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <Spinner fx:id="spMarks" prefWidth="100"
+                                 style="-fx-font-size:13;"/>
+                    </VBox>
+                </HBox>
 
-            <GridPane hgap="10" vgap="10">
+                <HBox spacing="12">
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label text="Description" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <TextArea fx:id="txtDescription" prefRowCount="2" wrapText="true"
+                                  style="-fx-font-size:13;-fx-border-color:#ced4da;-fx-border-radius:4;-fx-background-radius:4;"/>
+                    </VBox>
+                    <VBox spacing="4">
+                        <Label text="Start Date" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <DatePicker fx:id="dpStart" style="-fx-font-size:13;"/>
+                        <Label text="End Date" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                        <DatePicker fx:id="dpEnd" style="-fx-font-size:13;"/>
+                    </VBox>
+                </HBox>
 
-                <columnConstraints>
-                    <ColumnConstraints prefWidth="150"/>
-                    <ColumnConstraints prefWidth="300"/>
-                    <ColumnConstraints prefWidth="150"/>
-                    <ColumnConstraints prefWidth="300"/>
-                </columnConstraints>
+                <HBox spacing="8">
+                    <Button text="Save Quiz" onAction="#saveQuiz"
+                            style="-fx-background-color:#0d6efd;-fx-text-fill:white;-fx-padding:6 16;-fx-background-radius:4;-fx-cursor:hand;"/>
+                    <Button text="Update" onAction="#updateQuiz"
+                            style="-fx-background-color:#ffc107;-fx-text-fill:#212529;-fx-padding:6 16;-fx-background-radius:4;-fx-cursor:hand;"/>
+                    <Button text="Delete" onAction="#deleteQuiz"
+                            style="-fx-background-color:#dc3545;-fx-text-fill:white;-fx-padding:6 16;-fx-background-radius:4;-fx-cursor:hand;"/>
+                    <Button text="Clear" onAction="#clearFields"
+                            style="-fx-background-color:#6c757d;-fx-text-fill:white;-fx-padding:6 16;-fx-background-radius:4;-fx-cursor:hand;"/>
+                </HBox>
+            </VBox>
 
-                <children>
-
-                    <Label text="Category"/>
-                    <ComboBox fx:id="cmbCategory"
-                              GridPane.columnIndex="1"/>
-
-                    <Label text="Quiz Title"
-                           GridPane.columnIndex="2"/>
-
-                    <TextField fx:id="txtTitle"
-                               GridPane.columnIndex="3"/>
-
-                    <Label text="Description"
-                           GridPane.rowIndex="1"/>
-
-                    <TextArea fx:id="txtDescription"
-                              prefRowCount="3"
-                              GridPane.rowIndex="1"
-                              GridPane.columnIndex="1"/>
-
-                    <Label text="Duration (Minutes)"
-                           GridPane.rowIndex="1"
-                           GridPane.columnIndex="2"/>
-
-                    <Spinner fx:id="spDuration"
-                             GridPane.rowIndex="1"
-                             GridPane.columnIndex="3"/>
-
-                    <Label text="Total Marks"
-                           GridPane.rowIndex="2"/>
-
-                    <Spinner fx:id="spMarks"
-                             GridPane.rowIndex="2"
-                             GridPane.columnIndex="1"/>
-
-                    <Label text="Start Date"
-                           GridPane.rowIndex="2"
-                           GridPane.columnIndex="2"/>
-
-                    <DatePicker fx:id="dpStart"
-                                GridPane.rowIndex="2"
-                                GridPane.columnIndex="3"/>
-
-                    <Label text="End Date"
-                           GridPane.rowIndex="3"/>
-
-                    <DatePicker fx:id="dpEnd"
-                                GridPane.rowIndex="3"
-                                GridPane.columnIndex="1"/>
-
-                </children>
-
-            </GridPane>
-
-            <HBox spacing="10">
-
-                <Button fx:id="btnSave"
-                        text="Save"
-                        onAction="#saveQuiz"/>
-
-                <Button fx:id="btnUpdate"
-                        text="Update"
-                        onAction="#updateQuiz"/>
-
-                <Button fx:id="btnDelete"
-                        text="Delete"
-                        onAction="#deleteQuiz"/>
-
-                <Button fx:id="btnClear"
-                        text="Clear"
-                        onAction="#clearFields"/>
-
-            </HBox>
-
-            <TableView fx:id="tblQuizzes" VBox.vgrow="ALWAYS">
-
-                <columns>
-
-                    <TableColumn fx:id="colId"
-                                 text="ID"
-                                 prefWidth="60"/>
-
-                    <TableColumn fx:id="colCategory"
-                                 text="Category"
-                                 prefWidth="150"/>
-
-                    <TableColumn fx:id="colTitle"
-                                 text="Quiz Title"
-                                 prefWidth="220"/>
-
-                    <TableColumn fx:id="colDuration"
-                                 text="Duration"
-                                 prefWidth="90"/>
-
-                    <TableColumn fx:id="colMarks"
-                                 text="Marks"
-                                 prefWidth="90"/>
-
-                    <TableColumn fx:id="colStart"
-                                 text="Start Date"
-                                 prefWidth="150"/>
-
-                    <TableColumn fx:id="colEnd"
-                                 text="End Date"
-                                 prefWidth="150"/>
-
-                </columns>
-
-            </TableView>
+            <!-- TABLE CARD -->
+            <VBox VBox.vgrow="ALWAYS"
+                  style="-fx-background-color:white;-fx-border-color:#dee2e6;-fx-border-width:1;-fx-background-radius:6;-fx-border-radius:6;-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.08),6,0,0,2);">
+                <TableView fx:id="tblQuizzes" VBox.vgrow="ALWAYS"
+                           style="-fx-background-color:transparent;-fx-border-color:transparent;">
+                    <columns>
+                        <TableColumn fx:id="colTitle"    text="Quiz Title"          prefWidth="200"/>
+                        <TableColumn fx:id="colCategory" text="Quiz Title Template" prefWidth="180"/>
+                        <TableColumn fx:id="colDuration" text="Duration"            prefWidth="90"/>
+                        <TableColumn fx:id="colMarks"    text="Total Marks"         prefWidth="100"/>
+                        <TableColumn fx:id="colStart"    text="Start Date"          prefWidth="120"/>
+                        <TableColumn fx:id="colEnd"      text="End Date"            prefWidth="120"/>
+                        <TableColumn fx:id="colId"       text="ID"                  prefWidth="50"/>
+                    </columns>
+                    <placeholder><Label text="No quizzes yet. Create a quiz title first."
+                                        style="-fx-text-fill:#6c757d;-fx-font-size:13;"/></placeholder>
+                </TableView>
+            </VBox>
 
         </VBox>
-
     </center>
 
 </BorderPane>

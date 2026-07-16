@@ -71,6 +71,30 @@ public class QuizDAO {
         return false;
     }
 
+    public List<Quiz> getQuizzesByCategory(int categoryId) {
+        List<Quiz> quizzes = new ArrayList<>();
+        String sql = "SELECT q.*, c.category_name FROM quizzes q JOIN quiz_categories c ON q.category_id = c.id WHERE q.category_id=?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, categoryId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Quiz quiz = new Quiz();
+                quiz.setId(rs.getInt("id"));
+                quiz.setCategoryId(rs.getInt("category_id"));
+                quiz.setCategoryName(rs.getString("category_name"));
+                quiz.setTitle(rs.getString("title"));
+                quiz.setDescription(rs.getString("description"));
+                quiz.setDuration(rs.getInt("duration"));
+                quiz.setTotalMarks(rs.getInt("total_marks"));
+                quiz.setStartDate(rs.getString("start_date"));
+                quiz.setEndDate(rs.getString("end_date"));
+                quizzes.add(quiz);
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return quizzes;
+    }
+
     public boolean deleteQuiz(int id) {
         String sql = "DELETE FROM quizzes WHERE id=?";
         try (Connection conn = DatabaseConnection.getConnection();
