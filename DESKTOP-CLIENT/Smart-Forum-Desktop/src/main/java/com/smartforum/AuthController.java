@@ -15,6 +15,9 @@ import javafx.scene.shape.ArcType;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
+import com.smartforum.model.ForumUser;
+import com.smartforum.service.AppSession;
+
 import java.awt.Desktop;
 import java.net.URI;
 
@@ -294,10 +297,19 @@ public class AuthController {
 
     private void navigateToDashboard() {
         try {
-            String role = UserSession.getInstance().getRole();
-            String fxml = role.equals("student")
-                ? "/com/smartforum/view/student-dashboard.fxml"
-                : "/com/smartforum/view/main-shell.fxml";
+            UserSession us = UserSession.getInstance();
+
+            // Sync AppSession so MainShellController gets the real logged-in user
+            AppSession.getInstance().setCurrentUser(new ForumUser(
+                us.getId(),
+                us.getFname() + " " + us.getLname(),
+                us.getEmail(),
+                us.getRole()
+            ));
+
+            // Students go straight to the student dashboard inside the shell;
+            // admins and lecturers use the main shell which picks the right dashboard via AppSession
+            String fxml = "/com/smartforum/view/main-shell.fxml";
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
             Scene scene = new Scene(loader.load());
             Stage stage = (Stage) signInPane.getScene().getWindow();
