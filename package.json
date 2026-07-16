@@ -2,6 +2,13 @@
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "type": "module",
+    "sass": {
+        "loadPaths": [
+            "node_modules",
+            "resources/sass"
+        ],
+        "quietDeps": true
+    },
     "scripts": {
         "build": "vite build",
         "dev": "vite"

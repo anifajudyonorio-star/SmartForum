@@ -19,6 +19,14 @@ export default defineConfig({
             },
         })*/
     ],
+    css: {
+        preprocessorOptions: {
+            scss: {
+                loadPaths: ['node_modules', 'resources/sass'],
+                quietDeps: true,
+            },
+        },
+    },
     resolve: {
         alias: {
             vue: 'vue/dist/vue.esm-bundler.js',

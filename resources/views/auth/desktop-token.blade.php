@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>Smart Discussion — Desktop Token</title>
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=Nunito:400,500,600,700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0a0f1e; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        body { background: #0a0f1e; color: white; font-family: 'Nunito', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
         .card { background: #111827; border-radius: 12px; padding: 40px 32px; max-width: 480px; width: 100%; text-align: center; }
         .icon { font-size: 48px; margin-bottom: 16px; }
         h1 { font-size: 20px; margin-bottom: 8px; color: #4ade80; }
