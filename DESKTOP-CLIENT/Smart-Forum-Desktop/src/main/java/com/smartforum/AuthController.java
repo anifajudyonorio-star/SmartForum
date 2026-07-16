@@ -296,8 +296,8 @@ public class AuthController {
         try {
             String role = UserSession.getInstance().getRole();
             String fxml = role.equals("student")
-                ? "/com/smartforum/student-dashboard.fxml"
-                : "/com/smartforum/dashboard.fxml";
+                ? "/com/smartforum/view/student-dashboard.fxml"
+                : "/com/smartforum/view/main-shell.fxml";
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
             Scene scene = new Scene(loader.load());
             Stage stage = (Stage) signInPane.getScene().getWindow();
