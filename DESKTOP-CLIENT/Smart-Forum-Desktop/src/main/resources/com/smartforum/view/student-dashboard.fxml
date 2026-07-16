@@ -63,7 +63,7 @@
                      </HBox>
                      <VBox spacing="8.0" styleClass="dashboard-card-body">
                         <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" styleClass="btn-outline" text="👥  My Groups" />
-                        <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" styleClass="btn-outline" text="❓  Take a Quiz" />
+                        <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onTakeQuiz" styleClass="btn-outline" text="❓  Take a Quiz" />
                      </VBox>
                   </VBox>
 

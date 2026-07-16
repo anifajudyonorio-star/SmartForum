@@ -21,6 +21,17 @@ public class StudentDashboardController {
     @FXML private VBox recentTopicsBox;
     @FXML private VBox latestPostsBox;
 
+    private ShellNavigator navigator;
+
+    public void setNavigator(ShellNavigator navigator) {
+        this.navigator = navigator;
+    }
+
+    @FXML
+    private void onTakeQuiz() {
+        if (navigator != null) navigator.showQuizzes();
+    }
+
     @FXML
     private void initialize() {
         if (welcomeTitleLabel != null) {

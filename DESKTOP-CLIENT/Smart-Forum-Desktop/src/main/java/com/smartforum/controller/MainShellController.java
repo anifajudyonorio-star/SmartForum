@@ -34,6 +34,7 @@ public class MainShellController implements ShellNavigator {
     @FXML private Button groupsNavBtn;
     @FXML private Button topicSearchNavBtn;
     @FXML private Button notificationsNavBtn;
+    @FXML private Button quizzesNavBtn;
     @FXML private VBox groupAdminSection;
     @FXML private Button statisticsNavBtn;
     @FXML private Button participationNavBtn;
@@ -56,7 +57,7 @@ public class MainShellController implements ShellNavigator {
 
         navButtons.addAll(List.of(
                 dashboardNavBtn, groupsNavBtn, topicSearchNavBtn, notificationsNavBtn,
-                statisticsNavBtn, participationNavBtn, quizNavBtn
+                quizzesNavBtn, statisticsNavBtn, participationNavBtn, quizNavBtn
         ));
 
         var user = AppSession.getInstance().getCurrentUser();
@@ -79,6 +80,7 @@ public class MainShellController implements ShellNavigator {
         setNavIcon(groupsNavBtn, BootstrapIcons.PEOPLE_FILL);
         setNavIcon(topicSearchNavBtn, BootstrapIcons.SEARCH);
         setNavIcon(notificationsNavBtn, BootstrapIcons.BELL_FILL);
+        setNavIcon(quizzesNavBtn, BootstrapIcons.PATCH_QUESTION_FILL);
         setNavIcon(statisticsNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(participationNavBtn, BootstrapIcons.BAR_CHART_FILL);
         setNavIcon(quizNavBtn, BootstrapIcons.PATCH_QUESTION);
@@ -90,6 +92,23 @@ public class MainShellController implements ShellNavigator {
         button.setGraphic(fontIcon);
         button.setContentDisplay(ContentDisplay.LEFT);
         button.setGraphicTextGap(10);
+    }
+
+    @FXML
+    private void showQuizzesFromNav() {
+        resetBackStack();
+        showQuizzesInternal();
+    }
+
+    @Override
+    public void showQuizzes() {
+        navigateWithBack(this::showQuizzesInternal);
+    }
+
+    private void showQuizzesInternal() {
+        boolean isStudent = AppSession.getInstance().isStudent();
+        String fxml = isStudent ? "quiz-management.fxml" : "quiz-management.fxml";
+        loadView(fxml, quizzesNavBtn, null);
     }
 
     @FXML
@@ -349,6 +368,8 @@ public class MainShellController implements ShellNavigator {
             admin.setNavigator(this);
         } else if (controller instanceof LecturerDashboardController lecturer) {
             lecturer.setNavigator(this);
+        } else if (controller instanceof StudentDashboardController student) {
+            student.setNavigator(this);
         }
     }
 
