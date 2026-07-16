@@ -37,6 +37,7 @@ public class MainShellController implements ShellNavigator {
     @FXML private VBox groupAdminSection;
     @FXML private Button statisticsNavBtn;
     @FXML private Button participationNavBtn;
+    @FXML private Button quizNavBtn;
     @FXML private Label topBarUserAvatar;
 
     private GroupController groupController;
@@ -55,7 +56,7 @@ public class MainShellController implements ShellNavigator {
 
         navButtons.addAll(List.of(
                 dashboardNavBtn, groupsNavBtn, topicSearchNavBtn, notificationsNavBtn,
-                statisticsNavBtn, participationNavBtn
+                statisticsNavBtn, participationNavBtn, quizNavBtn
         ));
 
         var user = AppSession.getInstance().getCurrentUser();
@@ -80,6 +81,7 @@ public class MainShellController implements ShellNavigator {
         setNavIcon(notificationsNavBtn, BootstrapIcons.BELL_FILL);
         setNavIcon(statisticsNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(participationNavBtn, BootstrapIcons.BAR_CHART_FILL);
+        setNavIcon(quizNavBtn, BootstrapIcons.PATCH_QUESTION);
     }
 
     private void setNavIcon(Button button, BootstrapIcons icon) {
@@ -106,6 +108,12 @@ public class MainShellController implements ShellNavigator {
     private void showParticipationFromNav() {
         resetBackStack();
         showParticipationInternal();
+    }
+
+    @FXML
+    private void showQuizManagementFromNav() {
+        resetBackStack();
+        showQuizManagementInternal();
     }
 
     @FXML
@@ -217,6 +225,10 @@ public class MainShellController implements ShellNavigator {
         loadView("participation.fxml", participationNavBtn, null);
     }
 
+    private void showQuizManagementInternal() {
+        loadView("quiz-management.fxml", quizNavBtn, null);
+    }
+
     private void showGroupsIndexInternal() {
         showGroupsView(GroupController::index);
         setActiveNav(groupsNavBtn);
@@ -303,6 +315,10 @@ public class MainShellController implements ShellNavigator {
         }
 
         if ("participation.fxml".equals(activeContentKey)) {
+            return this::showDashboardInternal;
+        }
+
+        if ("quiz-management.fxml".equals(activeContentKey)) {
             return this::showDashboardInternal;
         }
 

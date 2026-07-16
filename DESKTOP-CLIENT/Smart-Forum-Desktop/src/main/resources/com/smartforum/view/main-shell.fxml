@@ -35,6 +35,7 @@
                      <Label styleClass="sidebar-section-label" text="GROUP ADMIN" />
                      <Button fx:id="statisticsNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showStatisticsFromNav" styleClass="sidebar-nav-btn" text="Statistics" />
                      <Button fx:id="participationNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showParticipationFromNav" styleClass="sidebar-nav-btn" text="Participation" />
+                     <Button fx:id="quizNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showQuizManagementFromNav" styleClass="sidebar-nav-btn" text="Quiz Management" />
                   </VBox>
                </VBox>
             </content>
