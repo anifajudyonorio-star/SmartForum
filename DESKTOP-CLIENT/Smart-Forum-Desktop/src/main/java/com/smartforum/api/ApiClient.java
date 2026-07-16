@@ -2,6 +2,7 @@ package com.smartforum.api;
 
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
+import com.smartforum.model.Group;
 import com.smartforum.model.Post;
 import com.smartforum.model.Topic;
 import com.smartforum.util.SessionManager;
@@ -25,6 +26,19 @@ public class ApiClient {
                 .header("Content-Type", "application/json");
         if (token != null) b.header("Authorization", "Bearer " + token);
         return b;
+    }
+
+    public static List<Group> getGroups() {
+        try {
+            HttpResponse<String> res = HTTP.send(
+                    builder("/api/groups").GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            if (res.statusCode() != 200) return new ArrayList<>();
+            Type type = new TypeToken<List<Group>>() {}.getType();
+            return GSON.fromJson(res.body(), type);
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 
     public static List<Topic> getTopics() {

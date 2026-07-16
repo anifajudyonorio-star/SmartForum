@@ -292,6 +292,18 @@ public class ChatController {
         try { return createdAt.substring(11, 16); } catch (Exception e) { return ""; }
     }
 
+    public void selectTopic(Topic topic) {
+        topicListView.getItems().stream()
+                .filter(t -> t.getId() == topic.getId())
+                .findFirst()
+                .ifPresentOrElse(
+                        t -> topicListView.getSelectionModel().select(t),
+                        () -> {
+                            topicListView.getItems().add(topic);
+                            topicListView.getSelectionModel().selectLast();
+                        });
+    }
+
     public void shutdown() {
         scheduler.shutdownNow();
     }

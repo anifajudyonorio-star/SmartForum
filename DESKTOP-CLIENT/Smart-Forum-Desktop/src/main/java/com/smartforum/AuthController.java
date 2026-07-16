@@ -180,7 +180,7 @@ public class AuthController {
                             response.body().get("token").getAsString()
                         );
                         showSuccess("Welcome back, " + UserSession.getInstance().getFname() + "!");
-                        // TODO: navigate to dashboard
+                        navigateToDashboard();
                     } catch (Exception e) {
                         showError("Login successful but failed to load user data.");
                     }
@@ -240,7 +240,7 @@ public class AuthController {
                     params.get("token")
                 );
                 showSuccess("Welcome, " + UserSession.getInstance().getFname() + "!");
-                // TODO: navigate to dashboard
+                navigateToDashboard();
             } catch (Exception e) {
                 showError("Google sign in failed: " + e.getMessage());
             }
