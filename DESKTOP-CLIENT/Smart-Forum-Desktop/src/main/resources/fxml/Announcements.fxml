@@ -3,62 +3,64 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.Font?>
 
 <BorderPane xmlns="http://javafx.com/javafx/24.0.1"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.smartforum.controller.AnnouncementsController"
-            prefWidth="900" prefHeight="600">
+            prefWidth="900" prefHeight="600" styleClass="quiz-page">
 
     <top>
-        <HBox alignment="CENTER" style="-fx-background-color:#2c3e50;-fx-padding:12;">
-            <Label text="📢  Announcements" style="-fx-text-fill:white;-fx-font-size:22;-fx-font-weight:bold;"/>
-        </HBox>
+        <VBox spacing="2" styleClass="dashboard-header">
+            <padding><Insets top="20" right="24" bottom="16" left="24"/></padding>
+            <Label text="Announcements" styleClass="dashboard-title"/>
+            <Label text="Share updates with quiz categories and review published messages." styleClass="dashboard-subtitle"/>
+        </VBox>
     </top>
 
     <center>
-        <SplitPane dividerPositions="0.42">
+        <SplitPane dividerPositions="0.42" style="-fx-background-color:transparent;-fx-padding:20 24 20 24;">
 
             <!-- LEFT: Post announcement (lecturer) -->
-            <VBox spacing="12" style="-fx-padding:20;">
-                <Label text="Post Announcement" style="-fx-font-size:15;-fx-font-weight:bold;"/>
+            <VBox spacing="12" styleClass="quiz-card">
+                <Label text="Post Announcement" styleClass="dashboard-card-title"/>
 
-                <Label text="Target Category"/>
+                <Label text="Target Category" styleClass="form-label"/>
                 <ComboBox fx:id="cmbCategory" maxWidth="Infinity"/>
 
-                <Label text="Title"/>
+                <Label text="Title" styleClass="form-label"/>
                 <TextField fx:id="txtTitle" promptText="Announcement title"/>
 
-                <Label text="Message"/>
-                <TextArea fx:id="txtMessage" promptText="Write your announcement…" prefRowCount="5" wrapText="true"/>
+                <Label text="Message" styleClass="form-label"/>
+                <TextArea fx:id="txtMessage" promptText="Write your announcement…" prefRowCount="5" wrapText="true"
+                          styleClass="form-textarea"/>
 
-                <Label text="Posted by"/>
+                <Label text="Posted by" styleClass="form-label"/>
                 <TextField fx:id="txtPostedBy" promptText="Your name / role"/>
 
                 <Button text="Post Announcement" onAction="#postAnnouncement" maxWidth="Infinity"
-                        style="-fx-background-color:#2980b9;-fx-text-fill:white;-fx-font-size:13;-fx-padding:9;"/>
+                        styleClass="btn-primary"/>
 
                 <Separator/>
 
                 <!-- Student view filter -->
-                <Label text="View as Student" style="-fx-font-size:14;-fx-font-weight:bold;"/>
-                <Label text="Your Name"/>
+                <Label text="View as Student" styleClass="dashboard-card-title"/>
+                <Label text="Your Name" styleClass="form-label"/>
                 <TextField fx:id="txtStudentFilter" promptText="Enter student name to filter"/>
                 <Button text="Load My Announcements" onAction="#loadStudentAnnouncements" maxWidth="Infinity"
-                        style="-fx-background-color:#27ae60;-fx-text-fill:white;-fx-padding:8;"/>
+                        styleClass="btn-primary"/>
             </VBox>
 
             <!-- RIGHT: Announcement list -->
-            <VBox spacing="8" style="-fx-padding:16;">
+            <VBox spacing="8" styleClass="quiz-card">
                 <HBox alignment="CENTER_LEFT" spacing="10">
-                    <Label text="Announcements" style="-fx-font-size:15;-fx-font-weight:bold;"/>
+                    <Label text="Announcements" styleClass="dashboard-card-title"/>
                     <Region HBox.hgrow="ALWAYS"/>
-                    <Button text="Show All" onAction="#loadAll" style="-fx-padding:5 12;"/>
+                    <Button text="Show All" onAction="#loadAll" styleClass="btn-outline"/>
                     <Button text="Delete Selected" onAction="#deleteSelected"
-                            style="-fx-background-color:#e74c3c;-fx-text-fill:white;-fx-padding:5 12;"/>
+                            styleClass="btn-danger"/>
                 </HBox>
 
-                <TableView fx:id="tblAnnouncements" VBox.vgrow="ALWAYS">
+                <TableView fx:id="tblAnnouncements" VBox.vgrow="ALWAYS" styleClass="dashboard-table">
                     <columns>
                         <TableColumn fx:id="colCategory" text="Category" prefWidth="120"/>
                         <TableColumn fx:id="colTitle"    text="Title"    prefWidth="160"/>

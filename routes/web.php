@@ -1,22 +1,22 @@
-﻿<?php
+<?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\GroupController;
-use App\Http\Controllers\GroupModerationController;
-use App\Http\Controllers\TopicController;
-use App\Http\Controllers\PostController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\StatisticsController;
-use App\Http\Controllers\ParticipationController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\QuizController;
-use App\Http\Controllers\QuizCategoryController;
-use App\Http\Controllers\QuestionController;
-use App\Http\Controllers\StudentQuizController;
+use App\Http\Controllers\GroupController;
+use App\Http\Controllers\GroupModerationController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ParticipationController;
 use App\Http\Controllers\PerformanceReportController;
+use App\Http\Controllers\PostController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\QuestionController;
+use App\Http\Controllers\QuizCategoryController;
+use App\Http\Controllers\QuizController;
+use App\Http\Controllers\StatisticsController;
+use App\Http\Controllers\StudentQuizController;
+use App\Http\Controllers\TopicController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return auth()->check()
@@ -36,7 +36,7 @@ Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'
     ->where('provider', 'google|apple');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard',[DashboardController::class,'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/latest-posts', [DashboardController::class, 'latestPosts'])->name('dashboard.latest-posts');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -98,9 +98,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/groups/{group}/participation', [ParticipationController::class, 'group'])->name('participation.group');
 
     // Student quizzes
-    Route::get('/student/quizzes', [StudentQuizController::class, 'index'])->name('student.quizzes');
-    Route::get('/student/quizzes/{quiz}', [StudentQuizController::class, 'show'])->name('student.quiz.show');
-    Route::post('/student/quizzes/{quiz}/submit', [StudentQuizController::class, 'submit'])->name('student.quiz.submit');
+    Route::middleware('role:student')->group(function () {
+        Route::get('/student/quizzes', [StudentQuizController::class, 'index'])->name('student.quizzes');
+        Route::get('/student/quizzes/progress', [StudentQuizController::class, 'progress'])
+            ->name('student.quizzes.progress');
+        Route::get('/student/quizzes/{quiz}', [StudentQuizController::class, 'show'])->name('student.quiz.show');
+        Route::post('/student/quizzes/{quiz}/submit', [StudentQuizController::class, 'submit'])->name('student.quiz.submit');
+    });
 
     // Public quiz report for assigned members (visible after quiz ends)
     Route::get('/quizzes/{quiz}/report', [PerformanceReportController::class, 'publicQuiz'])
@@ -110,28 +114,27 @@ Route::middleware('auth')->group(function () {
     // Lecturer / admin quiz management
     Route::middleware('role:lecturer')->group(function () {
 
-    Route::resource('quiz-categories', QuizCategoryController::class)->except(['show']);
+        Route::resource('quiz-categories', QuizCategoryController::class)->except(['show']);
 
-    Route::resource('quizzes', QuizController::class)->except(['show']);
-    Route::get('/quizzes/{quiz}/review', [QuizController::class, 'review'])
-        ->name('quizzes.review');
+        Route::resource('quizzes', QuizController::class)->except(['show']);
+        Route::get('/quizzes/{quiz}/review', [QuizController::class, 'review'])
+            ->name('quizzes.review');
 
-    Route::patch('/quizzes/{quiz}/publish', [QuizController::class, 'publish'])
-        ->name('quizzes.publish');
+        Route::patch('/quizzes/{quiz}/publish', [QuizController::class, 'publish'])
+            ->name('quizzes.publish');
 
-    Route::resource('questions', QuestionController::class)->except(['show']);
+        Route::resource('questions', QuestionController::class)->except(['show']);
 
-    Route::get('/reports', [PerformanceReportController::class, 'index'])
-        ->name('reports.index');
-    Route::get('/reports/quizzes/{quiz}', [PerformanceReportController::class, 'quiz'])
-        ->name('reports.quiz');
+        Route::get('/reports', [PerformanceReportController::class, 'index'])
+            ->name('reports.index');
+        Route::get('/reports/quizzes/{quiz}', [PerformanceReportController::class, 'quiz'])
+            ->name('reports.quiz');
 
-});
+    });
 
-    //Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
+    // Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
 
-    //Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');
-    //Route::post('/posts/{post}/reply', [PostController::class, 'storeReply'])->name('posts.storeReply');
+    // Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');
+    // Route::post('/posts/{post}/reply', [PostController::class, 'storeReply'])->name('posts.storeReply');
 });
 require __DIR__.'/auth.php';
-

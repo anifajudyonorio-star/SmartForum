@@ -9,6 +9,7 @@ public class Quiz {
     private String description;
     private int duration;
     private int totalMarks;
+    private int participationMarks;
     private String startDate;
     private String endDate;
 
@@ -48,6 +49,9 @@ public class Quiz {
 
     public int getTotalMarks() { return totalMarks; }
     public void setTotalMarks(int totalMarks) { this.totalMarks = totalMarks; }
+
+    public int getParticipationMarks() { return participationMarks; }
+    public void setParticipationMarks(int participationMarks) { this.participationMarks = participationMarks; }
 
     public String getStartDate() { return startDate; }
     public void setStartDate(String startDate) { this.startDate = startDate; }

@@ -15,6 +15,11 @@ class QuestionOption extends Model
         'is_correct',
     ];
 
+    protected $casts = [
+        'question_id' => 'integer',
+        'is_correct' => 'boolean',
+    ];
+
     public function question()
     {
         return $this->belongsTo(Question::class);

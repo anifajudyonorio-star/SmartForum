@@ -5,9 +5,10 @@
 <?import javafx.scene.layout.StackPane?>
 
 <StackPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
-           xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
+           xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+           styleClass="quiz-page">
    <TabPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
-            tabClosingPolicy="UNAVAILABLE">
+            tabClosingPolicy="UNAVAILABLE" styleClass="quiz-tabs">
       <Tab text="Quiz Categories">
          <fx:include source="../../../fxml/QuizCategories.fxml" />
       </Tab>
@@ -22,9 +23,6 @@
       </Tab>
       <Tab text="Announcements">
          <fx:include source="../../../fxml/Announcements.fxml" />
-      </Tab>
-      <Tab text="Take Quiz">
-         <fx:include source="../../../fxml/TakeQuiz.fxml" />
       </Tab>
       <Tab text="Results">
          <fx:include source="../../../fxml/Results.fxml" />

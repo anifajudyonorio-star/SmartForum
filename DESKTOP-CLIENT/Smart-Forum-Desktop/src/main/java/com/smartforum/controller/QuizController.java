@@ -26,6 +26,8 @@ public class QuizController {
 
     @FXML
     private Spinner<Integer> spMarks;
+    @FXML
+    private Spinner<Integer> spParticipation;
 
     @FXML
     private DatePicker dpStart;
@@ -79,6 +81,8 @@ public class QuizController {
 
         spMarks.setValueFactory(
             new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1000, 100));
+        spParticipation.setValueFactory(
+            new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 1000, 0));
 
         loadCategories();
 
@@ -104,12 +108,17 @@ public class QuizController {
 
                     spDuration.getValueFactory().setValue(newValue.getDuration());
                     spMarks.getValueFactory().setValue(newValue.getTotalMarks());
+                    spParticipation.getValueFactory().setValue(Math.max(0, newValue.getParticipationMarks()));
 
-                    if (newValue.getStartDate() != null)
-                        dpStart.setValue(java.time.LocalDate.parse(newValue.getStartDate()));
-
-                    if (newValue.getEndDate() != null)
-                        dpEnd.setValue(java.time.LocalDate.parse(newValue.getEndDate()));
+                    try {
+                        dpStart.setValue(newValue.getStartDate() == null ? null :
+                            com.smartforum.util.QuizSchedule.parseStart(newValue.getStartDate()).toLocalDate());
+                        dpEnd.setValue(newValue.getEndDate() == null ? null :
+                            com.smartforum.util.QuizSchedule.parseEnd(newValue.getEndDate()).toLocalDate());
+                    } catch (RuntimeException invalidHistoricSchedule) {
+                        dpStart.setValue(null);
+                        dpEnd.setValue(null);
+                    }
 
                     for (QuizCategory category : cmbCategory.getItems()) {
 
@@ -139,6 +148,7 @@ public class QuizController {
             return;
 
         }
+        if (!validateQuiz()) return;
 
         Quiz quiz = new Quiz();
 
@@ -147,6 +157,7 @@ public class QuizController {
         quiz.setDescription(txtDescription.getText());
         quiz.setDuration(spDuration.getValue());
         quiz.setTotalMarks(spMarks.getValue());
+        quiz.setParticipationMarks(spParticipation.getValue());
 
         if (dpStart.getValue() != null)
             quiz.setStartDate(dpStart.getValue().toString());
@@ -184,12 +195,15 @@ public class QuizController {
         }
 
         QuizCategory category = cmbCategory.getValue();
+        if (category == null) { showAlert("Validation", "Please select a category."); return; }
+        if (!validateQuiz()) return;
 
         selectedQuiz.setCategoryId(category.getId());
         selectedQuiz.setTitle(txtTitle.getText());
         selectedQuiz.setDescription(txtDescription.getText());
         selectedQuiz.setDuration(spDuration.getValue());
         selectedQuiz.setTotalMarks(spMarks.getValue());
+        selectedQuiz.setParticipationMarks(spParticipation.getValue());
 
         if (dpStart.getValue() != null)
             selectedQuiz.setStartDate(dpStart.getValue().toString());
@@ -271,6 +285,7 @@ public class QuizController {
         spDuration.getValueFactory().setValue(30);
 
         spMarks.getValueFactory().setValue(100);
+        spParticipation.getValueFactory().setValue(0);
 
         dpStart.setValue(null);
 
@@ -280,6 +295,38 @@ public class QuizController {
 
         tblQuizzes.getSelectionModel().clearSelection();
 
+    }
+
+    private boolean validateQuiz() {
+        if (txtTitle.getText() == null || txtTitle.getText().isBlank()) {
+            showAlert("Validation", "Quiz title is required.");
+            return false;
+        }
+        if (txtDescription.getText() == null || txtDescription.getText().isBlank()) {
+            showAlert("Validation", "Quiz description is required.");
+            return false;
+        }
+        if (spDuration.getValue() == null || spDuration.getValue() <= 0) {
+            showAlert("Validation", "Duration must be positive.");
+            return false;
+        }
+        if (spMarks.getValue() == null || spMarks.getValue() <= 0) {
+            showAlert("Validation", "Planned total marks must be positive.");
+            return false;
+        }
+        if (spParticipation.getValue() == null || spParticipation.getValue() < 0) {
+            showAlert("Validation", "Participation marks cannot be negative.");
+            return false;
+        }
+        if (dpStart.getValue() == null || dpEnd.getValue() == null) {
+            showAlert("Validation", "Start and end dates are required.");
+            return false;
+        }
+        if (dpEnd.getValue().isBefore(dpStart.getValue())) {
+            showAlert("Validation", "End date must not be before the start date.");
+            return false;
+        }
+        return true;
     }
 
     private void showAlert(String title, String message) {

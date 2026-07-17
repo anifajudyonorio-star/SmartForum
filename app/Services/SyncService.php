@@ -8,57 +8,136 @@ use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Post;
 use App\Models\Quiz;
-use App\Models\QuizResult;
 use App\Models\SyncLog;
 use App\Models\SyncQueue;
 use App\Models\Topic;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class SyncService
 {
-    public function queueAction($userId, $actionType, $payload)
+    public function __construct(private readonly QuizSubmissionService $quizSubmissions) {}
+
+    public function queueAction(int $userId, string $actionUuid, string $actionType, array $payload): SyncQueue
     {
         return SyncQueue::create([
-            'user_id'     => $userId,
+            'action_uuid' => $actionUuid,
+            'user_id' => $userId,
             'action_type' => $actionType,
-            'payload'     => $payload,
-            'is_synced'   => false,
+            'payload' => $payload,
+            'is_synced' => false,
+            'sync_status' => SyncQueue::STATUS_PENDING,
         ]);
     }
 
-    public function pendingActions($userId)
+    public function pendingActions($userId, bool $lockForUpdate = false)
     {
-        return SyncQueue::where('user_id', $userId)
+        $query = SyncQueue::where('user_id', $userId)
             ->where('is_synced', false)
-            ->orderBy('created_at')
-            ->get();
+            ->orderBy('created_at');
+
+        return ($lockForUpdate ? $query->lockForUpdate() : $query)->get();
     }
 
     public function markAsSynced(SyncQueue $action)
     {
-        $action->update(['is_synced' => true, 'synced_at' => Carbon::now()]);
+        $action->update([
+            'is_synced' => true,
+            'sync_status' => SyncQueue::STATUS_SUCCEEDED,
+            'last_error' => null,
+            'synced_at' => Carbon::now(),
+        ]);
+    }
+
+    public function markAsFailed(SyncQueue $action, string $reason): void
+    {
+        $action->update([
+            'is_synced' => false,
+            'sync_status' => SyncQueue::STATUS_FAILED,
+            'last_error' => $reason,
+        ]);
     }
 
     public function uploadOfflineData(Request $request)
     {
-        $request->validate([
-            'actions'               => 'required|array',
-            'actions.*.action_type' => 'required|string|in:create_post,create_topic,submit_quiz',
-            'actions.*.payload'     => 'required|array',
+        $validated = $request->validate([
+            'actions' => ['required', 'array', 'max:50'],
+            'actions.*.action_uuid' => ['required', 'uuid'],
+            'actions.*.action_type' => [
+                'required',
+                Rule::in(['create_post', 'create_topic', 'submit_quiz']),
+            ],
+            'actions.*.payload' => ['required', 'array'],
         ]);
 
-        $userId = $request->user()->id;
+        $userId = (int) $request->user()->id;
+        $acknowledgements = [];
+        $actions = [];
 
-        foreach ($request->actions as $action) {
-            $this->queueAction($userId, $action['action_type'], $action['payload']);
+        foreach ($validated['actions'] as $index => $action) {
+            $action['payload'] = $this->validateActionPayload(
+                $action['action_type'],
+                $action['payload'],
+                $index,
+            );
+            $actions[] = $action;
         }
 
-        return response()->json(['success' => true, 'message' => 'Actions queued for sync']);
+        foreach ($actions as $action) {
+            $payload = $action['payload'];
+            $existing = SyncQueue::query()
+                ->where('user_id', $userId)
+                ->where('action_uuid', $action['action_uuid'])
+                ->first();
+            $existing ??= $this->adoptLegacyAction(
+                $userId,
+                $action['action_uuid'],
+                $action['action_type'],
+                $payload,
+            );
+
+            if ($existing) {
+                $acknowledgements[] = $this->duplicateAcknowledgement($existing, $action, $payload);
+
+                continue;
+            }
+
+            try {
+                $queued = $this->queueAction(
+                    $userId,
+                    $action['action_uuid'],
+                    $action['action_type'],
+                    $payload,
+                );
+                $acknowledgements[] = $this->actionAcknowledgement($queued, 'queued');
+            } catch (QueryException $exception) {
+                $existing = SyncQueue::query()
+                    ->where('user_id', $userId)
+                    ->where('action_uuid', $action['action_uuid'])
+                    ->first();
+
+                if (! $existing) {
+                    throw $exception;
+                }
+
+                $acknowledgements[] = $this->duplicateAcknowledgement($existing, $action, $payload);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Offline actions acknowledged.',
+            'actions' => $acknowledgements,
+        ]);
     }
 
-   
     public function sync(Request $request)
     {
         $request->validate(['device_id' => 'required']);
@@ -66,9 +145,9 @@ class SyncService
         $userId = $request->user()->id;
 
         $device = Device::where(function ($q) use ($request) {
-                $q->where('id', $request->device_id)
-                  ->orWhere('device_id', $request->device_id);
-            })
+            $q->where('id', $request->device_id)
+                ->orWhere('device_id', $request->device_id);
+        })
             ->where('user_id', $userId)
             ->first();
 
@@ -77,58 +156,72 @@ class SyncService
         }
 
         return DB::transaction(function () use ($userId, $device) {
-            $pending   = $this->pendingActions($userId);
+            $pending = $this->pendingActions($userId, lockForUpdate: true);
             $processed = 0;
             $conflicts = [];
-            $errors    = [];
+            $errors = [];
+            $actionResults = [];
 
             foreach ($pending as $action) {
                 try {
                     $this->processAction($action);
                     $this->markAsSynced($action);
                     $processed++;
-                } catch (ConflictException $e) {
-                    $this->markAsSynced($action);
+                    $actionResults[] = $this->actionAcknowledgement($action, 'succeeded');
+                } catch (ConflictException|AuthorizationException|ValidationException $e) {
+                    $reason = $this->actionFailureMessage($e);
+                    $this->markAsFailed($action, $reason);
                     $conflicts[] = [
-                        'action_id'   => $action->id,
+                        'action_id' => $action->id,
+                        'action_uuid' => $action->action_uuid,
                         'action_type' => $action->action_type,
-                        'reason'      => $e->getMessage(),
+                        'reason' => $reason,
                     ];
+                    $actionResults[] = $this->actionAcknowledgement($action, 'failed', $reason);
                 } catch (\Throwable $e) {
-                    $errors[] = ['action_id' => $action->id, 'error' => $e->getMessage()];
+                    $errors[] = [
+                        'action_id' => $action->id,
+                        'action_uuid' => $action->action_uuid,
+                        'error' => 'A temporary server error prevented this action from syncing.',
+                    ];
+                    $actionResults[] = $this->actionAcknowledgement(
+                        $action,
+                        'failed',
+                        'A temporary server error prevented this action from syncing; retry later.',
+                    );
                 }
             }
 
             $status = match (true) {
-                !empty($errors)    => 'partial',
-                !empty($conflicts) => 'conflict',
-                default            => 'success',
+                ! empty($errors) => 'partial',
+                ! empty($conflicts) => 'conflict',
+                default => 'success',
             };
 
             SyncLog::create([
-                'user_id'        => $userId,
-                'device_id'      => $device->id,
+                'user_id' => $userId,
+                'device_id' => $device->id,
                 'records_synced' => $processed,
-                'status'         => $status,
-                'synced_at'      => Carbon::now(),
+                'status' => $status,
+                'synced_at' => Carbon::now(),
             ]);
 
             $device->update(['last_sync' => Carbon::now(), 'is_online' => true]);
 
             return response()->json([
-                'success'        => true,
+                'success' => true,
                 'synced_records' => $processed,
-                'conflicts'      => $conflicts,
-                'errors'         => $errors,
+                'actions' => $actionResults,
+                'conflicts' => $conflicts,
+                'errors' => $errors,
             ]);
         });
     }
 
-
     public function getPendingData(Request $request)
     {
         return response()->json([
-            'success'         => true,
+            'success' => true,
             'pending_actions' => $this->pendingActions($request->user()->id),
         ]);
     }
@@ -136,7 +229,7 @@ class SyncService
     public function registerDevice(Request $request)
     {
         $request->validate([
-            'device_id'   => 'required|string',
+            'device_id' => 'required|string',
             'device_name' => 'required|string',
             'device_type' => 'nullable|string',
         ]);
@@ -146,8 +239,8 @@ class SyncService
             [
                 'device_name' => $request->device_name,
                 'device_type' => $request->device_type ?? 'browser',
-                'is_online'   => true,
-                'status'      => 'online',
+                'is_online' => true,
+                'status' => 'online',
             ]
         );
 
@@ -157,10 +250,10 @@ class SyncService
     private function processAction(SyncQueue $action): void
     {
         match ($action->action_type) {
-            'create_post'  => $this->processCreatePost($action),
+            'create_post' => $this->processCreatePost($action),
             'create_topic' => $this->processCreateTopic($action),
-            'submit_quiz'  => $this->processSubmitQuiz($action),
-            default        => throw new \InvalidArgumentException("Unknown action type: {$action->action_type}"),
+            'submit_quiz' => $this->processSubmitQuiz($action),
+            default => throw new \InvalidArgumentException("Unknown action type: {$action->action_type}"),
         };
     }
 
@@ -229,77 +322,180 @@ class SyncService
             'Created_By'        => $action->user_id,
         ]);
     }
+
     public function status(Request $request)
-{
-    $user = $request->user();
+    {
+        $user = $request->user();
 
-    $device = Device::where('user_id', $user->id)
-        ->latest()
-        ->first();
+        $device = Device::where('user_id', $user->id)
+            ->latest()
+            ->first();
 
-    $pending = SyncQueue::where('user_id', $user->id)
-        ->where('is_synced', false)
-        ->count();
+        $pending = SyncQueue::where('user_id', $user->id)
+            ->where('is_synced', false)
+            ->count();
 
-    return response()->json([
-        'success' => true,
-        'online' => optional($device)->is_online ?? false,
-        'device_name' => optional($device)->device_name,
-        'last_sync' => optional($device?->last_sync)?->format('d M Y H:i:s'),
-        'pending_actions' => $pending,
-    ]);
-}
+        return response()->json([
+            'success' => true,
+            'online' => optional($device)->is_online ?? false,
+            'device_name' => optional($device)->device_name,
+            'last_sync' => optional($device?->last_sync)?->format('d M Y H:i:s'),
+            'pending_actions' => $pending,
+        ]);
+    }
 
     private function processSubmitQuiz(SyncQueue $action): void
     {
         $p = $action->payload;
-
-        $quizId  = (int) ($p['quiz_id'] ?? 0);
-        $answers = array_map('intval', (array) ($p['answers'] ?? []));
-
-        if (! $quizId) {
-            throw new ConflictException('Invalid quiz payload.');
-        }
-
-        if (QuizResult::where('quiz_id', $quizId)->where('user_id', $action->user_id)->exists()) {
-            throw new ConflictException('You have already submitted this quiz.');
-        }
-
-        $quiz = Quiz::with('questions.options')->find($quizId);
+        $quiz = Quiz::find($p['quiz_id']);
         if (! $quiz) {
             throw new ConflictException('This quiz no longer exists.');
         }
 
-        if ($quiz->status !== 'Active') {
-            throw new ConflictException("Quiz \"{$quiz->title}\" is no longer active.");
+        $user = User::find($action->user_id);
+        if (! $user) {
+            throw new ConflictException('You are no longer authorized to submit this quiz.');
         }
 
-        $now = Carbon::now();
-        if ($quiz->end_time && $now->isAfter($quiz->end_time)) {
-            throw new ConflictException("Quiz \"{$quiz->title}\" has already closed.");
+        $this->quizSubmissions->submit(
+            $user,
+            $quiz,
+            (int) $p['attempt_id'],
+            $p['answers'],
+        );
+    }
+
+    private function validateActionPayload(string $actionType, array $payload, int $index): array
+    {
+        if (strlen((string) json_encode($payload)) > 65536) {
+            throw ValidationException::withMessages([
+                "actions.{$index}.payload" => 'Action payloads may not exceed 64 KB.',
+            ]);
         }
 
-        $score = 0;
+        $rules = match ($actionType) {
+            'create_post' => [
+                'payload' => ['required', 'array:topic_id,parent_post_id,content'],
+                'payload.topic_id' => ['required', 'integer', 'min:1'],
+                'payload.parent_post_id' => ['nullable', 'integer', 'min:1'],
+                'payload.content' => ['required', 'string', 'max:10000'],
+            ],
+            'create_topic' => [
+                'payload' => ['required', 'array:group_id,title,description'],
+                'payload.group_id' => ['required', 'integer', 'min:1'],
+                'payload.title' => ['required', 'string', 'max:255'],
+                'payload.description' => ['nullable', 'string', 'max:5000'],
+            ],
+            'submit_quiz' => [
+                'payload' => ['required', 'array:quiz_id,attempt_id,answers'],
+                'payload.quiz_id' => ['required', 'integer', 'min:1'],
+                'payload.attempt_id' => ['required', 'integer', 'min:1'],
+                'payload.answers' => ['present', 'array', 'max:200'],
+                'payload.answers.*' => ['required', 'integer', 'min:1'],
+            ],
+        };
 
-        foreach ($quiz->questions as $question) {
-            if (! in_array($question->question_type, ['Multiple Choice', 'True/False'])) {
-                continue;
+        $validator = Validator::make(['payload' => $payload], $rules);
+
+        $validator->after(function ($validator) use ($actionType, $payload) {
+            if ($actionType !== 'submit_quiz') {
+                return;
             }
-            $selected = $answers[$question->id] ?? null;
-            $correct  = $question->options->firstWhere('is_correct', true);
-            if ($correct && $selected === (int) $correct->id) {
-                $score += $question->marks;
+
+            foreach (array_keys($payload['answers'] ?? []) as $questionId) {
+                if (! ctype_digit((string) $questionId) || (int) $questionId < 1) {
+                    $validator->errors()->add(
+                        'payload.answers',
+                        'Answer keys must be positive question IDs.',
+                    );
+
+                    break;
+                }
             }
+        });
+
+        if ($validator->fails()) {
+            $errors = [];
+            foreach ($validator->errors()->messages() as $field => $messages) {
+                $errors["actions.{$index}.{$field}"] = $messages;
+            }
+
+            throw ValidationException::withMessages($errors);
         }
 
-        $participationMarks = (int) ($quiz->participation_marks ?? 0);
+        return $validator->validated()['payload'];
+    }
 
-        QuizResult::create([
-            'quiz_id'             => $quiz->id,
-            'user_id'             => $action->user_id,
-            'score'               => $score,
-            'participation_marks' => $participationMarks,
-            'total_score'         => $score + $participationMarks,
+    private function duplicateAcknowledgement(
+        SyncQueue $existing,
+        array $submittedAction,
+        array $payload,
+    ): array {
+        if ($existing->action_type !== $submittedAction['action_type']
+            || $existing->payload != $payload) {
+            throw ValidationException::withMessages([
+                'action_uuid' => 'An action UUID cannot be reused with different action data.',
+            ]);
+        }
+
+        return match ($existing->sync_status) {
+            SyncQueue::STATUS_SUCCEEDED => $this->actionAcknowledgement($existing, 'duplicate'),
+            SyncQueue::STATUS_FAILED => $this->actionAcknowledgement(
+                $existing,
+                'failed',
+                $existing->last_error ?? 'This action previously failed.',
+            ),
+            default => $this->actionAcknowledgement($existing, 'queued'),
+        };
+    }
+
+    private function adoptLegacyAction(
+        int $userId,
+        string $actionUuid,
+        string $actionType,
+        array $payload,
+    ): ?SyncQueue {
+        $legacy = SyncQueue::query()
+            ->where('user_id', $userId)
+            ->whereNull('action_uuid')
+            ->where('action_type', $actionType)
+            ->get()
+            ->first(fn (SyncQueue $action) => $action->payload == $payload);
+
+        if (! $legacy) {
+            return null;
+        }
+
+        $legacy->update([
+            'action_uuid' => $actionUuid,
+            'sync_status' => $legacy->is_synced
+                ? SyncQueue::STATUS_SUCCEEDED
+                : SyncQueue::STATUS_PENDING,
         ]);
+
+        return $legacy->fresh();
+    }
+
+    private function actionAcknowledgement(
+        SyncQueue $action,
+        string $status,
+        ?string $reason = null,
+    ): array {
+        return [
+            'action_id' => $action->id,
+            'action_uuid' => $action->action_uuid,
+            'action_type' => $action->action_type,
+            'status' => $status,
+            'reason' => $reason,
+        ];
+    }
+
+    private function actionFailureMessage(\Throwable $exception): string
+    {
+        if ($exception instanceof ValidationException) {
+            return (string) collect($exception->errors())->flatten()->first();
+        }
+
+        return $exception->getMessage();
     }
 }

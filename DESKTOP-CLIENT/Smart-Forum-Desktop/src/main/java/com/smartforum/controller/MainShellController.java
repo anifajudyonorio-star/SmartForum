@@ -130,6 +130,11 @@ public class MainShellController implements ShellNavigator {
         statisticsNavBtn.setManaged(showStatistics);
         participationNavBtn.setVisible(showParticipation);
         participationNavBtn.setManaged(showParticipation);
+
+        boolean isStudent = AppSession.getInstance().isStudent();
+        quizzesNavBtn.setText(isStudent ? "Quizzes" : "Quiz Management");
+        quizNavBtn.setVisible(false);
+        quizNavBtn.setManaged(false);
     }
 
     private void setupSidebarNavIcons() {
@@ -178,7 +183,7 @@ public class MainShellController implements ShellNavigator {
                 FXMLLoader loader = new FXMLLoader(resource);
                 Node view = loader.load();
                 TakeQuizController ctrl = loader.getController();
-                ctrl.loadForStudent(AppSession.getInstance().getCurrentUser().getName());
+                ctrl.loadForCurrentStudent();
                 fillContentArea(view);
                 contentArea.getChildren().setAll(view);
                 activeContentKey = "TakeQuiz.fxml";

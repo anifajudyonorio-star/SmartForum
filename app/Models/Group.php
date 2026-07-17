@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Group extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'Group_Name',
         'Description',
@@ -72,6 +73,11 @@ class Group extends Model
         $membership = $this->membership($userId);
 
         return $membership && $membership->isActive();
+    }
+
+    public function isActive(): bool
+    {
+        return $this->Status === 'Active';
     }
 
     public function isGroupAdmin(int $userId): bool

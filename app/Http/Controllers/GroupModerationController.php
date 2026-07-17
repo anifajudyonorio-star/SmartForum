@@ -7,11 +7,14 @@ use App\Models\GroupMember;
 use App\Models\ModerationLog;
 use App\Models\Notification;
 use App\Models\User;
+use App\Services\QuizNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class GroupModerationController extends Controller
 {
+    public function __construct(private readonly QuizNotificationService $quizNotifications) {}
+
     public function warn(Request $request, Group $group, User $user)
     {
         $this->authorizeModeration($group, $user);
@@ -142,6 +145,7 @@ class GroupModerationController extends Controller
             'Member_Status' => GroupMember::STATUS_ACTIVE,
             'warnings' => 0,
         ]);
+        $this->quizNotifications->notifyNewlyActiveMember($user, $group);
 
         ModerationLog::create([
             'user_id' => $user->id,

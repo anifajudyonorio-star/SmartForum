@@ -11,6 +11,7 @@ public class Question {
     private String optionC;
     private String optionD;
     private String correctAnswer;
+    private int marks = 1;
 
     public Question() {}
 
@@ -54,4 +55,7 @@ public class Question {
 
     public String getCorrectAnswer() { return correctAnswer; }
     public void setCorrectAnswer(String correctAnswer) { this.correctAnswer = correctAnswer; }
+
+    public int getMarks() { return marks; }
+    public void setMarks(int marks) { this.marks = marks; }
 }

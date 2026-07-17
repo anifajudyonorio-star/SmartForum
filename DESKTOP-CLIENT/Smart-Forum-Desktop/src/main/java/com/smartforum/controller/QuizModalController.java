@@ -1,9 +1,13 @@
 package com.smartforum.controller;
 
-import com.smartforum.dao.QuizResultDAO;
+import com.smartforum.dao.QuizAttemptDAO;
+import com.smartforum.model.ForumUser;
 import com.smartforum.model.Question;
 import com.smartforum.model.Quiz;
+import com.smartforum.model.QuizAttempt;
 import com.smartforum.model.QuizResult;
+import com.smartforum.service.AppSession;
+import com.smartforum.service.QuizSubmissionService;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -14,7 +18,6 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,10 +43,11 @@ public class QuizModalController {
     private int currentIndex = 0;
     private final Map<Integer, String> answers = new HashMap<>();
     private Quiz quiz;
-    private String studentName;
-    private int categoryId;
+    private ForumUser student;
+    private QuizAttempt attempt;
     private Timeline timer;
-    private int secondsLeft;
+    private long secondsLeft;
+    private boolean submitting;
 
     @FXML
     public void initialize() {
@@ -54,40 +58,48 @@ public class QuizModalController {
         rbD.setToggleGroup(answerGroup);
     }
 
-    public void setup(Quiz quiz, List<Question> questions, String studentName, int categoryId) {
+    public void setup(Quiz quiz, List<Question> questions, ForumUser student, QuizAttempt attempt) {
         this.quiz = quiz;
         this.questions = questions;
-        this.studentName = studentName;
-        this.categoryId = categoryId;
+        this.student = student;
+        this.attempt = attempt;
+        restoreAnswers(attempt.getAnswers());
 
         lblQuizTitle.setText(quiz.getTitle());
         lblDurationBadge.setText(quiz.getDuration() + " min  •  " + questions.size() + " questions");
 
-        // Start countdown timer — matches Laravel JS countdown
-        secondsLeft = quiz.getDuration() * 60;
+        secondsLeft = Math.max(0, java.time.Duration.between(
+            LocalDateTime.now(), attempt.getDeadlineAt()).getSeconds());
         updateTimerLabel();
 
         timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             secondsLeft--;
             updateTimerLabel();
             if (secondsLeft <= 300) {
-                lblTimer.setStyle("-fx-font-size:26;-fx-font-weight:bold;-fx-text-fill:#dc3545;");
+                lblTimer.getStyleClass().remove("quiz-timer");
+                if (!lblTimer.getStyleClass().contains("quiz-timer-warning")) {
+                    lblTimer.getStyleClass().add("quiz-timer-warning");
+                }
             }
             if (secondsLeft <= 0) {
                 timer.stop();
                 lblTimer.setText("Submitting...");
-                submitQuiz();
+                submit(true);
             }
         }));
         timer.setCycleCount(Timeline.INDEFINITE);
-        timer.play();
+        if (secondsLeft <= 0) {
+            submit(true);
+        } else {
+            timer.play();
+        }
 
         loadQuestion();
     }
 
     private void updateTimerLabel() {
-        int m = secondsLeft / 60;
-        int s = secondsLeft % 60;
+        long m = secondsLeft / 60;
+        long s = secondsLeft % 60;
         lblTimer.setText(String.format("%02d:%02d", m, s));
     }
 
@@ -119,64 +131,75 @@ public class QuizModalController {
     @FXML
     private void prevQuestion() {
         saveCurrentAnswer();
+        persistAnswers();
         if (currentIndex > 0) { currentIndex--; loadQuestion(); }
     }
 
     @FXML
     private void nextQuestion() {
         saveCurrentAnswer();
+        persistAnswers();
         if (currentIndex < questions.size() - 1) { currentIndex++; loadQuestion(); }
     }
 
     @FXML
     private void submitQuiz() {
+        submit(false);
+    }
+
+    private void submit(boolean timedOut) {
+        if (submitting) return;
+        submitting = true;
         if (timer != null) timer.stop();
         saveCurrentAnswer();
+        persistAnswers();
 
         long unanswered = questions.stream().filter(q -> !answers.containsKey(q.getId())).count();
-        if (unanswered > 0) {
+        if (!timedOut) {
             Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
             confirm.setTitle("Submit Quiz");
             confirm.setHeaderText(null);
-            confirm.setContentText("Are you sure you want to submit your quiz?\n(" + unanswered + " question(s) unanswered)");
+            confirm.setContentText("Submit this quiz now?\n(" + unanswered + " question(s) unanswered)");
             if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
-                // Restart timer if cancelled
-                timer.play();
+                submitting = false;
+                if (secondsLeft > 0) timer.play();
                 return;
             }
         }
 
-        int score = 0;
-        for (Question q : questions) {
-            String sel = answers.get(q.getId());
-            if (sel != null && sel.equals(q.getCorrectAnswer())) score++;
+        ForumUser current = AppSession.getInstance().getCurrentUser();
+        if (current == null || !AppSession.getInstance().isStudent() || current.getId() != student.getId()) {
+            submitting = false;
+            showError("Your student session changed. Answers were preserved; sign in again before submitting.");
+            return;
         }
-
-        int total = questions.size();
-        int participationMarks = 2; // matches Laravel default
-        int finalScore = score + participationMarks;
-        double pct = (score * 100.0) / total;
-
-        QuizResult result = new QuizResult();
-        result.setQuizId(quiz.getId());
-        result.setQuizTitle(quiz.getTitle());
-        result.setStudentName(studentName);
-        result.setCategoryId(categoryId);
-        result.setScore(score);
-        result.setTotalMarks(total);
-        result.setParticipationMarks(participationMarks);
-        result.setTotalScore(finalScore);
-        result.setSubmittedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        new QuizResultDAO().saveResult(result);
+        QuizSubmissionService.Submission submission;
+        try {
+            submission = new QuizSubmissionService().submitForCurrentStudent(attempt.getId());
+        } catch (Exception e) {
+            submitting = false;
+            showError("Submission was not saved. Your answers are preserved.\n" + e.getMessage());
+            if (secondsLeft > 0) timer.play();
+            return;
+        }
+        QuizResult result = submission.getResult();
+        int score = result.getScore();
+        int authoredTotal = result.getTotalMarks();
+        int participationMarks = result.getParticipationMarks();
+        int finalScore = result.getTotalScore();
+        int finalPossibleMarks = result.getFinalPossibleMarks();
+        double pct = finalPossibleMarks <= 0 ? 0 : finalScore * 100.0 / finalPossibleMarks;
 
         // Populate result pane — matches Laravel result.blade.php table rows
         lblResultQuizTitle.setText(quiz.getTitle());
-        lblStudentResult.setText(studentName);
-        lblScoreResult.setText(score + " / " + total);
+        lblStudentResult.setText(student.getName());
+        lblScoreResult.setText(score + " / " + authoredTotal);
         lblParticipationResult.setText(String.valueOf(participationMarks));
         lblFinalScore.setText(String.valueOf(finalScore));
         lblPercentResult.setText(String.format("%.1f%%", pct));
-        lblFeedback.setText(pct >= 75 ? "🎉 Excellent!" : pct >= 50 ? "👍 Good effort!" : "📚 Keep studying!");
+        lblFeedback.setText(submission.isTimedOut()
+            ? "Time expired — your last saved answers were submitted."
+            : pct >= 75 ? "🎉 Excellent!" : pct >= 50 ? "👍 Good effort!" : "📚 Keep studying!");
 
         quizPane.setVisible(false);  quizPane.setManaged(false);
         resultPane.setVisible(true); resultPane.setManaged(true);
@@ -195,4 +218,39 @@ public class QuizModalController {
             answers.put(questions.get(currentIndex).getId(), ans);
         }
     }
+
+    private void persistAnswers() {
+        if (attempt == null) return;
+        StringBuilder encoded = new StringBuilder();
+        answers.forEach((id, answer) -> encoded.append(id).append('=').append(answer).append(';'));
+        attempt.setAnswers(encoded.toString());
+        try {
+            new QuizAttemptDAO().saveAnswers(attempt.getId(), student.getId(), encoded.toString());
+        } catch (Exception e) {
+            showError("Could not save answer progress locally: " + e.getMessage());
+        }
+    }
+
+    private void restoreAnswers(String encoded) {
+        if (encoded == null || encoded.isBlank()) return;
+        for (String entry : encoded.split(";")) {
+            String[] parts = entry.split("=", 2);
+            if (parts.length == 2 && parts[1].matches("[ABCD]")) {
+                try {
+                    answers.put(Integer.parseInt(parts[0]), parts[1]);
+                } catch (NumberFormatException ignored) {
+                    // Ignore malformed legacy progress without blocking the attempt.
+                }
+            }
+        }
+    }
+
+    private void showError(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Quiz Submission");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
 }

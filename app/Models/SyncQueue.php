@@ -6,14 +6,23 @@ use Illuminate\Database\Eloquent\Model;
 
 class SyncQueue extends Model
 {
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_SUCCEEDED = 'succeeded';
+
+    public const STATUS_FAILED = 'failed';
+
     protected $table = 'sync_queue';
 
     protected $fillable = [
+        'action_uuid',
         'user_id',
         'action_type',
         'payload',
         'is_synced',
-        'synced_at'
+        'sync_status',
+        'last_error',
+        'synced_at',
     ];
 
     protected $casts = [

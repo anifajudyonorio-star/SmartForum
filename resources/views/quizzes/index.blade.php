@@ -34,6 +34,7 @@
                                 <th>Quiz Title Template</th>
                                 <th>Group</th>
                                 <th>Questions</th>
+                                <th>Maximum Marks</th>
                                 <th>Duration</th>
                                 <th>Status</th>
                                 <th width="260">Actions</th>
@@ -46,13 +47,14 @@
                                     <td>{{ $quiz->category->category_name ?? '—' }}</td>
                                     <td>{{ $quiz->group?->Group_Name ?? 'Unassigned' }}</td>
                                     <td>{{ $quiz->questions_count }}</td>
+                                    <td>{{ $quiz->authoredMaximumTotal() }}</td>
                                     <td>{{ $quiz->duration }} min</td>
-                                    <td><span class="badge bg-secondary">{{ $quiz->status }}</span></td>
+                                    <td><span class="badge bg-secondary">{{ $quiz->lifecycleStatus() }}</span></td>
                                     <td>
                                         <div class="d-flex flex-wrap gap-2 align-items-center">
                                             <a href="{{ route('quizzes.review', $quiz) }}" class="btn btn-outline-secondary btn-sm">Review</a>
                                             <a href="{{ route('quizzes.edit', $quiz) }}" class="btn btn-warning btn-sm">Edit</a>
-                                            @if($quiz->status !== 'Active')
+                                            @if(!$quiz->isPublished())
                                                 @if($quiz->questions_count > 0)
                                                     <form action="{{ route('quizzes.publish', $quiz) }}" method="POST" class="d-inline">
                                                         @csrf
@@ -65,17 +67,19 @@
                                                     </button>
                                                 @endif
                                             @endif
-                                            <form action="{{ route('quizzes.destroy', $quiz) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this quiz?')">Delete</button>
-                                            </form>
+                                            @if($quiz->canBeDeleted())
+                                                <form action="{{ route('quizzes.destroy', $quiz) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this draft quiz?')">Delete</button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-4">No quizzes yet.</td>
+                                    <td colspan="8" class="text-center py-4">No quizzes yet.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -94,13 +98,14 @@
                         <span>{{ $quiz->category->category_name ?? 'No quiz title' }}</span>
                         <span>{{ $quiz->group?->Group_Name ?? 'Unassigned' }}</span>
                         <span>{{ $quiz->questions_count }} questions</span>
+                        <span>{{ $quiz->authoredMaximumTotal() }} maximum marks</span>
                         <span>{{ $quiz->duration }} min</span>
-                        <span class="badge bg-secondary">{{ $quiz->status }}</span>
+                        <span class="badge bg-secondary">{{ $quiz->lifecycleStatus() }}</span>
                     </div>
                     <div class="data-card-item-actions d-flex flex-wrap gap-2 align-items-center">
                         <a href="{{ route('quizzes.review', $quiz) }}" class="btn btn-outline-secondary btn-sm">Review</a>
                         <a href="{{ route('quizzes.edit', $quiz) }}" class="btn btn-warning btn-sm">Edit</a>
-                        @if($quiz->status !== 'Active')
+                        @if(!$quiz->isPublished())
                             @if($quiz->questions_count > 0)
                                 <form action="{{ route('quizzes.publish', $quiz) }}" method="POST" class="d-inline">
                                     @csrf

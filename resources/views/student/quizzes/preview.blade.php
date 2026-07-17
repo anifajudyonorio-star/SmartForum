@@ -12,7 +12,11 @@
             <div class="mb-3">
                 <strong>Scheduled:</strong> {{ $quiz->start_time->format('M j, Y g:i A') }}<br>
                 <strong>Ends:</strong> {{ $quiz->end_time->format('M j, Y g:i A') }}<br>
-                <strong>Duration:</strong> {{ $quiz->duration }} min
+                <strong>Duration:</strong> {{ $quiz->duration }} min<br>
+                <strong>Maximum score:</strong>
+                {{ $quiz->authoredMarks() }} question marks
+                + {{ (int) $quiz->participation_marks }} participation
+                = {{ $quiz->authoredMaximumTotal() }}
             </div>
 
             <div class="d-flex gap-2">

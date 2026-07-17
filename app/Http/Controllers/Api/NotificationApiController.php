@@ -14,7 +14,7 @@ class NotificationApiController extends Controller
         $notifications = Auth::user()
             ->notifications()
             ->visible()
-            ->with(['post.topic.group', 'post.user', 'parentPost.user', 'quiz'])
+            ->with(['post.topic.group', 'post.user', 'parentPost.user', 'quiz', 'user'])
             ->latest()
             ->get()
             ->map(fn ($notification) => $this->formatNotification($notification));
@@ -37,7 +37,7 @@ class NotificationApiController extends Controller
 
     private function formatNotification($notification): array
     {
-        $notification->loadMissing(['post.topic', 'group']);
+        $notification->loadMissing(['post.topic', 'group', 'quiz', 'user']);
 
         $topicId = $notification->post?->topic?->id;
 
@@ -52,6 +52,12 @@ class NotificationApiController extends Controller
             'topic_id' => $topicId,
             'post_id' => $notification->post?->id,
             'group_id' => $notification->group_id,
+            'quiz_id' => $notification->quiz_id,
+            'url' => $notification->quiz_id
+                ? $notification->destinationUrl()
+                : ($notification->group
+                    ? route('groups.show', $notification->group)
+                    : $notification->destinationUrl()),
         ];
     }
 }

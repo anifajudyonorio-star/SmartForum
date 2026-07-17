@@ -7,45 +7,47 @@
 <BorderPane xmlns="http://javafx.com/javafx/24.0.1"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.smartforum.controller.CategoryEnrollmentController"
-            prefWidth="800" prefHeight="500">
+            prefWidth="800" prefHeight="500" styleClass="quiz-page">
 
     <top>
-        <HBox alignment="CENTER" style="-fx-background-color:#8e44ad;-fx-padding:12;">
-            <Label text="👥  Category Enrollment" style="-fx-text-fill:white;-fx-font-size:20;-fx-font-weight:bold;"/>
-        </HBox>
+        <VBox spacing="2" styleClass="dashboard-header">
+            <padding><Insets top="20" right="24" bottom="16" left="24"/></padding>
+            <Label text="Category Enrollment" styleClass="dashboard-title"/>
+            <Label text="Enroll students and review category membership." styleClass="dashboard-subtitle"/>
+        </VBox>
     </top>
 
     <center>
-        <SplitPane dividerPositions="0.38">
+        <SplitPane dividerPositions="0.38" style="-fx-background-color:transparent;-fx-padding:20 24 20 24;">
 
             <!-- LEFT: Enroll form -->
-            <VBox spacing="12" style="-fx-padding:20;">
-                <Label text="Enroll Student" style="-fx-font-size:14;-fx-font-weight:bold;"/>
+            <VBox spacing="12" styleClass="quiz-card">
+                <Label text="Enroll Student" styleClass="dashboard-card-title"/>
 
-                <Label text="Category"/>
+                <Label text="Category" styleClass="form-label"/>
                 <ComboBox fx:id="cmbCategory" maxWidth="Infinity" onAction="#loadEnrolled"/>
 
-                <Label text="Student Name"/>
+                <Label text="Student Name" styleClass="form-label"/>
                 <TextField fx:id="txtStudentName" promptText="Full name"/>
 
                 <HBox spacing="8">
                     <Button text="Enroll" onAction="#enroll" HBox.hgrow="ALWAYS" maxWidth="Infinity"
-                            style="-fx-background-color:#8e44ad;-fx-text-fill:white;-fx-padding:8;"/>
+                            styleClass="btn-primary"/>
                     <Button text="Unenroll" onAction="#unenroll" HBox.hgrow="ALWAYS" maxWidth="Infinity"
-                            style="-fx-background-color:#c0392b;-fx-text-fill:white;-fx-padding:8;"/>
+                            styleClass="btn-danger"/>
                 </HBox>
 
                 <Separator/>
-                <Label text="Check Student's Category" style="-fx-font-size:13;-fx-font-weight:bold;"/>
+                <Label text="Check Student's Category" styleClass="dashboard-card-title"/>
                 <TextField fx:id="txtCheckName" promptText="Student name to look up"/>
                 <Button text="Find Category" onAction="#findCategory" maxWidth="Infinity"
-                        style="-fx-background-color:#27ae60;-fx-text-fill:white;-fx-padding:8;"/>
-                <Label fx:id="lblFoundCategory" wrapText="true" style="-fx-font-size:13;"/>
+                        styleClass="btn-primary"/>
+                <Label fx:id="lblFoundCategory" wrapText="true" styleClass="quiz-info"/>
             </VBox>
 
             <!-- RIGHT: Enrolled students list -->
-            <VBox spacing="8" style="-fx-padding:16;">
-                <Label text="Enrolled Students" style="-fx-font-size:14;-fx-font-weight:bold;"/>
+            <VBox spacing="8" styleClass="quiz-card">
+                <Label text="Enrolled Students" styleClass="dashboard-card-title"/>
                 <ListView fx:id="lstStudents" VBox.vgrow="ALWAYS"/>
             </VBox>
 

@@ -79,6 +79,9 @@
                     <a href="{{ route('student.quizzes') }}" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-patch-question me-1"></i> Take a Quiz
                     </a>
+                    <a href="{{ route('student.quizzes.progress') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-graph-up-arrow me-1"></i> Quiz Progress
+                    </a>
                 </div>
             </div>
 

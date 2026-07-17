@@ -29,7 +29,7 @@ class NotificationController extends Controller
 
         $query = Auth::user()
             ->notifications()
-            ->with(['post.topic'])
+            ->with(['post.topic', 'quiz', 'user'])
             ->visible()
             ->where('Is_Read', false);
 
@@ -43,6 +43,7 @@ class NotificationController extends Controller
                 'title' => $notification->title,
                 'message' => $notification->message,
                 'type' => $notification->Notification_Type,
+                'quiz_id' => $notification->quiz_id,
                 'parent_post_id' => $notification->parent_post_id,
                 'url' => $this->notificationUrl($notification),
                 'time' => $notification->created_at->diffForHumans(),
@@ -60,7 +61,7 @@ class NotificationController extends Controller
     {
         $notification = auth()->user()
             ->notifications()
-            ->with(['post.topic'])
+            ->with(['post.topic', 'quiz', 'user'])
             ->findOrFail($id);
 
         $notification->update([
@@ -175,7 +176,11 @@ class NotificationController extends Controller
 
     private function notificationUrl($notification): string
     {
-        $notification->loadMissing(['post.topic', 'group']);
+        $notification->loadMissing(['post.topic', 'group', 'quiz', 'user']);
+
+        if ($notification->quiz_id) {
+            return $notification->destinationUrl();
+        }
 
         if ($notification->post?->topic) {
             $url = route('topics.show', $notification->post->topic);

@@ -7,12 +7,15 @@ use App\Models\GroupMember;
 use App\Models\User;
 use App\Services\GroupJoinService;
 use App\Services\GroupStatisticsService;
+use App\Services\QuizNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 class GroupController extends Controller
 {
+    public function __construct(private readonly QuizNotificationService $quizNotifications) {}
+
     public function index()
     {
         $user = Auth::user();
@@ -174,6 +177,8 @@ class GroupController extends Controller
                 'Member_Role' => $role,
                 'warnings' => 0,
             ]);
+
+            $this->quizNotifications->notifyNewlyActiveMember($member, $group);
         }
 
         return redirect()

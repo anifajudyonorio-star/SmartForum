@@ -1,9 +1,63 @@
 import './bootstrap';
 import './chat';
 import './notifications';
+import { initOfflineSync, queueAction } from './offline';
 import { initPushNotifications } from './push';
 
+window.queueAction = queueAction;
+initOfflineSync();
 initPushNotifications();
+
+// Intercept topic creation form when offline
+(function () {
+    const form = document.getElementById('topicCreateForm');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        const isOffline = window._networkForced === false || !navigator.onLine;
+        if (!isOffline) return;
+        e.preventDefault();
+        const groupId = form.dataset.groupId;
+        const title = form.querySelector('input[name="Title"]')?.value.trim();
+        const description = form.querySelector('textarea[name="Topic_Description"]')?.value.trim();
+        if (!title) return;
+        queueAction('create_topic', { group_id: groupId, title, description });
+        alert('You\'re offline. Your topic will be created when you reconnect.');
+    });
+})();
+
+// Intercept quiz form when offline
+(function () {
+    const form = document.getElementById('quizForm');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        const isOffline = window._networkForced === false || !navigator.onLine;
+        if (!isOffline) return;
+        e.preventDefault();
+        if (form.dataset.offlineQueued === 'true') return;
+        const action = form.getAttribute('action');
+        const quizId = action?.match(/\/quizzes\/(\d+)\//)?.[1];
+        const attemptId = form.querySelector('input[name="attempt_id"]')?.value;
+        if (!quizId || !attemptId) return;
+        const answers = {};
+        form.querySelectorAll('input[type="radio"]:checked').forEach((input) => {
+            const match = input.name.match(/answers\[(\d+)\]/);
+            if (match) answers[match[1]] = input.value;
+        });
+        queueAction('submit_quiz', {
+            quiz_id: Number(quizId),
+            attempt_id: Number(attemptId),
+            answers,
+        });
+        form.dataset.offlineQueued = 'true';
+        form.querySelectorAll('button, input').forEach((element) => {
+            if (element.type !== 'hidden') element.disabled = true;
+        });
+        alert(
+            'Your quiz submission is queued once. The server deadline is authoritative; '
+            + 'if synchronization occurs after it, queued answer changes are ignored and the attempt times out.',
+        );
+    });
+})();
 
 // Mobile sidebar toggle
 (function () {

@@ -17,7 +17,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * Get the attributes that should be cast.
@@ -49,9 +49,19 @@ class User extends Authenticatable
         return $this->hasMany(Notification::class, 'user_ID');
     }
 
+    public function quizResults()
+    {
+        return $this->hasMany(QuizResult::class);
+    }
+
+    public function quizAttempts()
+    {
+        return $this->hasMany(QuizAttempt::class);
+    }
+
     public function getNameAttribute(): string
     {
-        return trim(($this->Fname ?? '') . ' ' . ($this->Lname ?? '')) ?: $this->email;
+        return trim(($this->Fname ?? '').' '.($this->Lname ?? '')) ?: $this->email;
     }
 
     public function isAdmin(): bool
@@ -185,12 +195,43 @@ class User extends Authenticatable
         return $group->isGroupLecturer($this->id);
     }
 
+    public function canTeachGroup(Group $group): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if (! $this->isLecturer()
+            || ! $group->isActive()
+            || ! $group->isActiveMember($this->id)) {
+            return false;
+        }
+
+        return in_array($group->memberRole($this->id), [
+            GroupMember::ROLE_ADMIN,
+            GroupMember::ROLE_LECTURER,
+        ], true);
+    }
+
     public function administeredGroups()
     {
         return $this->belongsToMany(Group::class, 'group_members', 'User_ID', 'Group_ID')
             ->withTimestamps()
             ->withPivot(['Member_Status', 'Member_Role', 'warnings'])
             ->wherePivot('Member_Role', GroupMember::ROLE_ADMIN);
+    }
+
+    public function teachableGroups()
+    {
+        return $this->belongsToMany(Group::class, 'group_members', 'User_ID', 'Group_ID')
+            ->withTimestamps()
+            ->withPivot(['Member_Status', 'Member_Role', 'warnings'])
+            ->wherePivot('Member_Status', GroupMember::STATUS_ACTIVE)
+            ->wherePivotIn('Member_Role', [
+                GroupMember::ROLE_ADMIN,
+                GroupMember::ROLE_LECTURER,
+            ])
+            ->where('groups.Status', 'Active');
     }
 
     public function administersAnyGroup(): bool
@@ -219,7 +260,7 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Group::class, 'group_members', 'User_ID', 'Group_ID')
             ->withTimestamps()
-            ->withPivot(['Member_Status']);
+            ->withPivot(['Member_Status', 'Member_Role']);
     }
 
     public function groupMemberships()

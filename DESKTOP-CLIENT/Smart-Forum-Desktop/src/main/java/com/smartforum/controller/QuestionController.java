@@ -19,22 +19,26 @@ public class QuestionController {
     @FXML private TextField txtOptionB;
     @FXML private TextField txtOptionC;
     @FXML private TextField txtOptionD;
+    @FXML private Spinner<Integer> spQuestionMarks;
     @FXML private TableView<Question> tblQuestions;
     @FXML private TableColumn<Question, Integer> colId;
     @FXML private TableColumn<Question, String> colQuiz;
     @FXML private TableColumn<Question, String> colQuestion;
     @FXML private TableColumn<Question, String> colCorrect;
+    @FXML private TableColumn<Question, Integer> colMarks;
 
     private Question selectedQuestion;
 
     @FXML
     public void initialize() {
         cmbCorrect.setItems(FXCollections.observableArrayList("A", "B", "C", "D"));
+        spQuestionMarks.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1000, 1));
 
         colId.setCellValueFactory(new PropertyValueFactory<>("id"));
         colQuiz.setCellValueFactory(new PropertyValueFactory<>("quizTitle"));
         colQuestion.setCellValueFactory(new PropertyValueFactory<>("question"));
         colCorrect.setCellValueFactory(new PropertyValueFactory<>("correctAnswer"));
+        colMarks.setCellValueFactory(new PropertyValueFactory<>("marks"));
 
         loadQuizzes();
         loadQuestions();
@@ -49,6 +53,7 @@ public class QuestionController {
                     txtOptionC.setText(newVal.getOptionC());
                     txtOptionD.setText(newVal.getOptionD());
                     cmbCorrect.setValue(newVal.getCorrectAnswer());
+                    spQuestionMarks.getValueFactory().setValue(Math.max(1, newVal.getMarks()));
                     for (Quiz quiz : cmbQuiz.getItems()) {
                         if (quiz.getId() == newVal.getQuizId()) {
                             cmbQuiz.setValue(quiz);
@@ -71,8 +76,7 @@ public class QuestionController {
     private void saveQuestion() {
         Quiz quiz = cmbQuiz.getValue();
         if (quiz == null) { showAlert("Validation", "Please select a quiz."); return; }
-        if (txtQuestion.getText().isBlank()) { showAlert("Validation", "Question text is required."); return; }
-        if (cmbCorrect.getValue() == null) { showAlert("Validation", "Please select the correct answer."); return; }
+        if (!validateFields()) return;
 
         Question question = new Question();
         question.setQuizId(quiz.getId());
@@ -82,6 +86,7 @@ public class QuestionController {
         question.setOptionC(txtOptionC.getText());
         question.setOptionD(txtOptionD.getText());
         question.setCorrectAnswer(cmbCorrect.getValue());
+        question.setMarks(spQuestionMarks.getValue());
 
         if (new QuestionDAO().saveQuestion(question)) {
             showAlert("Success", "Question saved successfully.");
@@ -97,6 +102,7 @@ public class QuestionController {
         if (selectedQuestion == null) { showAlert("Update", "Please select a question."); return; }
         Quiz quiz = cmbQuiz.getValue();
         if (quiz == null) { showAlert("Validation", "Please select a quiz."); return; }
+        if (!validateFields()) return;
 
         selectedQuestion.setQuizId(quiz.getId());
         selectedQuestion.setQuestion(txtQuestion.getText());
@@ -105,6 +111,7 @@ public class QuestionController {
         selectedQuestion.setOptionC(txtOptionC.getText());
         selectedQuestion.setOptionD(txtOptionD.getText());
         selectedQuestion.setCorrectAnswer(cmbCorrect.getValue());
+        selectedQuestion.setMarks(spQuestionMarks.getValue());
 
         if (new QuestionDAO().updateQuestion(selectedQuestion)) {
             showAlert("Success", "Question updated successfully.");
@@ -146,8 +153,30 @@ public class QuestionController {
         txtOptionB.clear();
         txtOptionC.clear();
         txtOptionD.clear();
+        spQuestionMarks.getValueFactory().setValue(1);
         selectedQuestion = null;
         tblQuestions.getSelectionModel().clearSelection();
+    }
+
+    private boolean validateFields() {
+        if (txtQuestion.getText() == null || txtQuestion.getText().isBlank()) {
+            showAlert("Validation", "Question text is required.");
+            return false;
+        }
+        if (txtOptionA.getText().isBlank() || txtOptionB.getText().isBlank()
+                || txtOptionC.getText().isBlank() || txtOptionD.getText().isBlank()) {
+            showAlert("Validation", "All four answer options are required.");
+            return false;
+        }
+        if (cmbCorrect.getValue() == null || !"ABCD".contains(cmbCorrect.getValue())) {
+            showAlert("Validation", "Select a valid correct answer (A–D).");
+            return false;
+        }
+        if (spQuestionMarks.getValue() == null || spQuestionMarks.getValue() <= 0) {
+            showAlert("Validation", "Question marks must be positive.");
+            return false;
+        }
+        return true;
     }
 
     private void showAlert(String title, String message) {

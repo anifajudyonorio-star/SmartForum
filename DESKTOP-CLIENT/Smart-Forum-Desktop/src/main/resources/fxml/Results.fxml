@@ -1,41 +1,88 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <BorderPane xmlns="http://javafx.com/javafx/24.0.1"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.smartforum.controller.ResultsController"
-            style="-fx-background-color:#f8f9fa;">
+            styleClass="quiz-page">
 
     <!-- PAGE HEADER -->
     <top>
-        <VBox style="-fx-background-color:white;-fx-border-color:#dee2e6;-fx-border-width:0 0 1 0;">
+        <VBox styleClass="dashboard-header">
             <padding><Insets top="20" right="24" bottom="16" left="24"/></padding>
             <HBox alignment="CENTER_LEFT" spacing="12">
                 <VBox HBox.hgrow="ALWAYS" spacing="2">
                     <Label text="Performance Report"
-                           style="-fx-font-size:22;-fx-font-weight:bold;-fx-text-fill:#212529;"/>
-                    <Label text="Results for all students after quiz submission."
-                           style="-fx-font-size:13;-fx-text-fill:#6c757d;"/>
+                           styleClass="dashboard-title"/>
+                    <Label text="Track student outcomes and compare performance across previous quizzes."
+                           styleClass="dashboard-subtitle"/>
                 </VBox>
+                <Label text="Quiz:" styleClass="form-label"/>
+                <ComboBox fx:id="quizFilter" prefWidth="190"/>
                 <Button text="Refresh" onAction="#refreshResults"
-                        style="-fx-background-color:#6c757d;-fx-text-fill:white;-fx-padding:7 16;-fx-background-radius:5;-fx-cursor:hand;"/>
-                <Button text="Delete Selected" onAction="#deleteResult"
-                        style="-fx-background-color:#dc3545;-fx-text-fill:white;-fx-padding:7 16;-fx-background-radius:5;-fx-cursor:hand;"/>
+                        styleClass="btn-outline"/>
             </HBox>
         </VBox>
     </top>
 
     <center>
-        <VBox spacing="16">
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="dashboard-scroll">
+        <content>
+        <VBox spacing="16" styleClass="dashboard-content" minWidth="760">
             <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
 
-            <VBox VBox.vgrow="ALWAYS"
-                  style="-fx-background-color:white;-fx-border-color:#dee2e6;-fx-border-width:1;-fx-background-radius:6;-fx-border-radius:6;-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.08),6,0,0,2);">
-                <TableView fx:id="tblResults" VBox.vgrow="ALWAYS"
-                           style="-fx-background-color:transparent;-fx-border-color:transparent;">
+            <HBox spacing="12">
+                <VBox HBox.hgrow="ALWAYS" maxWidth="1.7976931348623157E308" spacing="4"
+                      styleClass="stat-card">
+                    <Label text="SUBMISSIONS" styleClass="stat-label"/>
+                    <Label fx:id="totalSubmissionsLabel" text="0" styleClass="stat-number"/>
+                </VBox>
+                <VBox HBox.hgrow="ALWAYS" maxWidth="1.7976931348623157E308" spacing="4"
+                      styleClass="stat-card">
+                    <Label text="STUDENTS ASSESSED" styleClass="stat-label"/>
+                    <Label fx:id="studentsAssessedLabel" text="0" styleClass="stat-number"/>
+                </VBox>
+                <VBox HBox.hgrow="ALWAYS" maxWidth="1.7976931348623157E308" spacing="4"
+                      styleClass="stat-card">
+                    <Label text="AVERAGE SCORE" styleClass="stat-label"/>
+                    <Label fx:id="averageScoreLabel" text="0.0%" styleClass="stat-number"/>
+                </VBox>
+                <VBox HBox.hgrow="ALWAYS" maxWidth="1.7976931348623157E308" spacing="4"
+                      styleClass="stat-card">
+                    <Label text="PASS RATE" styleClass="stat-label"/>
+                    <Label fx:id="passRateLabel" text="0.0%" styleClass="stat-number"/>
+                </VBox>
+            </HBox>
+
+            <HBox prefHeight="260" spacing="16">
+                <VBox HBox.hgrow="ALWAYS" maxWidth="1.7976931348623157E308"
+                      styleClass="dashboard-card stats-chart-card">
+                    <BarChart fx:id="quizAverageChart" animated="false" legendVisible="false"
+                              title="Average Score by Quiz" HBox.hgrow="ALWAYS" styleClass="stats-bar-chart">
+                        <xAxis>
+                            <CategoryAxis label="Quiz"/>
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis label="Average (%)" lowerBound="0" upperBound="100"
+                                        tickUnit="20" autoRanging="false"/>
+                        </yAxis>
+                    </BarChart>
+                </VBox>
+                <VBox prefWidth="390" minWidth="340"
+                      styleClass="dashboard-card stats-chart-card">
+                    <PieChart fx:id="scoreDistributionChart" animated="false"
+                              labelsVisible="true" legendVisible="false"
+                              title="Score Distribution" styleClass="stats-pie-chart"/>
+                </VBox>
+            </HBox>
+
+            <VBox styleClass="dashboard-card">
+                <TableView fx:id="tblResults" prefHeight="320"
+                           styleClass="dashboard-table">
                     <columns>
                         <TableColumn fx:id="colStudent"      text="Student"        prefWidth="180"/>
                         <TableColumn fx:id="colQuiz"         text="Quiz"           prefWidth="200"/>
@@ -48,11 +95,13 @@
                         <TableColumn fx:id="colId"           text="ID"             prefWidth="50"/>
                     </columns>
                     <placeholder><Label text="No results found."
-                                        style="-fx-text-fill:#6c757d;-fx-font-size:13;"/></placeholder>
+                                        styleClass="empty-label"/></placeholder>
                 </TableView>
             </VBox>
 
         </VBox>
+        </content>
+        </ScrollPane>
     </center>
 
 </BorderPane>

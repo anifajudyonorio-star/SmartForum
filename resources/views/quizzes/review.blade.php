@@ -9,7 +9,7 @@
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('quizzes.index') }}" class="btn btn-secondary">Back to Quizzes</a>
-            @if($quiz->questions_count > 0 && $quiz->status !== 'Active')
+            @if($quiz->questions_count > 0 && !$quiz->isPublished())
                 <form action="{{ route('quizzes.publish', $quiz) }}" method="POST" class="d-inline">
                     @csrf
                     @method('PATCH')
@@ -23,6 +23,16 @@
         </div>
     </div>
 
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <h3 class="h5">{{ $quiz->title }}</h3>
@@ -35,7 +45,7 @@
                 </div>
                 <div class="col-md-3">
                     <strong>Status</strong>
-                    <p class="mb-0">{{ $quiz->status }}</p>
+                    <p class="mb-0">{{ $quiz->lifecycleStatus() }}</p>
                 </div>
                 <div class="col-md-3">
                     <strong>Questions</strong>
@@ -46,6 +56,12 @@
                     <p class="mb-0">{{ $quiz->group?->Group_Name ?? 'Unassigned' }}</p>
                 </div>
             </div>
+            <p class="mb-0">
+                <strong>Maximum score:</strong>
+                {{ $quiz->authoredMarks() }} question marks
+                + {{ (int) $quiz->participation_marks }} participation
+                = {{ $quiz->authoredMaximumTotal() }}
+            </p>
         </div>
     </div>
 
@@ -78,16 +94,18 @@
                         </div>
                     @endif
 
-                    <div class="mt-3">
-                        <a href="{{ route('questions.edit', $question) }}" class="btn btn-sm btn-warning">Edit question</a>
-                        <form action="{{ route('questions.destroy', $question) }}" method="POST" class="d-inline">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this question?')">
-                                Delete question
-                            </button>
-                        </form>
-                    </div>
+                    @if($quiz->canEditQuestions())
+                        <div class="mt-3">
+                            <a href="{{ route('questions.edit', $question) }}" class="btn btn-sm btn-warning">Edit question</a>
+                            <form action="{{ route('questions.destroy', $question) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this question?')">
+                                    Delete question
+                                </button>
+                            </form>
+                        </div>
+                    @endif
                 </div>
             </div>
         @endforeach
