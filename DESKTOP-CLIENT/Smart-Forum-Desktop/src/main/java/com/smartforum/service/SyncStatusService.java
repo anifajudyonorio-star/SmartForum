@@ -26,7 +26,6 @@ public class SyncStatusService {
 
     private BiConsumer<String, String> bannerCallback;
     private Boolean lastKnownOnline = null;
-    private boolean forcedOffline = false;
     private ScheduledExecutorService scheduler;
 
     private SyncStatusService() {}
@@ -36,15 +35,6 @@ public class SyncStatusService {
     public IntegerProperty pendingCountProperty() { return pendingCount; }
     public StringProperty statusTextProperty()    { return statusText; }
     public StringProperty lastSyncTextProperty()  { return lastSyncText; }
-
-    public void setForcedOffline(boolean forced) {
-        this.forcedOffline = forced;
-        NetworkMonitor.setOverride(forced ? false : null);
-    }
-
-    public boolean isForcedOffline() {
-        return forcedOffline;
-    }
 
     public void setBannerCallback(BiConsumer<String, String> callback) {
         this.bannerCallback = callback;

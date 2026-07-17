@@ -51,7 +51,6 @@
                <Label fx:id="pageTitleLabel" styleClass="top-bar-title" text="Smart Discussion" />
                <Label fx:id="syncStatusLabel" styleClass="top-bar-online-badge" text="● Online" />
                <Label fx:id="pendingLabel" styleClass="top-bar-pending" text="" />
-               <Button fx:id="networkToggleBtn" mnemonicParsing="false" onAction="#onToggleNetwork" styleClass="top-bar-sync-btn" text="● Online" />
                <HBox HBox.hgrow="ALWAYS" />
                <Label fx:id="topBarUserAvatar" styleClass="top-bar-user-avatar" text="S" />
                <Label fx:id="topBarUserLabel" styleClass="top-bar-user" text="Super Admin" />

@@ -44,7 +44,6 @@ public class MainShellController implements ShellNavigator {
     @FXML private Label topBarUserAvatar;
     @FXML private Label syncStatusLabel;
     @FXML private Label pendingLabel;
-    @FXML private Button networkToggleBtn;
     @FXML private Label offlineBanner;
 
     private GroupController groupController;
@@ -75,14 +74,20 @@ public class MainShellController implements ShellNavigator {
 
         SyncStatusService sync = SyncStatusService.getInstance();
         syncStatusLabel.textProperty().bind(sync.statusTextProperty());
+        sync.statusTextProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal.contains("Offline")) {
+                syncStatusLabel.getStyleClass().remove("top-bar-online-badge");
+                syncStatusLabel.getStyleClass().add("top-bar-online-badge-offline");
+            } else {
+                syncStatusLabel.getStyleClass().remove("top-bar-online-badge-offline");
+                syncStatusLabel.getStyleClass().add("top-bar-online-badge");
+            }
+        });
         pendingLabel.textProperty().bind(
             sync.pendingCountProperty().asString().map(n -> n.equals("0") ? "" : n + " queued")
         );
         sync.setBannerCallback(this::showBanner);
         sync.start();
-        networkToggleBtn.textProperty().bind(
-            sync.statusTextProperty().map(s -> s.contains("Offline") ? "● Offline" : "● Online")
-        );
 
         showDashboard();
     }
@@ -101,23 +106,6 @@ public class MainShellController implements ShellNavigator {
                     offlineBanner.setManaged(false);
                 });
             }).start();
-        }
-    }
-
-    @FXML
-    private void onToggleNetwork() {
-        SyncStatusService sync = SyncStatusService.getInstance();
-        boolean forcedOffline = sync.isForcedOffline();
-        sync.setForcedOffline(!forcedOffline);
-        if (!forcedOffline) {
-            // going forced offline
-            networkToggleBtn.getStyleClass().add("top-bar-sync-btn-offline");
-            showBanner("You're offline. Actions will be saved and synced when you reconnect.", "warning");
-        } else {
-            // going back online
-            networkToggleBtn.getStyleClass().remove("top-bar-sync-btn-offline");
-            showBanner("Reconnected. Syncing\u2026", "info");
-            sync.syncNow(null);
         }
     }
 
