@@ -9,6 +9,8 @@
         <p class="text-muted small mb-0">Participate in discussions and stay connected with your classmates.</p>
     </div>
 
+    @include('dashboard.partials.group-admin-groups')
+
     <div class="row g-2 mb-2">
         <div class="col-6 col-md-3">
             <div class="stat-card stat-card-compact fly-in fly-in-delay-1">
@@ -71,8 +73,8 @@
                     <h6 class="mb-0 fw-semibold"><i class="bi bi-lightning-fill me-1 text-primary"></i>Quick Actions</h6>
                 </div>
                 <div class="card-body d-grid gap-2 py-2">
-                    <a href="{{ route('groups.index') }}" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-people me-1"></i> My Groups
+                    <a href="{{ route('groups.explore') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-compass me-1"></i> Explore Groups
                     </a>
                     <a href="{{ route('student.quizzes') }}" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-patch-question me-1"></i> Take a Quiz

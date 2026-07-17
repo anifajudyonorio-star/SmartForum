@@ -20,18 +20,17 @@
             </p>
         </div>
 
-        <a href="{{ route('groups.create') }}" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-lg me-1"></i> Create Group
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('groups.create') }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> Create Group
+            </a>
+            <a href="{{ route('groups.explore') }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-compass me-1"></i> Explore Groups
+            </a>
+        </div>
     </div>
 
-    <h6 class="fw-semibold mb-2 fly-in">
-        @if(auth()->user()->isAdmin())
-            All Groups
-        @else
-            My Groups
-        @endif
-    </h6>
+    <h6 class="fw-semibold mb-2 fly-in">My Groups</h6>
 
     @if($myGroups->count())
         <div class="row g-2 g-md-3 mb-4">

@@ -47,7 +47,7 @@
       <BorderPane>
          <top>
             <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="top-bar">
-               <Button fx:id="backNavBtn" managed="false" mnemonicParsing="false" onAction="#onBack" styleClass="top-bar-back" text="←" visible="false" />
+               <Button fx:id="backNavBtn" mnemonicParsing="false" onAction="#onBack" styleClass="top-bar-back" />
                <Label fx:id="pageTitleLabel" styleClass="top-bar-title" text="Smart Discussion" />
                <Label styleClass="top-bar-online-badge" text="● Online" />
                <HBox HBox.hgrow="ALWAYS" />

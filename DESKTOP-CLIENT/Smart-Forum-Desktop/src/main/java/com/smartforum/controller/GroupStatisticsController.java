@@ -50,7 +50,7 @@ public class GroupStatisticsController {
         if (ApiSupport.useApi()) {
             loadFromApi(groupId);
         } else {
-            loadPreviewData(groupId);
+            loadEmptyState();
         }
     }
 
@@ -71,7 +71,7 @@ public class GroupStatisticsController {
     private void loadFromApi(int groupId) {
         new Thread(() -> ApiClient.getGroupStatistics(groupId).ifPresentOrElse(
                 json -> Platform.runLater(() -> populate(json)),
-                () -> Platform.runLater(() -> loadPreviewData(groupId))
+                () -> Platform.runLater(this::loadEmptyState)
         )).start();
     }
 
@@ -124,25 +124,22 @@ public class GroupStatisticsController {
             topUsersBox.getChildren().add(empty);
         }
 
-        List<String> monthLabels = readStringList(json.getAsJsonArray("month_labels"));
-        List<Integer> monthlyPosts = readIntList(json.getAsJsonArray("monthly_posts"));
-        List<String> topicLabels = readStringList(json.getAsJsonArray("topic_labels"));
-        List<Integer> topicPostCounts = readIntList(json.getAsJsonArray("topic_post_counts"));
+        List<String> monthLabels = readStringList(json, "month_labels");
+        List<Integer> monthlyPosts = readIntList(json, "monthly_posts");
+        List<String> topicLabels = readStringList(json, "topic_labels");
+        List<Integer> topicPostCounts = readIntList(json, "topic_post_counts");
 
-        monthlyChartBox.getChildren().clear();
-        monthlyChartBox.getChildren().add(StatChartFactory.createChartCard(
-                "Posts Per Month (This Group)",
-                StatChartFactory.buildAreaChart(monthLabels, monthlyPosts)));
+        StatChartFactory.mountChart(monthlyChartBox,
+                StatChartFactory.buildAreaChart(monthLabels, monthlyPosts));
 
-        topicsChartBox.getChildren().clear();
-        if (!topicLabels.isEmpty()) {
-            topicsChartBox.getChildren().add(StatChartFactory.createChartCard(
-                    "Posts by Topic",
-                    StatChartFactory.buildBarChart(topicLabels, topicPostCounts, true)));
-        } else {
+        if (topicLabels.isEmpty()) {
+            topicsChartBox.getChildren().clear();
             Label emptyChart = new Label("No topics in this group yet.");
             emptyChart.getStyleClass().add("dashboard-subtitle");
             topicsChartBox.getChildren().add(emptyChart);
+        } else {
+            StatChartFactory.mountChart(topicsChartBox,
+                    StatChartFactory.buildBarChart(topicLabels, topicPostCounts, topicLabels.size() > 3));
         }
 
         topicsBox.getChildren().clear();
@@ -162,40 +159,24 @@ public class GroupStatisticsController {
         }
     }
 
-    private void loadPreviewData(int groupId) {
-        this.groupId = groupId;
-        groupTitleLabel.setText("OOP1");
-        groupSubtitleLabel.setText("Group statistics • Created by: Demo Lecturer");
-        groupStatusBadge.setText("Active");
-        membersCountLabel.setText("3");
-        topicsCountLabel.setText("2");
-        postsCountLabel.setText("14");
+    private void loadEmptyState() {
+        groupTitleLabel.setText("Group statistics");
+        groupSubtitleLabel.setText("Connect to the server to load group statistics.");
+        groupStatusBadge.setText("—");
+        membersCountLabel.setText("0");
+        topicsCountLabel.setText("0");
+        postsCountLabel.setText("0");
         postsTodayLabel.setText("0");
         postsWeekLabel.setText("0");
-        postsMonthLabel.setText("14");
-        avgPostsLabel.setText("7.0");
-        mostActiveUserLabel.setText("Demo Student — 7 posts");
-        mostActiveTopicLabel.setText("Inheritance — 10 posts");
-
+        postsMonthLabel.setText("0");
+        avgPostsLabel.setText("0");
+        mostActiveUserLabel.setText("No data available.");
+        mostActiveTopicLabel.setText("No data available.");
         topUsersBox.getChildren().clear();
-        addTopUserRow(0, "Demo Student", 7);
-        addTopUserRow(1, "Anifa Onorio", 2);
-
-        monthlyChartBox.getChildren().clear();
-        monthlyChartBox.getChildren().add(StatChartFactory.createChartCard(
-                "Posts Per Month (This Group)",
-                StatChartFactory.buildAreaChart(
-                        List.of("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
-                        List.of(0, 0, 0, 0, 0, 0, 14, 0, 0, 0, 0, 0))));
-
+        StatChartFactory.mountChart(monthlyChartBox,
+                StatChartFactory.buildAreaChart(List.of(), List.of()));
         topicsChartBox.getChildren().clear();
-        topicsChartBox.getChildren().add(StatChartFactory.createChartCard(
-                "Posts by Topic",
-                StatChartFactory.buildBarChart(List.of("Inheritance", "Polymorphism"), List.of(10, 4), true)));
-
         topicsBox.getChildren().clear();
-        addTopicRow(1, "Inheritance", 10);
-        addTopicRow(2, "Polymorphism", 4);
     }
 
     private void addTopUserRow(int index, String name, int posts) {
@@ -254,6 +235,20 @@ public class GroupStatisticsController {
         }
         JsonObject obj = element.getAsJsonObject();
         return obj.get("name").getAsString() + " — " + obj.get(countField).getAsInt() + suffix;
+    }
+
+    private List<String> readStringList(JsonObject json, String key) {
+        if (!json.has(key) || json.get(key).isJsonNull()) {
+            return List.of();
+        }
+        return readStringList(json.getAsJsonArray(key));
+    }
+
+    private List<Integer> readIntList(JsonObject json, String key) {
+        if (!json.has(key) || json.get(key).isJsonNull()) {
+            return List.of();
+        }
+        return readIntList(json.getAsJsonArray(key));
     }
 
     private List<String> readStringList(JsonArray array) {

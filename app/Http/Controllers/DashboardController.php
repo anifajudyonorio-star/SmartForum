@@ -6,13 +6,14 @@ use App\Models\Group;
 use App\Models\Post;
 use App\Models\Topic;
 use App\Models\User;
+use App\Services\GroupStatisticsService;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     public function latestPosts()
     {
-        $groupIds = Auth::user()->groups()->pluck('groups.id');
+        $groupIds = Auth::user()->viewableGroupIds();
 
         $latestPosts = Post::with('topic')
             ->whereIn('Topic_ID', Topic::whereIn('Group_ID', $groupIds)->pluck('id'))
@@ -27,21 +28,39 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
+        $groupAdminSummaries = $this->groupAdminSummaries($user);
 
         if ($user->isAdmin()) {
-            return view('dashboard.admin', $this->adminData());
+            return view('dashboard.admin', array_merge($this->adminData(), [
+                'groupAdminSummaries' => $groupAdminSummaries,
+            ]));
         }
 
         if ($user->isLecturer()) {
-            return view('dashboard.lecturer', $this->lecturerData());
+            return view('dashboard.lecturer', array_merge($this->lecturerData(), [
+                'groupAdminSummaries' => $groupAdminSummaries,
+            ]));
         }
 
-        return view('dashboard.student', $this->studentData());
+        return view('dashboard.student', array_merge($this->studentData(), [
+            'groupAdminSummaries' => $groupAdminSummaries,
+        ]));
+    }
+
+    private function groupAdminSummaries(User $user)
+    {
+        if ($user->isAdmin()) {
+            return collect();
+        }
+
+        return GroupStatisticsService::summaries(
+            $user->administeredGroups()->pluck('groups.id')
+        );
     }
 
     private function studentData(): array
     {
-        $groupIds = Auth::user()->groups()->pluck('groups.id');
+        $groupIds = Auth::user()->viewableGroupIds();
 
         return [
             'myPosts' => Post::where('Created_By', Auth::id())->count(),
@@ -66,7 +85,7 @@ class DashboardController extends Controller
 
     private function lecturerData(): array
     {
-        $lecturerGroupIds = Auth::user()->groups()->pluck('groups.id');
+        $lecturerGroupIds = Auth::user()->viewableGroupIds();
 
         $participants = User::where(function ($query) {
             $query->whereNull('role')->orWhere('role', 'student');
@@ -89,7 +108,7 @@ class DashboardController extends Controller
         }
 
         return [
-            'myGroups' => Auth::user()->groups()->count(),
+            'myGroups' => Auth::user()->viewableGroupsQuery()->count(),
             'myTopics' => Topic::where('Created_By', Auth::id())->count(),
             'participants' => $participants->sortByDesc('score')->take(10),
         ];

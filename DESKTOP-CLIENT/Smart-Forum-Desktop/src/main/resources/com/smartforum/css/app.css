@@ -146,19 +146,33 @@
 }
 
 .top-bar-back {
-    -fx-background-color: transparent;
-    -fx-text-fill: #166534;
-    -fx-font-size: 18px;
-    -fx-font-weight: bold;
-    -fx-padding: 4 10 4 10;
-    -fx-background-radius: 8;
+    -fx-background-color: white;
+    -fx-border-color: #6c757d;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 6 8 6 8;
     -fx-cursor: hand;
-    -fx-min-width: 36;
-    -fx-min-height: 36;
+    -fx-min-width: 32;
+    -fx-min-height: 32;
 }
 
 .top-bar-back:hover {
-    -fx-background-color: #ecfdf5;
+    -fx-background-color: #f3f4f6;
+}
+
+.top-bar-back:disabled {
+    -fx-opacity: 0.55;
+    -fx-cursor: default;
+}
+
+.top-bar-back:disabled:hover {
+    -fx-background-color: white;
+}
+
+.top-bar-back-icon {
+    -fx-icon-color: #6c757d;
+    -fx-icon-size: 14;
 }
 
 .top-bar-user {
@@ -213,10 +227,38 @@
     -fx-min-height: 280;
 }
 
+.stats-chart-body {
+    -fx-min-height: 260;
+    -fx-padding: 8 12 12 12;
+}
+
 .stats-bar-chart,
-.stats-area-chart {
+.stats-area-chart,
+.stats-pie-chart {
     -fx-background-color: transparent;
-    -fx-padding: 8 12 8 0;
+    -fx-padding: 0;
+}
+
+.stats-bar-chart .chart-legend,
+.stats-area-chart .chart-legend,
+.stats-pie-chart .chart-legend {
+    -fx-background-color: transparent;
+    -fx-padding: 0 0 4 0;
+}
+
+.stats-bar-chart .chart-legend-item,
+.stats-area-chart .chart-legend-item,
+.stats-pie-chart .chart-legend-item {
+    -fx-font-size: 11px;
+    -fx-text-fill: #374151;
+}
+
+.stats-pie-chart .chart-content {
+    -fx-padding: 8 0 0 0;
+}
+
+.stats-pie-chart .chart-plot-area {
+    -fx-min-height: 180;
 }
 
 .stats-bar-chart .chart-plot-background,
@@ -270,7 +312,7 @@
 }
 
 .stats-area-chart .default-color0.chart-series-area-fill {
-    -fx-fill: rgba(22, 163, 74, 0.12);
+    -fx-fill: #16a34a22;
 }
 
 .stats-area-chart .chart-line-symbol {
@@ -467,6 +509,10 @@
     -fx-padding: 10 14 12 14;
 }
 
+.dashboard-card-body-flush {
+    -fx-padding: 0;
+}
+
 /* ── Buttons ───────────────────────────────────────────── */
 .btn-primary {
     -fx-background-color: #16a34a;
@@ -480,6 +526,11 @@
 
 .btn-primary:hover {
     -fx-background-color: #15803d;
+}
+
+.btn-sm {
+    -fx-font-size: 11px;
+    -fx-padding: 4 10 4 10;
 }
 
 .btn-outline {
@@ -557,6 +608,11 @@
 .dashboard-table .table-row-cell:selected {
     -fx-background-color: #dcfce7;
     -fx-text-fill: #111827;
+}
+
+.group-admin-shield-icon {
+    -fx-icon-color: #16a34a;
+    -fx-icon-size: 14;
 }
 
 .empty-label {

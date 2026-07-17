@@ -175,12 +175,16 @@ class NotificationController extends Controller
 
     private function notificationUrl($notification): string
     {
-        $notification->loadMissing('post.topic');
+        $notification->loadMissing(['post.topic', 'group']);
 
         if ($notification->post?->topic) {
             $url = route('topics.show', $notification->post->topic);
 
             return $url.'#msg-'.$notification->post->id;
+        }
+
+        if ($notification->group_id && $notification->group) {
+            return route('groups.show', $notification->group);
         }
 
         return route('notifications.index');

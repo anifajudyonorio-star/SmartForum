@@ -45,6 +45,10 @@ public class PostService {
         return PostVisibilityService.getInstance();
     }
 
+    public void clearCache() {
+        postsByTopic.clear();
+    }
+
     public void initTopicPosts(int topicId) {
         postsByTopic.putIfAbsent(topicId, new ArrayList<>());
     }
@@ -210,11 +214,6 @@ public class PostService {
         if (posts != null) {
             posts.removeIf(item -> item.getId() == postId);
         }
-    }
-
-    void seedPost(Post post) {
-        postsByTopic.computeIfAbsent(post.getTopicId(), key -> new ArrayList<>()).add(post);
-        nextPostId = Math.max(nextPostId, post.getId() + 1);
     }
 
     private void replacePost(Post updated) {

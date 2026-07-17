@@ -3,12 +3,10 @@ package com.smartforum.service;
 import com.smartforum.api.ApiClient;
 import com.smartforum.model.ForumUser;
 import com.smartforum.model.GroupMember;
-import com.smartforum.model.Post;
 import com.smartforum.model.Topic;
 import com.smartforum.model.TopicSearchResult;
 import com.smartforum.util.ApiSupport;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,7 +22,11 @@ public class TopicService {
     private int nextTopicId = 10;
 
     private TopicService() {
-        seedData();
+    }
+
+    public void clearCache() {
+        topicsByGroup.clear();
+        topicsById.clear();
     }
 
     public static TopicService getInstance() {
@@ -172,9 +174,6 @@ public class TopicService {
     }
 
     private List<Integer> getSearchableGroupIds() {
-        if (AppSession.getInstance().isSystemAdmin()) {
-            return new ArrayList<>(topicsByGroup.keySet());
-        }
         return groups().getGroupsForCurrentUser().stream()
                 .map(group -> group.getId())
                 .collect(Collectors.toList());
@@ -190,9 +189,6 @@ public class TopicService {
 
     private void syncAllTopicsFromApi() {
         List<Topic> topics = ApiClient.fetchTopics();
-        if (topics.isEmpty()) {
-            return;
-        }
         topicsByGroup.clear();
         topicsById.clear();
         for (Topic topic : topics) {
@@ -201,49 +197,5 @@ public class TopicService {
             PostService.getInstance().initTopicPosts(topic.getId());
             nextTopicId = Math.max(nextTopicId, topic.getId() + 1);
         }
-    }
-
-    private void seedData() {
-        addTopic(new Topic(1, 1, "Introduction to Algorithms",
-                "Share resources and ask questions about this week's algorithms lecture.",
-                3, "Demo Lecturer"));
-        addTopic(new Topic(2, 1, "Database Normalization Help",
-                "Need help with 3NF and BCNF examples from the assignment.",
-                2, "Anifa Onorio"));
-        addTopic(new Topic(3, 1, "Project Team Formation",
-                "Find teammates for the semester group project.",
-                4, "James Okello"));
-        addTopic(new Topic(4, 2, "Sprint Planning Thread",
-                "Week 3 sprint goals and task assignments.",
-                3, "Demo Lecturer"));
-        addTopic(new Topic(5, 2, "UI Mockup Feedback",
-                "Please review the Figma mockups and leave comments.",
-                5, "Sarah Nakato"));
-
-        LocalDateTime base = LocalDateTime.now().minusDays(1);
-        PostService postService = PostService.getInstance();
-
-        postService.seedPost(new Post(1, 1, null, 3, "Demo Lecturer",
-                "Welcome everyone! Please share your questions about this week's lecture.",
-                base.minusHours(2), List.of()));
-        postService.seedPost(new Post(2, 1, null, 2, "Anifa Onorio",
-                "Can someone explain the difference between BFS and DFS for this assignment?",
-                base.minusHours(1), List.of()));
-        postService.seedPost(new Post(3, 1, 2, 3, "Demo Lecturer",
-                "BFS explores level by level; DFS goes deep first. I'll post a short example shortly.",
-                base.minusMinutes(45), List.of()));
-        postService.seedPost(new Post(4, 2, null, 2, "Anifa Onorio",
-                "I'm stuck on converting a table to 3NF ΓÇö can we walk through an example?",
-                base.minusMinutes(30), List.of()));
-        postService.seedPost(new Post(5, 4, null, 3, "Demo Lecturer",
-                "Sprint goal: finish user stories 12ΓÇô15 by Friday. Post blockers here.",
-                base.minusHours(3), List.of()));
-    }
-
-    private void addTopic(Topic topic) {
-        topicsByGroup.computeIfAbsent(topic.getGroupId(), key -> new ArrayList<>()).add(topic);
-        topicsById.put(topic.getId(), topic);
-        PostService.getInstance().initTopicPosts(topic.getId());
-        nextTopicId = Math.max(nextTopicId, topic.getId() + 1);
     }
 }

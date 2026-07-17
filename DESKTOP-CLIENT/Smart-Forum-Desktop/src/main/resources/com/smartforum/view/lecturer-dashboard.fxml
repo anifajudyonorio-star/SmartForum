@@ -12,7 +12,7 @@
 <?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.VBox?>
 
-<ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.LecturerDashboardController">
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;" stylesheets="@../css/app.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.LecturerDashboardController">
    <content>
       <VBox spacing="12.0" styleClass="dashboard-content">
          <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-header">
@@ -22,6 +22,24 @@
             </VBox>
             <Button mnemonicParsing="false" onAction="#onViewParticipation" styleClass="btn-primary" text="📊  Participation" />
          </HBox>
+
+         <VBox fx:id="groupAdminCard" managed="false" spacing="0.0" styleClass="dashboard-card" visible="false">
+            <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-card-header">
+               <HBox fx:id="groupAdminTitleBox" alignment="CENTER_LEFT" spacing="6.0" HBox.hgrow="ALWAYS" />
+               <Button fx:id="viewStatisticsBtn" mnemonicParsing="false" onAction="#onViewStatistics" styleClass="btn-primary btn-sm" text="View Statistics" />
+            </HBox>
+            <VBox spacing="0.0" styleClass="dashboard-card-body dashboard-card-body-flush">
+               <TableView fx:id="groupAdminTable" styleClass="dashboard-table">
+                  <columns>
+                     <TableColumn fx:id="groupAdminGroupColumn" prefWidth="220.0" text="Group" />
+                     <TableColumn fx:id="groupAdminMembersColumn" prefWidth="90.0" text="Members" />
+                     <TableColumn fx:id="groupAdminTopicsColumn" prefWidth="90.0" text="Topics" />
+                     <TableColumn fx:id="groupAdminPostsColumn" prefWidth="90.0" text="Posts" />
+                     <TableColumn fx:id="groupAdminActionColumn" prefWidth="120.0" text="Action" />
+                  </columns>
+               </TableView>
+            </VBox>
+         </VBox>
 
          <GridPane hgap="10.0" vgap="10.0">
             <columnConstraints>

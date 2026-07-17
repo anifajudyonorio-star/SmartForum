@@ -43,4 +43,15 @@ class Topic extends Model
     {
         return $this->hasMany(Post::class, 'Topic_ID');
     }
+
+    public function scopeVisibleToUser($query, User $user)
+    {
+        $groupIds = $user->viewableGroupIds();
+
+        if ($groupIds->isEmpty()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn('Group_ID', $groupIds);
+    }
 }

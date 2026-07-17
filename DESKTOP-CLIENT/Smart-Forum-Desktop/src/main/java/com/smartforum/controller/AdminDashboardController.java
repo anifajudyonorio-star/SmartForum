@@ -47,14 +47,14 @@ public class AdminDashboardController {
         if (ApiSupport.useApi()) {
             loadFromApi();
         } else {
-            loadPreviewData();
+            loadEmptyState();
         }
     }
 
     private void loadFromApi() {
         new Thread(() -> ApiClient.getDashboard().ifPresentOrElse(json -> {
             if (!"admin".equals(json.get("role").getAsString())) {
-                Platform.runLater(this::loadPreviewData);
+                Platform.runLater(this::loadEmptyState);
                 return;
             }
             JsonObject stats = json.getAsJsonObject("stats");
@@ -80,26 +80,16 @@ public class AdminDashboardController {
                             String.valueOf(topic.get("posts_count").getAsInt()), false);
                 }
             });
-        }, () -> Platform.runLater(this::loadPreviewData))).start();
+        }, () -> Platform.runLater(this::loadEmptyState))).start();
     }
 
-    private void loadPreviewData() {
-        totalUsersLabel.setText("48");
-        totalGroupsLabel.setText("6");
-        totalTopicsLabel.setText("24");
-        totalPostsLabel.setText("156");
-
-        addRankedRow(topGroupsBox, "CS Year 2", "8", true);
-        addRankedRow(topGroupsBox, "Software Engineering", "6", true);
-        addRankedRow(topGroupsBox, "Data Structures", "5", true);
-        addRankedRow(topGroupsBox, "Networking Basics", "3", true);
-        addRankedRow(topGroupsBox, "Research Methods", "2", true);
-
-        addRankedRow(topTopicsBox, "Introduction to Algorithms", "42", false);
-        addRankedRow(topTopicsBox, "Database Normalization Help", "31", false);
-        addRankedRow(topTopicsBox, "Project Team Formation", "18", false);
-        addRankedRow(topTopicsBox, "Exam Revision Thread", "15", false);
-        addRankedRow(topTopicsBox, "Weekly Announcements", "9", false);
+    private void loadEmptyState() {
+        totalUsersLabel.setText("0");
+        totalGroupsLabel.setText("0");
+        totalTopicsLabel.setText("0");
+        totalPostsLabel.setText("0");
+        topGroupsBox.getChildren().clear();
+        topTopicsBox.getChildren().clear();
     }
 
     private void addRankedRow(javafx.scene.layout.VBox container, String title, String count, boolean primaryBadge) {

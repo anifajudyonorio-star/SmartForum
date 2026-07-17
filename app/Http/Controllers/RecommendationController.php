@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Topic;
 use App\Services\MachineLearningService;
 use Illuminate\Http\Request;
 
@@ -15,7 +16,12 @@ class RecommendationController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        $recommendations = $mlService->getRecommendations($user->id);
+        $viewableTopicIds = Topic::visibleToUser($user)->pluck('id');
+
+        $recommendations = collect($mlService->getRecommendations($user->id))
+            ->filter(fn ($item) => isset($item['id']) && $viewableTopicIds->contains((int) $item['id']))
+            ->values()
+            ->all();
 
         return response()->json([
             'user_id' => $user->id,

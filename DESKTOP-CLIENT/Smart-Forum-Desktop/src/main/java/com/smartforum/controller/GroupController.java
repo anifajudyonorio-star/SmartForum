@@ -112,6 +112,10 @@ public class GroupController {
         return createPane != null && createPane.isVisible();
     }
 
+    public boolean isExploreMode() {
+        return exploreMode;
+    }
+
     public void setRootNode(Region rootNode) {
         this.rootNode = rootNode;
     }
@@ -124,13 +128,13 @@ public class GroupController {
         this.pageTitleUpdater = pageTitleUpdater;
     }
 
+    private boolean exploreMode;
+
     private boolean membersTableReady;
 
     @FXML
     private void initialize() {
-        sectionTitleLabel.setText(
-                AppSession.getInstance().isSystemAdmin() ? "All Groups" : "My Groups"
-        );
+        sectionTitleLabel.setText("My Groups");
         switchTo(indexPane);
     }
 
@@ -161,9 +165,20 @@ public class GroupController {
     /** Web: index() */
     @FXML
     public void index() {
+        exploreMode = false;
+        sectionTitleLabel.setText("My Groups");
         switchTo(indexPane);
         updateTitle("Discussion Groups");
         refreshGroups();
+    }
+
+    /** Web: explore() */
+    public void explore() {
+        exploreMode = true;
+        sectionTitleLabel.setText("Explore Groups");
+        switchTo(indexPane);
+        updateTitle("Explore Groups");
+        refreshExploreGroups();
     }
 
     /** Web: create() */
@@ -242,6 +257,55 @@ public class GroupController {
         for (Group group : groups) {
             groupsGrid.getChildren().add(buildGroupCard(group));
         }
+    }
+
+    private void refreshExploreGroups() {
+        List<Group> groups = groupService.getExploreGroups();
+        groupsGrid.getChildren().clear();
+
+        if (groups.isEmpty()) {
+            emptyStateBox.setVisible(true);
+            emptyStateBox.setManaged(true);
+            return;
+        }
+
+        emptyStateBox.setVisible(false);
+        emptyStateBox.setManaged(false);
+
+        for (Group group : groups) {
+            groupsGrid.getChildren().add(buildExploreGroupCard(group));
+        }
+    }
+
+    private VBox buildExploreGroupCard(Group group) {
+        VBox card = buildGroupCard(group);
+        card.setOnMouseClicked(null);
+
+        Label actionLabel = new Label();
+        actionLabel.getStyleClass().add("group-card-action");
+        String joinStatus = group.getJoinStatus() == null ? "none" : group.getJoinStatus();
+        if ("pending".equalsIgnoreCase(joinStatus)) {
+            actionLabel.setText("Pending approval");
+        } else if ("blocked".equalsIgnoreCase(joinStatus)) {
+            actionLabel.setText("Cannot join");
+        } else {
+            actionLabel.setText("Request to Join");
+            card.setOnMouseClicked(event -> {
+                if (groupService.requestJoinGroup(group.getId())) {
+                    showAlert(Alert.AlertType.INFORMATION, "Request sent",
+                            "Your request to join \"" + group.getName() + "\" was sent for admin approval.");
+                    refreshExploreGroups();
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Request failed", "Could not send your join request.");
+                }
+            });
+        }
+
+        if (card.getChildren().size() >= 5 && card.getChildren().get(4) instanceof HBox footer) {
+            footer.getChildren().set(footer.getChildren().size() - 1, actionLabel);
+        }
+
+        return card;
     }
 
     private VBox buildGroupCard(Group group) {

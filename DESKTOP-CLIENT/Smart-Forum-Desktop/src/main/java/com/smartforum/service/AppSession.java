@@ -1,14 +1,11 @@
 package com.smartforum.service;
 
 import com.smartforum.model.ForumUser;
-import com.smartforum.model.Group;
-import com.smartforum.model.GroupMember;
-import com.smartforum.model.Topic;
 
 public final class AppSession {
     private static final AppSession INSTANCE = new AppSession();
 
-    private ForumUser currentUser = new ForumUser(2, "Anifa Onorio", "anifa@student.edu", "student");
+    private ForumUser currentUser = new ForumUser(0, "Guest", "", "student");
 
     private AppSession() {
     }
@@ -35,6 +32,18 @@ public final class AppSession {
 
     public boolean isLecturer() {
         return "lecturer".equalsIgnoreCase(currentUser.getSystemRole());
+    }
+
+    public boolean canViewStatistics() {
+        return currentUser.canViewStatistics();
+    }
+
+    public boolean canViewParticipation() {
+        return currentUser.canViewParticipation();
+    }
+
+    public boolean administersGroups() {
+        return currentUser.administersGroups();
     }
 
     public String getDashboardFxml() {

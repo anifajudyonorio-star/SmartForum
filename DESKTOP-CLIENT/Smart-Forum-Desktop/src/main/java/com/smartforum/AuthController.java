@@ -15,8 +15,12 @@ import javafx.scene.shape.ArcType;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
+import com.smartforum.api.ApiClient;
+import com.smartforum.api.ApiMapper;
 import com.smartforum.model.ForumUser;
 import com.smartforum.service.AppSession;
+import com.smartforum.service.ForumDataCache;
+import com.smartforum.util.SessionManager;
 
 import java.awt.Desktop;
 import java.net.URI;
@@ -177,14 +181,16 @@ public class AuthController {
                 if (response.isSuccess()) {
                     try {
                         var user = response.body().getAsJsonObject("user");
+                        String token = response.body().get("token").getAsString();
                         UserSession.getInstance().setUser(
                             user.get("id").getAsInt(),
                             user.get("Fname").getAsString(),
                             user.get("Lname").getAsString(),
                             user.get("email").getAsString(),
                             user.get("role").getAsString(),
-                            response.body().get("token").getAsString()
+                            token
                         );
+                        syncAppSession(user, token);
                         showSuccess("Welcome back, " + UserSession.getInstance().getFname() + "!");
                         navigateToDashboard();
                     } catch (Exception e) {
@@ -245,6 +251,17 @@ public class AuthController {
                     params.get("role"),
                     params.get("token")
                 );
+                syncAppSessionFromUserSession();
+                ForumDataCache.clearAll();
+                ApiClient.fetchCurrentUser().ifPresentOrElse(
+                        AppSession.getInstance()::setCurrentUser,
+                        () -> AppSession.getInstance().setCurrentUser(new ForumUser(
+                                UserSession.getInstance().getId(),
+                                UserSession.getInstance().getFullName(),
+                                UserSession.getInstance().getEmail(),
+                                UserSession.getInstance().getRole()
+                        ))
+                );
                 showSuccess("Welcome, " + UserSession.getInstance().getFname() + "!");
                 navigateToDashboard();
             } catch (Exception e) {
@@ -295,20 +312,26 @@ public class AuthController {
         registerPane.setDisable(loading);
     }
 
+    private void syncAppSession(com.google.gson.JsonObject user, String token) {
+        ForumDataCache.clearAll();
+        SessionManager.getInstance().setToken(token);
+        SessionManager.getInstance().setUser(
+                user.get("id").getAsInt(),
+                (user.get("Fname").getAsString() + " " + user.get("Lname").getAsString()).trim()
+        );
+        AppSession.getInstance().setCurrentUser(ApiMapper.toForumUser(user));
+    }
+
+    private void syncAppSessionFromUserSession() {
+        UserSession session = UserSession.getInstance();
+        SessionManager.getInstance().setToken(session.getToken());
+        SessionManager.getInstance().setUser(session.getId(), session.getFullName());
+    }
+
     private void navigateToDashboard() {
         try {
-            UserSession us = UserSession.getInstance();
+            ApiClient.fetchCurrentUser().ifPresent(AppSession.getInstance()::setCurrentUser);
 
-            // Sync AppSession so MainShellController gets the real logged-in user
-            AppSession.getInstance().setCurrentUser(new ForumUser(
-                us.getId(),
-                us.getFname() + " " + us.getLname(),
-                us.getEmail(),
-                us.getRole()
-            ));
-
-            // Students go straight to the student dashboard inside the shell;
-            // admins and lecturers use the main shell which picks the right dashboard via AppSession
             String fxml = "/com/smartforum/view/main-shell.fxml";
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
             Scene scene = new Scene(loader.load());

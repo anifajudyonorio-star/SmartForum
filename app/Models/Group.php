@@ -39,9 +39,15 @@ class Group extends Model
 
     public function isMember(int $userId): bool
     {
-        return $this->members()
-            ->where('users.id', $userId)
+        return $this->memberships()
+            ->where('User_ID', $userId)
+            ->whereIn('Member_Status', GroupMember::APPROVED_STATUSES)
             ->exists();
+    }
+
+    public function hasPendingJoinRequest(int $userId): bool
+    {
+        return $this->memberStatus($userId) === GroupMember::STATUS_PENDING;
     }
 
     public function membership(int $userId): ?GroupMember

@@ -36,7 +36,15 @@ public class GroupService {
     }
 
     private GroupService() {
-        seedData();
+    }
+
+    public void clearCache() {
+        users.clear();
+        groups.clear();
+        membersByGroup.clear();
+        groupContexts.clear();
+        statsCache.clear();
+        availableUsersCache.clear();
     }
 
     public static GroupService getInstance() {
@@ -57,18 +65,42 @@ public class GroupService {
         }
 
         ForumUser user = AppSession.getInstance().getCurrentUser();
-        if (AppSession.getInstance().isSystemAdmin()) {
-            return groups.values().stream()
-                    .sorted((a, b) -> Integer.compare(b.getId(), a.getId()))
-                    .map(this::withCountsAndRole)
-                    .collect(Collectors.toList());
-        }
-
         return groups.values().stream()
                 .filter(group -> isMember(group.getId(), user.getId()))
                 .sorted((a, b) -> Integer.compare(b.getId(), a.getId()))
                 .map(this::withCountsAndRole)
                 .collect(Collectors.toList());
+    }
+
+    public List<Group> getExploreGroups() {
+        if (ApiSupport.useApi()) {
+            return ApiClient.fetchExploreGroups().stream()
+                    .sorted((a, b) -> Integer.compare(b.getId(), a.getId()))
+                    .collect(Collectors.toList());
+        }
+
+        ForumUser user = AppSession.getInstance().getCurrentUser();
+        return groups.values().stream()
+                .filter(group -> !isMember(group.getId(), user.getId()))
+                .sorted((a, b) -> Integer.compare(b.getId(), a.getId()))
+                .peek(group -> group.setJoinStatus("none"))
+                .collect(Collectors.toList());
+    }
+
+    public boolean requestJoinGroup(int groupId) {
+        if (ApiSupport.useApi()) {
+            return ApiClient.requestJoinGroup(groupId);
+        }
+
+        ForumUser user = AppSession.getInstance().getCurrentUser();
+        if (isMember(groupId, user.getId())) {
+            return false;
+        }
+
+        membersByGroup.computeIfAbsent(groupId, key -> new ArrayList<>()).add(
+                new GroupMember(user.getId(), user.getName(), user.getEmail(), "member", "Pending", 0, false)
+        );
+        return true;
     }
 
     public Optional<Group> getGroup(int groupId) {
@@ -87,19 +119,16 @@ public class GroupService {
         if (ApiSupport.useApi()) {
             GroupContext context = groupContexts.get(groupId);
             if (context != null) {
-                return AppSession.getInstance().isSystemAdmin() || context.isMember;
+                return context.isMember;
             }
             syncGroupDetail(groupId);
             context = groupContexts.get(groupId);
             if (context != null) {
-                return AppSession.getInstance().isSystemAdmin() || context.isMember;
+                return context.isMember;
             }
         }
 
         ForumUser user = AppSession.getInstance().getCurrentUser();
-        if (AppSession.getInstance().isSystemAdmin()) {
-            return true;
-        }
         if (!isMember(groupId, user.getId())) {
             return false;
         }
@@ -423,8 +452,12 @@ public class GroupService {
     }
 
     private Group withCountsAndRole(Group group) {
-        int topics = topics().countTopicsForGroup(group.getId());
-        int members = membersByGroup.getOrDefault(group.getId(), List.of()).size();
+        int topics = ApiSupport.useApi()
+                ? group.getTopicsCount()
+                : topics().countTopicsForGroup(group.getId());
+        int members = ApiSupport.useApi()
+                ? group.getMembersCount()
+                : membersByGroup.getOrDefault(group.getId(), List.of()).size();
         String role = memberRole(group.getId(), AppSession.getInstance().getCurrentUser().getId());
         return new Group(
                 group.getId(),
@@ -447,8 +480,12 @@ public class GroupService {
     }
 
     private boolean isMember(int groupId, int userId) {
-        return membersByGroup.getOrDefault(groupId, List.of()).stream()
-                .anyMatch(member -> member.getUserId() == userId);
+        GroupMember member = findMember(groupId, userId);
+        if (member == null) {
+            return false;
+        }
+        String status = member.getMemberStatus();
+        return status != null && !"Pending".equalsIgnoreCase(status);
     }
 
     private String memberRole(int groupId, int userId) {
@@ -480,10 +517,11 @@ public class GroupService {
 
     private void syncGroupsFromApi() {
         List<Group> apiGroups = ApiClient.fetchGroups();
-        if (apiGroups.isEmpty()) {
-            return;
-        }
         groups.clear();
+        membersByGroup.clear();
+        groupContexts.clear();
+        statsCache.clear();
+        availableUsersCache.clear();
         for (Group group : apiGroups) {
             groups.put(group.getId(), group);
         }
@@ -512,33 +550,5 @@ public class GroupService {
             context.isMember = json.has("is_member") && json.get("is_member").getAsBoolean();
             groupContexts.put(groupId, context);
         });
-    }
-
-    private void seedData() {
-        users.put(1, new ForumUser(1, "System Admin", "admin@smartforum.edu", "admin"));
-        users.put(2, new ForumUser(2, "Anifa Onorio", "anifa@student.edu", "student"));
-        users.put(3, new ForumUser(3, "Demo Lecturer", "lecturer@smartforum.edu", "lecturer"));
-        users.put(4, new ForumUser(4, "James Okello", "james@student.edu", "student"));
-        users.put(5, new ForumUser(5, "Sarah Nakato", "sarah@student.edu", "student"));
-
-        groups.put(1, new Group(1, "CS Year 2",
-                "Algorithms, databases, and coursework discussions for second-year CS students.",
-                "Active", 3, "Demo Lecturer", 3, 4, "member"));
-        groups.put(2, new Group(2, "Software Engineering",
-                "Team projects, design patterns, and agile development topics.",
-                "Active", 3, "Demo Lecturer", 2, 3, "member"));
-
-        membersByGroup.put(1, new ArrayList<>(List.of(
-                new GroupMember(3, "Demo Lecturer", "lecturer@smartforum.edu", "admin", "Active", 0, true),
-                new GroupMember(2, "Anifa Onorio", "anifa@student.edu", "member", "Active", 0, false),
-                new GroupMember(4, "James Okello", "james@student.edu", "member", "Active", 1, false),
-                new GroupMember(5, "Sarah Nakato", "sarah@student.edu", "lecturer", "Active", 0, false)
-        )));
-
-        membersByGroup.put(2, new ArrayList<>(List.of(
-                new GroupMember(3, "Demo Lecturer", "lecturer@smartforum.edu", "admin", "Active", 0, true),
-                new GroupMember(2, "Anifa Onorio", "anifa@student.edu", "member", "Active", 0, false),
-                new GroupMember(5, "Sarah Nakato", "sarah@student.edu", "member", "Suspended", 2, false)
-        )));
     }
 }

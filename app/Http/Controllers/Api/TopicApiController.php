@@ -14,17 +14,18 @@ class TopicApiController extends Controller
     {
         $user = Auth::user();
 
-        $query = Topic::with(['user', 'group'])->withCount('posts');
+        $groupIds = $user->viewableGroupIds();
 
-        if (! $user->isAdmin()) {
-            $groupIds = $user->groups()->pluck('groups.id');
-            if ($groupIds->isEmpty()) {
-                return response()->json(['topics' => []]);
-            }
-            $query->whereIn('Group_ID', $groupIds);
+        if ($groupIds->isEmpty()) {
+            return response()->json(['topics' => []]);
         }
 
-        $topics = $query->latest()->get()->map(fn (Topic $topic) => $this->formatTopic($topic));
+        $topics = Topic::with(['user', 'group'])
+            ->withCount('posts')
+            ->whereIn('Group_ID', $groupIds)
+            ->latest()
+            ->get()
+            ->map(fn (Topic $topic) => $this->formatTopic($topic));
 
         return response()->json(['topics' => $topics]);
     }
@@ -69,17 +70,15 @@ class TopicApiController extends Controller
         $user = Auth::user();
         $search = trim((string) $request->query('search', ''));
 
-        $query = Topic::with(['user', 'group'])->withCount('posts');
+        $groupIds = $user->viewableGroupIds();
 
-        if ($user->isAdmin()) {
-            // all topics
-        } else {
-            $groupIds = $user->groups()->pluck('groups.id');
-            if ($groupIds->isEmpty()) {
-                return response()->json(['topics' => []]);
-            }
-            $query->whereIn('Group_ID', $groupIds);
+        if ($groupIds->isEmpty()) {
+            return response()->json(['topics' => []]);
         }
+
+        $query = Topic::with(['user', 'group'])
+            ->withCount('posts')
+            ->whereIn('Group_ID', $groupIds);
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
@@ -100,6 +99,13 @@ class TopicApiController extends Controller
 
     public function update(Request $request, Topic $topic)
     {
+        $topic->loadMissing('group');
+
+        abort_unless(
+            $topic->group && Auth::user()->canViewGroup($topic->group),
+            403
+        );
+
         abort_unless($this->canManageTopic($topic), 403);
 
         $request->validate([
@@ -119,6 +125,13 @@ class TopicApiController extends Controller
 
     public function destroy(Topic $topic)
     {
+        $topic->loadMissing('group');
+
+        abort_unless(
+            $topic->group && Auth::user()->canViewGroup($topic->group),
+            403
+        );
+
         abort_unless($this->canManageTopic($topic), 403);
 
         $topic->delete();

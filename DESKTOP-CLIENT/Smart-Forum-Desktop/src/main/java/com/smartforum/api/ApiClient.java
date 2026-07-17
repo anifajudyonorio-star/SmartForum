@@ -3,6 +3,7 @@ package com.smartforum.api;
 import com.google.gson.*;
 import com.smartforum.model.*;
 import com.smartforum.util.SessionManager;
+import com.smartforum.UserSession;
 
 import java.net.URI;
 import java.net.http.*;
@@ -19,6 +20,9 @@ public class ApiClient {
 
     private static HttpRequest.Builder builder(String path) {
         String token = SessionManager.getInstance().getToken();
+        if (token == null || token.isBlank()) {
+            token = UserSession.getInstance().getToken();
+        }
         HttpRequest.Builder b = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + path))
                 .header("Accept", "application/json")
@@ -137,6 +141,16 @@ public class ApiClient {
         return getJson("/api/groups")
                 .map(json -> ApiMapper.toGroups(json.getAsJsonArray("groups")))
                 .orElseGet(ArrayList::new);
+    }
+
+    public static List<Group> fetchExploreGroups() {
+        return getJson("/api/groups/explore")
+                .map(json -> ApiMapper.toGroups(json.getAsJsonArray("groups")))
+                .orElseGet(ArrayList::new);
+    }
+
+    public static boolean requestJoinGroup(int groupId) {
+        return sendJson("POST", "/api/groups/" + groupId + "/join", new JsonObject());
     }
 
     public static Optional<JsonObject> fetchGroupDetail(int groupId) {

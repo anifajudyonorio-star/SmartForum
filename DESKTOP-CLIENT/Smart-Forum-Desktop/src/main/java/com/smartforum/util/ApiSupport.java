@@ -4,7 +4,9 @@ import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
 import com.smartforum.api.ApiMapper;
 import com.smartforum.model.ForumUser;
+import com.smartforum.UserSession;
 import com.smartforum.service.AppSession;
+import com.smartforum.service.ForumDataCache;
 
 import java.util.Optional;
 
@@ -13,7 +15,21 @@ public final class ApiSupport {
     }
 
     public static boolean useApi() {
-        return NetworkMonitor.isOnline() && SessionManager.getInstance().isLoggedIn();
+        if (!NetworkMonitor.isOnline()) {
+            return false;
+        }
+        SessionManager session = SessionManager.getInstance();
+        if (session.isLoggedIn()) {
+            return true;
+        }
+        String token = UserSession.getInstance().getToken();
+        if (token != null && !token.isBlank()) {
+            session.setToken(token);
+            UserSession userSession = UserSession.getInstance();
+            session.setUser(userSession.getId(), userSession.getFullName());
+            return true;
+        }
+        return false;
     }
 
     public static void bootstrapFromProperties() {
@@ -26,6 +42,7 @@ public final class ApiSupport {
         }
 
         if (!token.isEmpty()) {
+            ForumDataCache.clearAll();
             SessionManager.getInstance().setToken(token);
             ApiClient.fetchCurrentUser().ifPresent(user -> {
                 SessionManager.getInstance().setUser(user.getId(), user.getName());
@@ -34,9 +51,7 @@ public final class ApiSupport {
             return;
         }
 
-        int userId = parseIntProperty("sf.userId", 2);
-        String userName = System.getProperty("sf.userName", "Anifa Onorio");
-        SessionManager.getInstance().setSession("", userId, userName);
+        // No token — do not bootstrap a fake offline user/session.
     }
 
     public static Optional<JsonObject> login(String email, String password) {
@@ -52,13 +67,5 @@ public final class ApiSupport {
             }
         });
         return response;
-    }
-
-    private static int parseIntProperty(String key, int fallback) {
-        try {
-            return Integer.parseInt(System.getProperty(key, String.valueOf(fallback)));
-        } catch (NumberFormatException ex) {
-            return fallback;
-        }
     }
 }

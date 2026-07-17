@@ -5,17 +5,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
 import com.smartforum.util.ApiSupport;
+import com.smartforum.util.StatChartFactory;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.chart.AreaChart;
-import javafx.scene.chart.BarChart;
-import javafx.scene.chart.CategoryAxis;
-import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.PieChart;
-import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
@@ -49,6 +42,7 @@ public class ForumStatisticsController {
 
     @FXML
     private void initialize() {
+        mountEmptyCharts();
         refresh();
     }
 
@@ -60,7 +54,7 @@ public class ForumStatisticsController {
         if (ApiSupport.useApi()) {
             loadFromApi();
         } else {
-            loadPreviewData();
+            showEmptyState();
         }
     }
 
@@ -71,7 +65,7 @@ public class ForumStatisticsController {
             populateTopUsers(json);
             populateMostActive(json);
             populateCharts(json);
-        }), () -> Platform.runLater(this::loadPreviewData))).start();
+        }), () -> Platform.runLater(this::showEmptyState))).start();
     }
 
     private void populateSummaryCards(JsonObject json) {
@@ -127,51 +121,47 @@ public class ForumStatisticsController {
     }
 
     private void populateCharts(JsonObject json) {
-        List<String> groupLabels = readStringList(json.getAsJsonArray("group_labels"));
-        List<Integer> groupPosts = readIntList(json.getAsJsonArray("group_posts"));
-        List<String> monthLabels = readStringList(json.getAsJsonArray("month_labels"));
-        List<Integer> monthlyPosts = readIntList(json.getAsJsonArray("monthly_posts"));
-        List<String> topicLabels = readStringList(json.getAsJsonArray("topic_labels"));
-        List<Integer> topicCounts = readIntList(json.getAsJsonArray("topic_counts"));
+        List<String> groupLabels = readStringList(json, "group_labels");
+        List<Integer> groupPosts = readIntList(json, "group_posts");
+        List<String> monthLabels = readStringList(json, "month_labels");
+        List<Integer> monthlyPosts = readIntList(json, "monthly_posts");
+        List<String> topicLabels = readStringList(json, "topic_labels");
+        List<Integer> topicCounts = readIntList(json, "topic_counts");
 
-        buildPostsPerGroupChart(groupLabels, groupPosts);
-        buildPostsPerMonthChart(monthLabels, monthlyPosts);
-        buildTopicsByGroupChart(topicLabels, topicCounts);
+        StatChartFactory.mountChart(postsPerGroupChartBox,
+                StatChartFactory.buildBarChart(groupLabels, groupPosts, groupLabels.size() > 4));
+
+        StatChartFactory.mountChart(postsPerMonthChartBox,
+                StatChartFactory.buildAreaChart(monthLabels, monthlyPosts));
+
+        StatChartFactory.mountChart(topicsByGroupChartBox,
+                StatChartFactory.buildPieChart(topicLabels, topicCounts));
     }
 
-    private void loadPreviewData() {
-        groupCountBadge.setText("4 groups");
-        totalGroupsLabel.setText("4");
-        totalTopicsLabel.setText("5");
-        totalPostsLabel.setText("15");
-        totalUsersLabel.setText("6");
+    private void mountEmptyCharts() {
+        StatChartFactory.mountChart(postsPerGroupChartBox,
+                StatChartFactory.buildBarChart(List.of(), List.of(), false));
+        StatChartFactory.mountChart(postsPerMonthChartBox,
+                StatChartFactory.buildAreaChart(List.of(), List.of()));
+        StatChartFactory.mountChart(topicsByGroupChartBox,
+                StatChartFactory.buildPieChart(List.of(), List.of()));
+    }
+
+    private void showEmptyState() {
+        groupCountBadge.setText("0 groups");
+        totalGroupsLabel.setText("0");
+        totalTopicsLabel.setText("0");
+        totalPostsLabel.setText("0");
+        totalUsersLabel.setText("0");
         postsTodayLabel.setText("0");
         postsWeekLabel.setText("0");
-        postsMonthLabel.setText("15");
-        mostActiveUserLabel.setText("Demo Student — 7 posts");
-        mostActiveGroupLabel.setText("Introduction to Computer Science — 3 topics");
-        mostActiveTopicLabel.setText("OOP Basics — 14 posts");
-
+        postsMonthLabel.setText("0");
+        mostActiveUserLabel.setText("No statistics available.");
+        mostActiveGroupLabel.setText("No statistics available.");
+        mostActiveTopicLabel.setText("No statistics available.");
         groupSummariesBox.getChildren().clear();
-        addSummaryRow(1, "Introduction to Computer Science", 3, 3, 1, "Super Admin");
-        addSummaryRow(2, "OOP1", 3, 2, 14, "Demo Lecturer");
-        addSummaryRow(3, "Technical Analysis", 2, 0, 0, "Demo Student");
-        addSummaryRow(4, "Test Group", 1, 0, 0, "Demo Lecturer");
-
         topUsersBox.getChildren().clear();
-        addTopUserRow(0, "Demo Student", 7);
-        addTopUserRow(1, "Demo Lecturer", 6);
-        addTopUserRow(2, "Anifa Onorio", 2);
-
-        buildPostsPerGroupChart(
-                List.of("OOP1", "Test Group", "Introduction to Computer Science", "Technical Analysis"),
-                List.of(14, 0, 1, 0));
-        buildPostsPerMonthChart(
-                List.of("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
-                List.of(0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0));
-        buildTopicsByGroupChart(
-                List.of("OOP1", "Test Group", "Introduction to Computer Science", "Technical Analysis"),
-                List.of(2, 0, 3, 0));
+        mountEmptyCharts();
     }
 
     private void addSummaryRow(int groupId, String group, int members, int topics, int posts, String lecturer) {
@@ -197,7 +187,7 @@ public class ForumStatisticsController {
         lecturerLabel.setWrapText(true);
 
         Button viewBtn = new Button("View Stats");
-        viewBtn.getStyleClass().add("btn-primary-sm");
+        viewBtn.getStyleClass().addAll("btn-primary", "btn-sm");
         viewBtn.setOnAction(event -> {
             if (navigator != null) {
                 navigator.showGroupStatistics(groupId);
@@ -232,127 +222,6 @@ public class ForumStatisticsController {
         topUsersBox.getChildren().add(row);
     }
 
-    private void buildPostsPerGroupChart(List<String> labels, List<Integer> values) {
-        postsPerGroupChartBox.getChildren().clear();
-        postsPerGroupChartBox.getChildren().add(createChartCard("Posts per Group", buildBarChart(labels, values)));
-    }
-
-    private void buildPostsPerMonthChart(List<String> labels, List<Integer> values) {
-        postsPerMonthChartBox.getChildren().clear();
-        postsPerMonthChartBox.getChildren().add(createChartCard("Posts Per Month", buildAreaChart(labels, values)));
-    }
-
-    private void buildTopicsByGroupChart(List<String> labels, List<Integer> values) {
-        topicsByGroupChartBox.getChildren().clear();
-        topicsByGroupChartBox.getChildren().add(createChartCard("Topics by Group", buildPieChart(labels, values)));
-    }
-
-    private VBox createChartCard(String title, Region chart) {
-        Label heading = new Label(title);
-        heading.getStyleClass().add("dashboard-card-title");
-
-        HBox header = new HBox(heading);
-        header.getStyleClass().add("dashboard-card-header");
-        header.setAlignment(Pos.CENTER_LEFT);
-
-        chart.setMinHeight(220);
-        chart.setPrefHeight(240);
-        chart.setMaxHeight(260);
-        VBox.setVgrow(chart, Priority.ALWAYS);
-
-        VBox card = new VBox(0, header, chart);
-        card.setPadding(new Insets(0, 0, 12, 0));
-        return card;
-    }
-
-    private BarChart<String, Number> buildBarChart(List<String> labels, List<Integer> values) {
-        CategoryAxis xAxis = new CategoryAxis();
-        NumberAxis yAxis = createValueAxis(values);
-
-        BarChart<String, Number> chart = new BarChart<>(xAxis, yAxis);
-        chart.setLegendVisible(false);
-        chart.setAnimated(false);
-        chart.setCategoryGap(12);
-        chart.getStyleClass().add("stats-bar-chart");
-        configurePlot(chart, true);
-
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.setName("Posts");
-        for (int i = 0; i < labels.size(); i++) {
-            series.getData().add(new XYChart.Data<>(labels.get(i), values.get(i)));
-        }
-        chart.getData().add(series);
-        return chart;
-    }
-
-    private AreaChart<String, Number> buildAreaChart(List<String> labels, List<Integer> values) {
-        CategoryAxis xAxis = new CategoryAxis();
-        NumberAxis yAxis = createValueAxis(values);
-
-        AreaChart<String, Number> chart = new AreaChart<>(xAxis, yAxis);
-        chart.setLegendVisible(false);
-        chart.setAnimated(false);
-        chart.setCreateSymbols(true);
-        chart.getStyleClass().add("stats-area-chart");
-        configurePlot(chart, false);
-
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.setName("Posts");
-        for (int i = 0; i < labels.size(); i++) {
-            series.getData().add(new XYChart.Data<>(labels.get(i), values.get(i)));
-        }
-        chart.getData().add(series);
-        return chart;
-    }
-
-    private PieChart buildPieChart(List<String> labels, List<Integer> values) {
-        List<PieChart.Data> slices = new ArrayList<>();
-        for (int i = 0; i < labels.size(); i++) {
-            if (values.get(i) > 0) {
-                slices.add(new PieChart.Data(labels.get(i), values.get(i)));
-            }
-        }
-        if (slices.isEmpty()) {
-            slices.add(new PieChart.Data("No topics", 1));
-        }
-
-        PieChart chart = new PieChart(FXCollections.observableArrayList(slices));
-        chart.setLegendVisible(true);
-        chart.setAnimated(false);
-        chart.setLabelsVisible(false);
-        chart.getStyleClass().add("stats-pie-chart");
-        chart.setMinHeight(260);
-        chart.setPrefHeight(280);
-        return chart;
-    }
-
-    private NumberAxis createValueAxis(List<Integer> values) {
-        int max = values.stream().mapToInt(Integer::intValue).max().orElse(0);
-        double upper = max <= 0 ? 4 : Math.ceil(max * 1.15 / 2.0) * 2.0;
-        NumberAxis yAxis = new NumberAxis(0, upper, upper <= 10 ? 2 : Math.max(2, upper / 5));
-        yAxis.setForceZeroInRange(true);
-        yAxis.setMinorTickVisible(false);
-        yAxis.setTickMarkVisible(true);
-        yAxis.setAutoRanging(false);
-        return yAxis;
-    }
-
-    private void configurePlot(XYChart<String, Number> chart, boolean rotateLabels) {
-        chart.setHorizontalGridLinesVisible(true);
-        chart.setVerticalGridLinesVisible(false);
-        chart.setAlternativeColumnFillVisible(false);
-        chart.setAlternativeRowFillVisible(false);
-
-        CategoryAxis xAxis = (CategoryAxis) chart.getXAxis();
-        xAxis.setTickMarkVisible(false);
-        if (rotateLabels) {
-            xAxis.setTickLabelRotation(-35);
-        }
-
-        NumberAxis yAxis = (NumberAxis) chart.getYAxis();
-        yAxis.setTickLabelGap(8);
-    }
-
     private String formatMostActive(JsonElement element, String countField, String suffix) {
         if (element == null || element.isJsonNull()) {
             return "No data available.";
@@ -360,6 +229,20 @@ public class ForumStatisticsController {
         JsonObject obj = element.getAsJsonObject();
         String name = obj.has("name") ? obj.get("name").getAsString() : obj.get("title").getAsString();
         return name + " — " + obj.get(countField).getAsInt() + suffix;
+    }
+
+    private List<String> readStringList(JsonObject json, String key) {
+        if (!json.has(key) || json.get(key).isJsonNull()) {
+            return List.of();
+        }
+        return readStringList(json.getAsJsonArray(key));
+    }
+
+    private List<Integer> readIntList(JsonObject json, String key) {
+        if (!json.has(key) || json.get(key).isJsonNull()) {
+            return List.of();
+        }
+        return readIntList(json.getAsJsonArray(key));
     }
 
     private List<String> readStringList(JsonArray array) {

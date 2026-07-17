@@ -54,6 +54,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/groups/{group}/members/{user}/block', [GroupModerationController::class, 'block'])->name('groups.members.block');
     Route::post('/groups/{group}/members/{user}/reinstate', [GroupModerationController::class, 'reinstate'])->name('groups.members.reinstate');
 
+    Route::get('/groups/explore', [GroupController::class, 'explore'])->name('groups.explore');
+    Route::post('/groups/{group}/join', [GroupController::class, 'requestJoin'])->name('groups.join');
+    Route::post('/groups/{group}/join-requests/{user}/approve', [GroupController::class, 'approveJoinRequest'])->name('groups.join.approve');
+    Route::post('/groups/{group}/join-requests/{user}/reject', [GroupController::class, 'rejectJoinRequest'])->name('groups.join.reject');
+
     Route::resource('groups', GroupController::class);
 
     Route::get('/groups/{group}/topics/create', [TopicController::class, 'create'])->name('topics.create');

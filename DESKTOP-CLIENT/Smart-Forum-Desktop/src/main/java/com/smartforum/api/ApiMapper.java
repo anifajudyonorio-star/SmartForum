@@ -15,7 +15,7 @@ public final class ApiMapper {
     }
 
     public static Group toGroup(JsonObject json) {
-        return new Group(
+        Group group = new Group(
                 json.get("id").getAsInt(),
                 text(json, "name", "Unknown"),
                 text(json, "description", ""),
@@ -26,6 +26,10 @@ public final class ApiMapper {
                 json.has("members_count") ? json.get("members_count").getAsInt() : 0,
                 text(json, "my_role", "member")
         );
+        if (json.has("join_status")) {
+            group.setJoinStatus(json.get("join_status").getAsString());
+        }
+        return group;
     }
 
     public static GroupMember toGroupMember(JsonObject json) {
@@ -52,7 +56,10 @@ public final class ApiMapper {
                 json.get("id").getAsInt(),
                 name,
                 text(json, "email", ""),
-                text(json, "role", "student")
+                text(json, "role", "student"),
+                json.has("can_view_statistics") && json.get("can_view_statistics").getAsBoolean(),
+                json.has("can_view_participation") && json.get("can_view_participation").getAsBoolean(),
+                json.has("administers_groups") && json.get("administers_groups").getAsBoolean()
         );
     }
 

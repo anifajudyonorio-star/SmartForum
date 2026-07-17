@@ -37,7 +37,7 @@ class NotificationApiController extends Controller
 
     private function formatNotification($notification): array
     {
-        $notification->loadMissing('post.topic');
+        $notification->loadMissing(['post.topic', 'group']);
 
         $topicId = $notification->post?->topic?->id;
 
@@ -51,6 +51,7 @@ class NotificationApiController extends Controller
             'time' => $notification->created_at?->diffForHumans(),
             'topic_id' => $topicId,
             'post_id' => $notification->post?->id,
+            'group_id' => $notification->group_id,
         ];
     }
 }

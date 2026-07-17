@@ -8,6 +8,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -54,6 +55,7 @@ public class MainShellController implements ShellNavigator {
     private void initialize() {
         configureSidebarForRole();
         setupSidebarNavIcons();
+        setupBackNavButton();
 
         navButtons.addAll(List.of(
                 dashboardNavBtn, groupsNavBtn, topicSearchNavBtn, notificationsNavBtn,
@@ -69,10 +71,14 @@ public class MainShellController implements ShellNavigator {
     }
 
     private void configureSidebarForRole() {
-        boolean showGroupAdmin = AppSession.getInstance().isSystemAdmin()
-                || AppSession.getInstance().isLecturer();
-        groupAdminSection.setVisible(showGroupAdmin);
-        groupAdminSection.setManaged(showGroupAdmin);
+        boolean showStatistics = AppSession.getInstance().canViewStatistics();
+        boolean showParticipation = AppSession.getInstance().canViewParticipation();
+        groupAdminSection.setVisible(showStatistics || showParticipation);
+        groupAdminSection.setManaged(showStatistics || showParticipation);
+        statisticsNavBtn.setVisible(showStatistics);
+        statisticsNavBtn.setManaged(showStatistics);
+        participationNavBtn.setVisible(showParticipation);
+        participationNavBtn.setManaged(showParticipation);
     }
 
     private void setupSidebarNavIcons() {
@@ -94,10 +100,18 @@ public class MainShellController implements ShellNavigator {
         button.setGraphicTextGap(10);
     }
 
+    private void setupBackNavButton() {
+        FontIcon icon = FontIcon.of(BootstrapIcons.ARROW_LEFT);
+        icon.getStyleClass().add("top-bar-back-icon");
+        backNavBtn.setGraphic(icon);
+        backNavBtn.setText("");
+        backNavBtn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+        backNavBtn.setTooltip(new Tooltip("Go back"));
+    }
+
     @FXML
     private void showQuizzesFromNav() {
-        resetBackStack();
-        showQuizzesInternal();
+        navigateWithBack(this::showQuizzesInternal);
     }
 
     @Override
@@ -135,14 +149,12 @@ public class MainShellController implements ShellNavigator {
     @FXML
     @Override
     public void showStatisticsOverview() {
-        resetBackStack();
-        showStatisticsInternal();
+        navigateWithBack(this::showStatisticsInternal);
     }
 
     @FXML
     private void showParticipationFromNav() {
-        resetBackStack();
-        showParticipationInternal();
+        navigateWithBack(this::showParticipationInternal);
     }
 
     @FXML
@@ -170,8 +182,7 @@ public class MainShellController implements ShellNavigator {
     @FXML
     @Override
     public void showNotifications() {
-        resetBackStack();
-        showNotificationsInternal();
+        navigateWithBack(this::showNotificationsInternal);
     }
 
     @FXML
@@ -194,8 +205,12 @@ public class MainShellController implements ShellNavigator {
     @FXML
     @Override
     public void showGroups() {
-        resetBackStack();
-        showGroupsIndexInternal();
+        navigateWithBack(this::showGroupsIndexInternal);
+    }
+
+    @Override
+    public void showExploreGroups() {
+        navigateWithBack(this::showExploreGroupsInternal);
     }
 
     @Override
@@ -221,8 +236,7 @@ public class MainShellController implements ShellNavigator {
     @FXML
     @Override
     public void showTopicSearch() {
-        resetBackStack();
-        openTopicSearchInternal();
+        navigateWithBack(this::openTopicSearchInternal);
     }
 
     private void showDashboardInternal() {
@@ -266,6 +280,11 @@ public class MainShellController implements ShellNavigator {
 
     private void showGroupsIndexInternal() {
         showGroupsView(GroupController::index);
+        setActiveNav(groupsNavBtn);
+    }
+
+    private void showExploreGroupsInternal() {
+        showGroupsView(GroupController::explore);
         setActiveNav(groupsNavBtn);
     }
 
@@ -326,9 +345,13 @@ public class MainShellController implements ShellNavigator {
                 return () -> showGroupInternal(groupId);
             }
             if (groupController.isShowingCreate()) {
-                return this::showGroupsIndexInternal;
+                return groupController.isExploreMode()
+                        ? this::showExploreGroupsInternal
+                        : this::showGroupsIndexInternal;
             }
-            return null;
+            return groupController.isExploreMode()
+                    ? this::showExploreGroupsInternal
+                    : this::showGroupsIndexInternal;
         }
 
         if (topicController != null && topicController.getRootNode() != null
@@ -374,9 +397,7 @@ public class MainShellController implements ShellNavigator {
     }
 
     private void updateBackButton() {
-        boolean canGoBack = !backStack.isEmpty();
-        backNavBtn.setVisible(canGoBack);
-        backNavBtn.setManaged(canGoBack);
+        backNavBtn.setDisable(backStack.isEmpty());
     }
 
     private void wireDashboardController(Object controller) {

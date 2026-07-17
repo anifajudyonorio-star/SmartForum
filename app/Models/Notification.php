@@ -14,6 +14,7 @@ class Notification extends Model
         'Message',
         'Is_Read',
         'Post_ID',
+        'group_id',
         'parent_post_id',
         'reply_count',
         'quiz_id',
@@ -72,6 +73,11 @@ class Notification extends Model
     public function post()
     {
         return $this->belongsTo(Post::class, 'Post_ID');
+    }
+
+    public function group()
+    {
+        return $this->belongsTo(Group::class, 'group_id');
     }
 
     public function parentPost()

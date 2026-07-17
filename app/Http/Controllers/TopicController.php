@@ -153,24 +153,19 @@ class TopicController extends Controller
         $search = trim((string) $request->query('search', ''));
         $user = Auth::user();
 
-        $query = Topic::with(['user', 'group'])
-            ->withCount('posts');
+        $groupIds = $user->viewableGroupIds();
 
-        if ($user->isAdmin()) {
-            // Super admin can search all topics
-        } else {
-            $groupIds = $user->groups()->pluck('groups.id');
-
-            if ($groupIds->isEmpty()) {
-                return view('topics.search', [
-                    'topics' => collect(),
-                    'search' => $search,
-                    'recommendedTopics' => collect(),
-                ]);
-            }
-
-            $query->whereIn('Group_ID', $groupIds);
+        if ($groupIds->isEmpty()) {
+            return view('topics.search', [
+                'topics' => collect(),
+                'search' => $search,
+                'recommendedTopics' => collect(),
+            ]);
         }
+
+        $query = Topic::with(['user', 'group'])
+            ->withCount('posts')
+            ->whereIn('Group_ID', $groupIds);
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
@@ -188,11 +183,9 @@ class TopicController extends Controller
     public function index(MachineLearningService $mlService)
     {
         $user = Auth::user();
-        $groupIds = $user->groups()->pluck('groups.id');
-
         $topics = Topic::with(['user', 'group'])
             ->withCount('posts')
-            ->whereIn('Group_ID', $groupIds)
+            ->visibleToUser($user)
             ->latest()
             ->get();
 
@@ -203,7 +196,7 @@ class TopicController extends Controller
 
     private function loadRecommendedTopics(MachineLearningService $mlService, $user)
     {
-        $groupIds = $user->groups()->pluck('groups.id');
+        $groupIds = $user->viewableGroupIds();
 
         $recommendations = collect($mlService->getRecommendations($user->id))
             ->filter(fn ($item) => isset($item['id']))
@@ -211,22 +204,14 @@ class TopicController extends Controller
 
         $recommendedTopicIds = $recommendations->pluck('id')->map(fn ($id) => (int) $id)->all();
 
-        if ($recommendedTopicIds === []) {
+        if ($recommendedTopicIds === [] || $groupIds->isEmpty()) {
             return collect();
         }
 
-        $query = Topic::with(['user', 'group'])
-            ->whereIn('id', $recommendedTopicIds);
-
-        if (! $user->isAdmin()) {
-            if ($groupIds->isEmpty()) {
-                return collect();
-            }
-
-            $query->whereIn('Group_ID', $groupIds);
-        }
-
-        return $query->get()
+        return Topic::with(['user', 'group'])
+            ->whereIn('id', $recommendedTopicIds)
+            ->whereIn('Group_ID', $groupIds)
+            ->get()
             ->map(function ($topic) use ($recommendations) {
                 $match = $recommendations->firstWhere('id', (int) $topic->id);
                 $topic->recommendation_score = $match['score'] ?? 0;

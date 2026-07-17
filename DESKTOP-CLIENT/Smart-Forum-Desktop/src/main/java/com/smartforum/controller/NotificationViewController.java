@@ -44,7 +44,7 @@ public class NotificationViewController {
         if (ApiSupport.useApi()) {
             loadFromApi();
         } else {
-            loadPreviewData();
+            loadEmptyState();
         }
     }
 
@@ -81,31 +81,18 @@ public class NotificationViewController {
                 );
                 notificationsBox.getChildren().add(buildNotificationRow(item));
             }
-        }), () -> Platform.runLater(this::loadPreviewData))).start();
+        }), () -> Platform.runLater(this::loadEmptyState))).start();
     }
 
-    private void loadPreviewData() {
-        unreadCountLabel.setText("1 unread");
-        updateUnreadBadge(1);
+    private void loadEmptyState() {
+        unreadCountLabel.setText("0 unread");
+        updateUnreadBadge(0);
         notificationsBox.getChildren().clear();
-        notificationsBox.getChildren().add(buildNotificationRow(new NotificationItem(
-                1,
-                "New reply from James",
-                "James replied to your message in Introduction to Algorithms.",
-                "reply",
-                false,
-                "2 minutes ago",
-                1
-        )));
-        notificationsBox.getChildren().add(buildNotificationRow(new NotificationItem(
-                2,
-                "New post in Weekly Announcements",
-                "Dr. Smith posted a new message.",
-                "PostCreated",
-                true,
-                "1 hour ago",
-                2
-        )));
+        VBox empty = new VBox(8);
+        empty.setAlignment(Pos.CENTER);
+        empty.getStyleClass().add("groups-empty-state");
+        empty.getChildren().addAll(new Label("🔕"), new Label("No notifications yet."));
+        notificationsBox.getChildren().add(empty);
     }
 
     private HBox buildNotificationRow(NotificationItem item) {

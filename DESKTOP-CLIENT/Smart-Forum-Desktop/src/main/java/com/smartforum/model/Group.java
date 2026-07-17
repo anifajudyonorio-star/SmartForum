@@ -10,6 +10,7 @@ public class Group {
     private int topicsCount;
     private int membersCount;
     private String myRole;
+    private String joinStatus = "none";
 
     public Group(int id, String name, String description, String status, int createdBy,
                  String creatorName, int topicsCount, int membersCount, String myRole) {
@@ -78,5 +79,13 @@ public class Group {
 
     public void setMyRole(String myRole) {
         this.myRole = myRole;
+    }
+
+    public String getJoinStatus() {
+        return joinStatus;
+    }
+
+    public void setJoinStatus(String joinStatus) {
+        this.joinStatus = joinStatus == null ? "none" : joinStatus;
     }
 }

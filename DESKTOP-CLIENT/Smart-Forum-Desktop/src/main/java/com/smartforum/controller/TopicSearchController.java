@@ -79,7 +79,7 @@ public class TopicSearchController {
     @FXML
     public void onExploreGroups(ActionEvent event) {
         if (navigator != null) {
-            navigator.showGroups();
+            navigator.showExploreGroups();
         }
     }
 
@@ -121,7 +121,7 @@ public class TopicSearchController {
         resultsGrid.getChildren().clear();
         resultsSummaryLabel.setVisible(false);
         resultsSummaryLabel.setManaged(false);
-        emptyStateLabel.setText("Ask an admin to assign you to a group before searching its topics.");
+        emptyStateLabel.setText("Join a group to start searching its topics.");
         clearSearchBtn.setVisible(false);
         clearSearchBtn.setManaged(false);
         exploreGroupsBtn.setVisible(true);

@@ -4,11 +4,18 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
+import com.smartforum.model.GroupAdminSummaryRow;
 import com.smartforum.service.AppSession;
 import com.smartforum.util.ApiSupport;
+import com.smartforum.util.GroupAdminDashboardSupport;
 import javafx.application.Platform;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.Button;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 public class StudentDashboardController {
@@ -18,6 +25,15 @@ public class StudentDashboardController {
     @FXML private Label myTopicsLabel;
     @FXML private Label myRepliesLabel;
     @FXML private Label groupsLabel;
+    @FXML private VBox groupAdminCard;
+    @FXML private HBox groupAdminTitleBox;
+    @FXML private TableView<GroupAdminSummaryRow> groupAdminTable;
+    @FXML private TableColumn<GroupAdminSummaryRow, String> groupAdminGroupColumn;
+    @FXML private TableColumn<GroupAdminSummaryRow, Number> groupAdminMembersColumn;
+    @FXML private TableColumn<GroupAdminSummaryRow, Number> groupAdminTopicsColumn;
+    @FXML private TableColumn<GroupAdminSummaryRow, Number> groupAdminPostsColumn;
+    @FXML private TableColumn<GroupAdminSummaryRow, Void> groupAdminActionColumn;
+    @FXML private Button viewStatisticsBtn;
     @FXML private VBox recentTopicsBox;
     @FXML private VBox latestPostsBox;
 
@@ -29,7 +45,23 @@ public class StudentDashboardController {
 
     @FXML
     private void onTakeQuiz() {
-        if (navigator != null) navigator.showQuizzes();
+        if (navigator != null) {
+            navigator.showQuizzes();
+        }
+    }
+
+    @FXML
+    private void onExploreGroups() {
+        if (navigator != null) {
+            navigator.showExploreGroups();
+        }
+    }
+
+    @FXML
+    private void onViewStatistics() {
+        if (navigator != null) {
+            navigator.showStatisticsOverview();
+        }
     }
 
     @FXML
@@ -38,10 +70,26 @@ public class StudentDashboardController {
             welcomeTitleLabel.setText("Welcome back, " + AppSession.getInstance().getCurrentUser().getName() + "!");
         }
 
+        GroupAdminDashboardSupport.configureHeader(groupAdminTitleBox);
+        GroupAdminDashboardSupport.configureViewStatisticsButton(viewStatisticsBtn);
+        GroupAdminDashboardSupport.configureTable(
+                groupAdminTable,
+                groupAdminGroupColumn,
+                groupAdminMembersColumn,
+                groupAdminTopicsColumn,
+                groupAdminPostsColumn,
+                groupAdminActionColumn,
+                groupId -> {
+                    if (navigator != null) {
+                        navigator.showGroupStatistics(groupId);
+                    }
+                }
+        );
+
         if (ApiSupport.useApi()) {
             loadFromApi();
         } else {
-            loadPreviewData();
+            loadEmptyState();
         }
     }
 
@@ -49,15 +97,17 @@ public class StudentDashboardController {
         new Thread(() -> {
             ApiClient.getDashboard().ifPresentOrElse(json -> {
                 if (!"student".equals(json.get("role").getAsString())) {
-                    Platform.runLater(this::loadPreviewData);
+                    Platform.runLater(this::loadEmptyState);
                     return;
                 }
                 JsonObject stats = json.getAsJsonObject("stats");
+                ObservableList<GroupAdminSummaryRow> adminRows = GroupAdminDashboardSupport.rowsFromApi(json);
                 Platform.runLater(() -> {
                     myPostsLabel.setText(String.valueOf(stats.get("my_posts").getAsInt()));
                     myTopicsLabel.setText(String.valueOf(stats.get("my_topics").getAsInt()));
                     myRepliesLabel.setText(String.valueOf(stats.get("my_replies").getAsInt()));
                     groupsLabel.setText(String.valueOf(stats.get("groups").getAsInt()));
+                    populateGroupAdminCard(adminRows);
                     recentTopicsBox.getChildren().clear();
                     latestPostsBox.getChildren().clear();
 
@@ -80,30 +130,37 @@ public class StudentDashboardController {
                         );
                     }
                 });
-            }, () -> Platform.runLater(this::loadPreviewData));
+            }, () -> Platform.runLater(this::loadEmptyState));
         }).start();
     }
 
-    private void loadPreviewData() {
-        myPostsLabel.setText("12");
-        myTopicsLabel.setText("3");
-        myRepliesLabel.setText("8");
-        groupsLabel.setText("2");
+    private void loadEmptyState() {
+        myPostsLabel.setText("0");
+        myTopicsLabel.setText("0");
+        myRepliesLabel.setText("0");
+        groupsLabel.setText("0");
+        populateGroupAdminCard(GroupAdminDashboardSupport.rowsFromApi(null));
+        recentTopicsBox.getChildren().clear();
+        latestPostsBox.getChildren().clear();
+        recentTopicsBox.getChildren().add(emptyLabel("No recent topics."));
+        latestPostsBox.getChildren().add(emptyLabel("No recent posts."));
+    }
 
-        addTopicRow("Introduction to Algorithms", "CS Year 2", "2 hours ago");
-        addTopicRow("Database Normalization Help", "CS Year 2", "Yesterday");
-        addTopicRow("Project Team Formation", "Software Engineering", "3 days ago");
+    private void populateGroupAdminCard(ObservableList<GroupAdminSummaryRow> rows) {
+        GroupAdminDashboardSupport.populateTable(groupAdminTable, groupAdminCard, rows);
+    }
 
-        addPostRow("Thanks for the explanation!", "1 hour ago");
-        addPostRow("Can we meet tomorrow?", "4 hours ago");
-        addPostRow("I uploaded my notes.", "Yesterday");
+    private Label emptyLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("list-item-meta");
+        return label;
     }
 
     private void addTopicRow(String title, String group, String time) {
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("list-item-title");
 
-        Label metaLabel = new Label(group + " ΓÇó " + time);
+        Label metaLabel = new Label(group + " • " + time);
         metaLabel.getStyleClass().add("list-item-meta");
 
         VBox row = new VBox(2, titleLabel, metaLabel);

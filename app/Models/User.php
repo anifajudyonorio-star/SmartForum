@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\GroupJoinService;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -97,16 +98,55 @@ class User extends Authenticatable
 
     public function canViewGroup(Group $group): bool
     {
-        if ($this->isAdmin()) {
-            return true;
-        }
-
         if (! $this->isMemberOf($group)) {
             return false;
         }
 
         // Blocked members cannot access the group.
         return $group->memberStatus($this->id) !== GroupMember::STATUS_BLOCKED;
+    }
+
+    /** Groups the user may browse (approved member, not blocked). */
+    public function viewableGroupsQuery()
+    {
+        return $this->groups()
+            ->wherePivotIn('Member_Status', [
+                GroupMember::STATUS_ACTIVE,
+                GroupMember::STATUS_SUSPENDED,
+            ]);
+    }
+
+    public function viewableGroupIds()
+    {
+        return $this->viewableGroupsQuery()->pluck('groups.id');
+    }
+
+    public function canRequestJoinGroup(Group $group): bool
+    {
+        if (! $this->canJoinGroups()) {
+            return false;
+        }
+
+        $status = $group->memberStatus($this->id);
+
+        if ($status === null) {
+            return true;
+        }
+
+        if ($status === GroupMember::STATUS_PENDING) {
+            return false;
+        }
+
+        if ($status === GroupMember::STATUS_BLOCKED) {
+            return false;
+        }
+
+        return false;
+    }
+
+    public function joinRequestStatus(Group $group): string
+    {
+        return GroupJoinService::joinStatusFor($this, $group);
     }
 
     public function isMemberOf(Group $group): bool
@@ -126,17 +166,23 @@ class User extends Authenticatable
 
     public function isGroupAdmin(Group $group): bool
     {
-        return $this->isAdmin() || $group->isGroupAdmin($this->id);
+        return $this->isAdminOfGroup($group);
+    }
+
+    /** Group-level admin via membership pivot (not system admin). */
+    public function isAdminOfGroup(Group $group): bool
+    {
+        return $group->isGroupAdmin($this->id);
+    }
+
+    public function canManageGroup(Group $group): bool
+    {
+        return $this->isAdmin() || $this->isAdminOfGroup($group);
     }
 
     public function isGroupLecturer(Group $group): bool
     {
         return $group->isGroupLecturer($this->id);
-    }
-
-    public function canManageGroup(Group $group): bool
-    {
-        return $this->isGroupAdmin($group);
     }
 
     public function administeredGroups()

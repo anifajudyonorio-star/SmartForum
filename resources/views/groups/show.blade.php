@@ -203,7 +203,7 @@
 
     @if(! $isMember && ! ($canManage ?? false))
         <div class="alert alert-info small fly-in">
-            You are not a member of this group. Ask a group admin to add you.
+            You are not a member of this group. Use <a href="{{ route('groups.explore') }}">Explore Groups</a> to request access.
         </div>
     @elseif($isMember && ! $canParticipate)
         <div class="alert alert-warning small fly-in">
@@ -260,6 +260,45 @@
             </h6>
         </div>
         <div class="card-body">
+            @if(($canManage ?? false) && ($pendingJoinRequests ?? collect())->isNotEmpty())
+                <div class="mb-4" id="join-requests">
+                    <h6 class="small fw-semibold mb-2">
+                        <i class="bi bi-hourglass-split me-1 text-warning"></i> Pending Join Requests
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th style="min-width: 180px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($pendingJoinRequests as $requester)
+                                    <tr>
+                                        <td>{{ $requester->name }}</td>
+                                        <td>{{ $requester->email }}</td>
+                                        <td>
+                                            <div class="d-flex gap-1 flex-wrap">
+                                                <form action="{{ route('groups.join.approve', [$group, $requester]) }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                                </form>
+                                                <form action="{{ route('groups.join.reject', [$group, $requester]) }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">Decline</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+
             @if($canManage ?? false)
                 <form action="{{ route('groups.members.add', $group) }}" method="POST" class="row g-2 align-items-end mb-3">
                     @csrf

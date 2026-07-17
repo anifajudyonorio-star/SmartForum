@@ -2,6 +2,7 @@ package com.smartforum.controller;
 
 public interface ShellNavigator {
     void showGroups();
+    void showExploreGroups();
     void showGroup(int groupId);
     void showCreateGroup();
     void showCreateTopic(int groupId);

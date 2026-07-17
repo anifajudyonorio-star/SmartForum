@@ -42,7 +42,7 @@ public class ParticipationViewController {
         if (ApiSupport.useApi()) {
             loadParticipation(null);
         } else {
-            loadPreviewData();
+            loadEmptyState();
         }
     }
 
@@ -85,7 +85,7 @@ public class ParticipationViewController {
                         progress
                 )));
             }
-        }), () -> Platform.runLater(this::loadPreviewData))).start();
+        }), () -> Platform.runLater(this::loadEmptyState))).start();
     }
 
     private void populateGroupFilter(JsonObject json) {
@@ -170,15 +170,14 @@ public class ParticipationViewController {
         return new VBox(2, valueLabel, textLabel);
     }
 
-    private void loadPreviewData() {
+    private void loadEmptyState() {
         headerSubtitleLabel.setText("Track student engagement across topics, posts, and replies.");
-        topParticipantLabel.setText("⭐ Top: Anifa Onorio");
+        topParticipantLabel.setText("");
         groupFilterCombo.setVisible(false);
         groupFilterCombo.setManaged(false);
         participantsBox.getChildren().clear();
-        participantsBox.getChildren().add(buildCard(new ParticipationCard(
-                "Anifa Onorio", 2, 14, 9, 25, "🥈 Silver", 100)));
-        participantsBox.getChildren().add(buildCard(new ParticipationCard(
-                "James Okello", 1, 10, 6, 17, "⭐ Beginner", 68)));
+        Label empty = new Label("No participation data available.");
+        empty.getStyleClass().add("dashboard-subtitle");
+        participantsBox.getChildren().add(empty);
     }
 }

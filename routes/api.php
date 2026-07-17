@@ -36,6 +36,10 @@ Route::middleware('auth:sanctum')->get('/user', function (\Illuminate\Http\Reque
             'Lname' => $user->Lname,
             'email' => $user->email,
             'role' => $user->role,
+            'can_view_statistics' => $user->canViewStatistics(),
+            'can_view_participation' => $user->canViewParticipation(),
+            'administers_groups' => $user->administeredGroups()->exists(),
+            'administered_groups_count' => $user->administeredGroups()->count(),
         ],
     ]);
 });
@@ -45,6 +49,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/statistics', [StatisticsApiController::class, 'index']);
     Route::get('/statistics/groups/{group}', [StatisticsApiController::class, 'show']);
     Route::get('/participation', [ParticipationApiController::class, 'index']);
+
+    Route::get('/groups/explore', [GroupApiController::class, 'explore']);
+    Route::post('/groups/{group}/join', [GroupApiController::class, 'requestJoin']);
+    Route::post('/groups/{group}/join-requests/{user}/approve', [GroupApiController::class, 'approveJoinRequest']);
+    Route::post('/groups/{group}/join-requests/{user}/reject', [GroupApiController::class, 'rejectJoinRequest']);
 
     Route::get('/groups', [GroupApiController::class, 'index']);
     Route::post('/groups', [GroupApiController::class, 'store']);

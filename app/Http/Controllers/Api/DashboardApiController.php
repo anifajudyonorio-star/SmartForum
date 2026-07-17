@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\FormatsUserPermissions;
 use App\Http\Controllers\Controller;
 use App\Models\Group;
 use App\Models\Post;
 use App\Models\Topic;
 use App\Models\User;
+use App\Services\GroupStatisticsService;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardApiController extends Controller
 {
+    use FormatsUserPermissions;
+
     public function show()
     {
         $user = Auth::user();
@@ -18,6 +22,7 @@ class DashboardApiController extends Controller
         if ($user->isAdmin()) {
             return response()->json([
                 'role' => 'admin',
+                'permissions' => $this->userPermissions($user),
                 'stats' => $this->adminStats(),
             ]);
         }
@@ -25,20 +30,47 @@ class DashboardApiController extends Controller
         if ($user->isLecturer()) {
             return response()->json([
                 'role' => 'lecturer',
+                'permissions' => $this->userPermissions($user),
                 'stats' => $this->lecturerStats(),
+                'group_admin_stats' => $this->groupAdminStats($user),
             ]);
         }
 
         return response()->json([
             'role' => 'student',
+            'permissions' => $this->userPermissions($user),
             'stats' => $this->studentStats(),
+            'group_admin_stats' => $this->groupAdminStats($user),
         ]);
+    }
+
+    private function groupAdminStats(User $user): array
+    {
+        if ($user->isAdmin()) {
+            return [];
+        }
+
+        $groupIds = $user->administeredGroups()->pluck('groups.id');
+        if ($groupIds->isEmpty()) {
+            return [];
+        }
+
+        return GroupStatisticsService::summaries($groupIds)
+            ->map(fn ($summary) => [
+                'group_id' => $summary->group->id,
+                'group_name' => $summary->group->Group_Name,
+                'members_count' => $summary->members_count,
+                'topics_count' => $summary->topics_count,
+                'posts_count' => $summary->posts_count,
+            ])
+            ->values()
+            ->all();
     }
 
     private function studentStats(): array
     {
         $user = Auth::user();
-        $groupIds = $user->groups()->pluck('groups.id');
+        $groupIds = $user->viewableGroupIds();
 
         return [
             'my_posts' => Post::where('Created_By', $user->id)->count(),
@@ -77,7 +109,7 @@ class DashboardApiController extends Controller
     private function lecturerStats(): array
     {
         $user = Auth::user();
-        $lecturerGroupIds = $user->groups()->pluck('groups.id');
+        $lecturerGroupIds = $user->viewableGroupIds();
 
         $participants = User::where(function ($query) {
             $query->whereNull('role')->orWhere('role', 'student');
@@ -108,7 +140,7 @@ class DashboardApiController extends Controller
             ->all();
 
         return [
-            'my_groups' => $user->groups()->count(),
+            'my_groups' => $user->viewableGroupsQuery()->count(),
             'my_topics' => Topic::where('Created_By', $user->id)->count(),
             'participants' => $participants,
         ];
