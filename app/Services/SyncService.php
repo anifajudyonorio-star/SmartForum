@@ -45,7 +45,7 @@ class SyncService
     {
         $request->validate([
             'actions'               => 'required|array',
-            'actions.*.action_type' => 'required|string',
+            'actions.*.action_type' => 'required|string|in:create_post,create_topic,submit_quiz',
             'actions.*.payload'     => 'required|array',
         ]);
 
@@ -168,7 +168,15 @@ class SyncService
     {
         $p = $action->payload;
 
-        $topic = Topic::find($p['topic_id']);
+        $topicId  = (int) ($p['topic_id'] ?? 0);
+        $content  = strip_tags((string) ($p['content'] ?? ''));
+        $parentId = isset($p['parent_post_id']) ? (int) $p['parent_post_id'] : null;
+
+        if (! $topicId || ! $content) {
+            throw new ConflictException('Invalid post payload.');
+        }
+
+        $topic = Topic::find($topicId);
         if (! $topic) {
             throw new ConflictException('The topic no longer exists.');
         }
@@ -182,10 +190,10 @@ class SyncService
         }
 
         Post::create([
-            'Topic_ID'       => $p['topic_id'],
-            'Parent_Post_ID' => $p['parent_post_id'] ?? null,
+            'Topic_ID'       => $topicId,
+            'Parent_Post_ID' => $parentId,
             'Created_By'     => $action->user_id,
-            'Post_Content'   => $p['content'],
+            'Post_Content'   => $content,
         ]);
     }
 
@@ -193,12 +201,20 @@ class SyncService
     {
         $p = $action->payload;
 
-        $group = Group::find($p['group_id']);
+        $groupId     = (int) ($p['group_id'] ?? 0);
+        $title       = strip_tags((string) ($p['title'] ?? ''));
+        $description = isset($p['description']) ? strip_tags((string) $p['description']) : null;
+
+        if (! $groupId || ! $title) {
+            throw new ConflictException('Invalid topic payload.');
+        }
+
+        $group = Group::find($groupId);
         if (! $group) {
             throw new ConflictException('The group no longer exists.');
         }
 
-        $isMember = GroupMember::where('Group_ID', $p['group_id'])
+        $isMember = GroupMember::where('Group_ID', $groupId)
             ->where('User_ID', $action->user_id)
             ->exists();
 
@@ -207,9 +223,9 @@ class SyncService
         }
 
         Topic::create([
-            'Title'             => $p['title'],
-            'Topic_Description' => $p['description'] ?? null,
-            'Group_ID'          => $p['group_id'],
+            'Title'             => $title,
+            'Topic_Description' => $description,
+            'Group_ID'          => $groupId,
             'Created_By'        => $action->user_id,
         ]);
     }
@@ -238,11 +254,18 @@ class SyncService
     {
         $p = $action->payload;
 
-        if (QuizResult::where('quiz_id', $p['quiz_id'])->where('user_id', $action->user_id)->exists()) {
+        $quizId  = (int) ($p['quiz_id'] ?? 0);
+        $answers = array_map('intval', (array) ($p['answers'] ?? []));
+
+        if (! $quizId) {
+            throw new ConflictException('Invalid quiz payload.');
+        }
+
+        if (QuizResult::where('quiz_id', $quizId)->where('user_id', $action->user_id)->exists()) {
             throw new ConflictException('You have already submitted this quiz.');
         }
 
-        $quiz = Quiz::with('questions.options')->find($p['quiz_id']);
+        $quiz = Quiz::with('questions.options')->find($quizId);
         if (! $quiz) {
             throw new ConflictException('This quiz no longer exists.');
         }
@@ -256,8 +279,7 @@ class SyncService
             throw new ConflictException("Quiz \"{$quiz->title}\" has already closed.");
         }
 
-        $score   = 0;
-        $answers = $p['answers'] ?? [];
+        $score = 0;
 
         foreach ($quiz->questions as $question) {
             if (! in_array($question->question_type, ['Multiple Choice', 'True/False'])) {
@@ -265,7 +287,7 @@ class SyncService
             }
             $selected = $answers[$question->id] ?? null;
             $correct  = $question->options->firstWhere('is_correct', true);
-            if ($correct && (int) $selected === (int) $correct->id) {
+            if ($correct && $selected === (int) $correct->id) {
                 $score += $question->marks;
             }
         }

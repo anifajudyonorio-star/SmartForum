@@ -268,10 +268,8 @@ export function buildMessageHtml(post) {
                 exportArea?.appendChild(bubble);
                 scrollToBottom();
 
-                if (typeof queueAction === 'function') {
-                    const pendingId = queueAction('create_post', { topic_id: topicId, content, parent_post_id: parentId }, bubble);
-                    bubble.dataset.pendingId = pendingId;
-                }
+                const pendingId = window.queueAction('create_post', { topic_id: topicId, content, parent_post_id: parentId }, bubble);
+                bubble.dataset.pendingId = pendingId;
 
                 input.value = '';
                 autoGrow(input);

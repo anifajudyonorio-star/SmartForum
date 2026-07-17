@@ -536,6 +536,14 @@ public class TopicController {
         Label time = new Label(formatTime(post.getCreatedAt()));
         time.getStyleClass().add("wa-bubble-time");
         meta.getChildren().add(time);
+
+        if (mine) {
+            boolean pending = post.getId() >= 1000 && !com.smartforum.util.NetworkMonitor.isOnline();
+            Label tick = new Label(pending ? "\u2713" : "\u2713\u2713");
+            tick.getStyleClass().add(pending ? "msg-tick-pending" : "msg-tick-sent");
+            meta.getChildren().add(tick);
+        }
+
         bubble.getChildren().add(meta);
 
         StackPane bubbleStack = new StackPane();

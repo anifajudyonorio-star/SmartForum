@@ -1,11 +1,14 @@
 package com.smartforum.service;
 
+import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
 import com.smartforum.model.ForumUser;
 import com.smartforum.model.GroupMember;
 import com.smartforum.model.Topic;
 import com.smartforum.model.TopicSearchResult;
 import com.smartforum.util.ApiSupport;
+import com.smartforum.util.NetworkMonitor;
+import com.smartforum.util.OfflineQueue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -73,14 +76,18 @@ public class TopicService {
 
     public Topic createTopic(int groupId, String title, String description) {
         if (ApiSupport.useApi()) {
-            if (!ApiClient.createTopic(groupId, title, description)) {
-                throw new IllegalStateException("Could not create topic via API.");
+            if (ApiClient.createTopic(groupId, title, description)) {
+                syncTopicsForGroup(groupId);
+                return topicsByGroup.getOrDefault(groupId, List.of()).stream()
+                        .filter(topic -> title.equals(topic.getTitle()))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalStateException("Topic created but not returned by API."));
             }
-            syncTopicsForGroup(groupId);
-            return topicsByGroup.getOrDefault(groupId, List.of()).stream()
-                    .filter(topic -> title.equals(topic.getTitle()))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("Topic created but not returned by API."));
+            if (!NetworkMonitor.isOnline()) {
+                queueOfflineTopic(groupId, title, description);
+                return buildLocalPendingTopic(groupId, title, description);
+            }
+            throw new IllegalStateException("Could not create topic via API.");
         }
 
         ForumUser creator = AppSession.getInstance().getCurrentUser();
@@ -177,6 +184,25 @@ public class TopicService {
         return groups().getGroupsForCurrentUser().stream()
                 .map(group -> group.getId())
                 .collect(Collectors.toList());
+    }
+
+    private void queueOfflineTopic(int groupId, String title, String description) {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("group_id", groupId);
+        payload.addProperty("title", title);
+        if (description != null) payload.addProperty("description", description);
+        OfflineQueue.add("create_topic", payload);
+        SyncStatusService.getInstance().refreshNow();
+    }
+
+    private Topic buildLocalPendingTopic(int groupId, String title, String description) {
+        ForumUser creator = AppSession.getInstance().getCurrentUser();
+        int id = nextTopicId++;
+        Topic topic = new Topic(id, groupId, title, description, creator.getId(), creator.getName());
+        topicsByGroup.computeIfAbsent(groupId, key -> new ArrayList<>()).add(0, topic);
+        topicsById.put(id, topic);
+        PostService.getInstance().initTopicPosts(id);
+        return topic;
     }
 
     private boolean containsIgnoreCase(String value, String needle) {

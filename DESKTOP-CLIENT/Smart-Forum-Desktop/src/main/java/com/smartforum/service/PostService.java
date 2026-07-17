@@ -247,6 +247,7 @@ public class PostService {
             payload.addProperty("parent_post_id", parentPostId);
         }
         OfflineQueue.add("create_post", payload);
+        SyncStatusService.getInstance().refreshNow();
     }
 
     private Post buildLocalPendingPost(int topicId, String content, Integer parentPostId) {

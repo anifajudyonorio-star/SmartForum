@@ -49,7 +49,9 @@
             <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="top-bar">
                <Button fx:id="backNavBtn" mnemonicParsing="false" onAction="#onBack" styleClass="top-bar-back" />
                <Label fx:id="pageTitleLabel" styleClass="top-bar-title" text="Smart Discussion" />
-               <Label styleClass="top-bar-online-badge" text="● Online" />
+               <Label fx:id="syncStatusLabel" styleClass="top-bar-online-badge" text="● Online" />
+               <Label fx:id="pendingLabel" styleClass="top-bar-pending" text="" />
+               <Button fx:id="networkToggleBtn" mnemonicParsing="false" onAction="#onToggleNetwork" styleClass="top-bar-sync-btn" text="● Online" />
                <HBox HBox.hgrow="ALWAYS" />
                <Label fx:id="topBarUserAvatar" styleClass="top-bar-user-avatar" text="S" />
                <Label fx:id="topBarUserLabel" styleClass="top-bar-user" text="Super Admin" />
@@ -62,6 +64,9 @@
                </padding>
             </StackPane>
          </center>
+         <bottom>
+            <Label fx:id="offlineBanner" managed="false" maxWidth="1.7976931348623157E308" styleClass="offline-banner" text="" visible="false" BorderPane.alignment="CENTER" />
+         </bottom>
       </BorderPane>
    </center>
 </BorderPane>

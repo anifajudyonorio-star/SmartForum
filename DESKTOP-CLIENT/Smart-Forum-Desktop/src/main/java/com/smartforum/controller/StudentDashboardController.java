@@ -6,11 +6,13 @@ import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
 import com.smartforum.model.GroupAdminSummaryRow;
 import com.smartforum.service.AppSession;
+import com.smartforum.service.SyncStatusService;
 import com.smartforum.util.ApiSupport;
 import com.smartforum.util.GroupAdminDashboardSupport;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -36,6 +38,11 @@ public class StudentDashboardController {
     @FXML private Button viewStatisticsBtn;
     @FXML private VBox recentTopicsBox;
     @FXML private VBox latestPostsBox;
+
+    @FXML private Label syncStatusCardLabel;
+    @FXML private Label pendingCountCardLabel;
+    @FXML private Label lastSyncCardLabel;
+    @FXML private Button syncNowCardBtn;
 
     private ShellNavigator navigator;
 
@@ -86,11 +93,30 @@ public class StudentDashboardController {
                 }
         );
 
+        SyncStatusService sync = SyncStatusService.getInstance();
+        if (syncStatusCardLabel != null) syncStatusCardLabel.textProperty().bind(sync.statusTextProperty());
+        if (pendingCountCardLabel != null) pendingCountCardLabel.textProperty().bind(sync.pendingCountProperty().asString());
+        if (lastSyncCardLabel != null) lastSyncCardLabel.textProperty().bind(sync.lastSyncTextProperty());
+
         if (ApiSupport.useApi()) {
             loadFromApi();
         } else {
             loadEmptyState();
         }
+    }
+
+    @FXML
+    private void onSyncNow() {
+        if (syncNowCardBtn != null) {
+            syncNowCardBtn.setDisable(true);
+            syncNowCardBtn.setText("Syncing…");
+        }
+        SyncStatusService.getInstance().syncNow(() -> {
+            if (syncNowCardBtn != null) {
+                syncNowCardBtn.setDisable(false);
+                syncNowCardBtn.setText("🔄  Sync Now");
+            }
+        });
     }
 
     private void loadFromApi() {

@@ -1,6 +1,7 @@
 package com.smartforum.controller;
 
 import com.smartforum.service.AppSession;
+import com.smartforum.service.SyncStatusService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -41,6 +42,10 @@ public class MainShellController implements ShellNavigator {
     @FXML private Button participationNavBtn;
     @FXML private Button quizNavBtn;
     @FXML private Label topBarUserAvatar;
+    @FXML private Label syncStatusLabel;
+    @FXML private Label pendingLabel;
+    @FXML private Button networkToggleBtn;
+    @FXML private Label offlineBanner;
 
     private GroupController groupController;
     private TopicController topicController;
@@ -67,7 +72,53 @@ public class MainShellController implements ShellNavigator {
         topBarUserAvatar.setText(user.getInitials());
         pageTitleLabel.setText(APP_TITLE);
         updateBackButton();
+
+        SyncStatusService sync = SyncStatusService.getInstance();
+        syncStatusLabel.textProperty().bind(sync.statusTextProperty());
+        pendingLabel.textProperty().bind(
+            sync.pendingCountProperty().asString().map(n -> n.equals("0") ? "" : n + " queued")
+        );
+        sync.setBannerCallback(this::showBanner);
+        sync.start();
+        networkToggleBtn.textProperty().bind(
+            sync.statusTextProperty().map(s -> s.contains("Offline") ? "● Offline" : "● Online")
+        );
+
         showDashboard();
+    }
+
+    private void showBanner(String message, String type) {
+        offlineBanner.setText(message);
+        offlineBanner.getStyleClass().removeAll("offline-banner-warning", "offline-banner-success", "offline-banner-danger", "offline-banner-info");
+        offlineBanner.getStyleClass().add("offline-banner-" + type);
+        offlineBanner.setVisible(true);
+        offlineBanner.setManaged(true);
+        if (!"warning".equals(type)) {
+            new Thread(() -> {
+                try { Thread.sleep("danger".equals(type) ? 6000 : 3000); } catch (InterruptedException ignored) {}
+                javafx.application.Platform.runLater(() -> {
+                    offlineBanner.setVisible(false);
+                    offlineBanner.setManaged(false);
+                });
+            }).start();
+        }
+    }
+
+    @FXML
+    private void onToggleNetwork() {
+        SyncStatusService sync = SyncStatusService.getInstance();
+        boolean forcedOffline = sync.isForcedOffline();
+        sync.setForcedOffline(!forcedOffline);
+        if (!forcedOffline) {
+            // going forced offline
+            networkToggleBtn.getStyleClass().add("top-bar-sync-btn-offline");
+            showBanner("You're offline. Actions will be saved and synced when you reconnect.", "warning");
+        } else {
+            // going back online
+            networkToggleBtn.getStyleClass().remove("top-bar-sync-btn-offline");
+            showBanner("Reconnected. Syncing\u2026", "info");
+            sync.syncNow(null);
+        }
     }
 
     private void configureSidebarForRole() {
