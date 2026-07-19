@@ -69,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/topics/{topic}', [TopicApiController::class, 'destroy']);
     Route::get('/groups/{group}/topics', [TopicApiController::class, 'forGroup']);
     Route::post('/groups/{group}/topics', [TopicApiController::class, 'store']);
+    Route::post('/topics/{topic}/view', [TopicApiController::class, 'view']);
 
     Route::post('/topics/{topic}/posts', [PostApiController::class, 'store']);
     Route::put('/posts/{post}', [PostApiController::class, 'update']);
