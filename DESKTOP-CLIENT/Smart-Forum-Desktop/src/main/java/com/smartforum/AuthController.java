@@ -2,6 +2,8 @@ package com.smartforum;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
@@ -9,8 +11,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
+import javafx.stage.Stage;
 
 import java.awt.Desktop;
 import java.net.URI;
@@ -27,6 +28,7 @@ public class AuthController {
     @FXML private PasswordField loginPassword;
     @FXML private TextField loginPasswordVisible;
     @FXML private Button loginEyeBtn;
+    @FXML private CheckBox rememberMe;
 
     // Register fields
     @FXML private TextField regFname, regLname, regEmail;
@@ -44,6 +46,13 @@ public class AuthController {
     public void initialize() {
         setGoogleButtonGraphic(googleSignInBtn, "Continue with Google");
         setGoogleButtonGraphic(googleRegisterBtn, "Continue with Google");
+        // Restore remembered email if saved
+        String saved = java.util.prefs.Preferences
+            .userNodeForPackage(AuthController.class).get("remembered_email", "");
+        if (!saved.isEmpty()) {
+            loginEmail.setText(saved);
+            rememberMe.setSelected(true);
+        }
     }
 
     private void setGoogleButtonGraphic(Button btn, String label) {
@@ -171,6 +180,14 @@ public class AuthController {
                 if (response.isSuccess()) {
                     try {
                         var user = response.body().getAsJsonObject("user");
+                        // Save or clear remembered email
+                        java.util.prefs.Preferences prefs = java.util.prefs.Preferences
+                            .userNodeForPackage(AuthController.class);
+                        if (rememberMe.isSelected()) {
+                            prefs.put("remembered_email", email);
+                        } else {
+                            prefs.remove("remembered_email");
+                        }
                         UserSession.getInstance().setUser(
                             user.get("id").getAsInt(),
                             user.get("Fname").getAsString(),
@@ -179,8 +196,7 @@ public class AuthController {
                             user.get("role").getAsString(),
                             response.body().get("token").getAsString()
                         );
-                        showSuccess("Welcome back, " + UserSession.getInstance().getFname() + "!");
-                        // TODO: navigate to dashboard
+                        navigateToChat();
                     } catch (Exception e) {
                         showError("Login successful but failed to load user data.");
                     }
@@ -239,8 +255,7 @@ public class AuthController {
                     params.get("role"),
                     params.get("token")
                 );
-                showSuccess("Welcome, " + UserSession.getInstance().getFname() + "!");
-                // TODO: navigate to dashboard
+                navigateToChat();
             } catch (Exception e) {
                 showError("Google sign in failed: " + e.getMessage());
             }
@@ -250,6 +265,27 @@ public class AuthController {
             showInfo("Browser opened. Complete sign in with Google...");
         } catch (Exception e) {
             showError("Could not open browser. Make sure the Laravel server is running.");
+        }
+    }
+
+    private void navigateToChat() {
+        try {
+            // Bridge UserSession -> SessionManager so teammate's code works
+            UserSession us = UserSession.getInstance();
+            com.smartforum.util.SessionManager.getInstance().setSession(
+                us.getToken(), us.getId(), us.getFname() + " " + us.getLname()
+            );
+
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/smartforum/chat.fxml"));
+            Scene scene = new Scene(loader.load());
+            Stage stage = (Stage) signInTab.getScene().getWindow();
+            stage.setScene(scene);
+            stage.setResizable(true);
+            stage.setMinWidth(700);
+            stage.setMinHeight(500);
+            stage.setTitle("Smart Discussion — " + UserSession.getInstance().getFname());
+        } catch (Exception e) {
+            showError("Failed to load chat: " + e.getMessage());
         }
     }
 

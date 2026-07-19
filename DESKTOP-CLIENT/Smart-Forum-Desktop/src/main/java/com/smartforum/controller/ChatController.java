@@ -29,6 +29,15 @@ public class ChatController {
     @FXML private Button networkToggleBtn;
     @FXML private Label offlineBanner;
     @FXML private Label syncStatusLabel;
+    @FXML private Label userNameLabel;
+    @FXML private Label userRoleLabel;
+    @FXML private Label userAvatarLabel;
+    @FXML private Label navAvatarLabel;
+    @FXML private Label navNameLabel;
+    @FXML private Label menuNameLabel;
+    @FXML private Label menuEmailLabel;
+    @FXML private Label menuRoleLabel;
+    @FXML private VBox userMenu;
 
     private Topic selectedTopic;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -36,6 +45,19 @@ public class ChatController {
 
     @FXML
     public void initialize() {
+        com.smartforum.util.SessionManager session = com.smartforum.util.SessionManager.getInstance();
+        com.smartforum.UserSession us = com.smartforum.UserSession.getInstance();
+        String name = session.getUserName() != null ? session.getUserName() : "User";
+        String email = us.getEmail() != null ? us.getEmail() : "";
+        String role = us.getRole() != null ? capitalize(us.getRole()) : "Student";
+        String initial = name.isEmpty() ? "U" : String.valueOf(name.charAt(0)).toUpperCase();
+
+        navAvatarLabel.setText(initial);
+        navNameLabel.setText(name);
+        menuNameLabel.setText(name);
+        menuEmailLabel.setText(email);
+        menuRoleLabel.setText(role);
+
         loadTopics();
         topicListView.getSelectionModel().selectedItemProperty().addListener(
                 (obs, old, topic) -> { if (topic != null) openTopic(topic); });
@@ -173,6 +195,13 @@ public class ChatController {
     }
 
     @FXML
+    private void toggleUserMenu() {
+        boolean show = !userMenu.isVisible();
+        userMenu.setVisible(show);
+        userMenu.setManaged(show);
+    }
+
+    @FXML
     private void onToggleNetwork() {
         boolean currentlyOnline = NetworkMonitor.isOnline();
         NetworkMonitor.setOverride(!currentlyOnline);
@@ -290,6 +319,30 @@ public class ChatController {
     private String formatTime(String createdAt) {
         if (createdAt == null) return "";
         try { return createdAt.substring(11, 16); } catch (Exception e) { return ""; }
+    }
+
+    private String capitalize(String s) {
+        if (s == null || s.isEmpty()) return s;
+        return s.substring(0, 1).toUpperCase() + s.substring(1);
+    }
+
+    @FXML
+    public void handleLogout() {
+        shutdown();
+        com.smartforum.util.SessionManager.getInstance().clear();
+        com.smartforum.UserSession.getInstance().clear();
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                getClass().getResource("/com/smartforum/auth-view.fxml"));
+            javafx.scene.Scene scene = new javafx.scene.Scene(loader.load(), 480, 600);
+            scene.setFill(javafx.scene.paint.Color.web("#0a0f1e"));
+            javafx.stage.Stage stage = (javafx.stage.Stage) topicListView.getScene().getWindow();
+            stage.setScene(scene);
+            stage.setResizable(false);
+            stage.setTitle("Smart Discussion Forum");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void shutdown() {
