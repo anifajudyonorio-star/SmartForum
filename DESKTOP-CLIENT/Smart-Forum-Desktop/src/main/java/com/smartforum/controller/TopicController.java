@@ -213,6 +213,7 @@ public class TopicController {
         boolean canPost = postController.canParticipate(topicId);
         configureComposer(canPost);
         loadMessages(topic, groupName);
+        topicService.recordTopicView(topicId);
         switchTo(showPane);
         scrollMessagesToBottom();
     }
