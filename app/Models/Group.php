@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Group extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'Group_Name',
         'Description',
@@ -39,9 +40,15 @@ class Group extends Model
 
     public function isMember(int $userId): bool
     {
-        return $this->members()
-            ->where('users.id', $userId)
+        return $this->memberships()
+            ->where('User_ID', $userId)
+            ->whereIn('Member_Status', GroupMember::APPROVED_STATUSES)
             ->exists();
+    }
+
+    public function hasPendingJoinRequest(int $userId): bool
+    {
+        return $this->memberStatus($userId) === GroupMember::STATUS_PENDING;
     }
 
     public function membership(int $userId): ?GroupMember
@@ -66,6 +73,11 @@ class Group extends Model
         $membership = $this->membership($userId);
 
         return $membership && $membership->isActive();
+    }
+
+    public function isActive(): bool
+    {
+        return $this->Status === 'Active';
     }
 
     public function isGroupAdmin(int $userId): bool

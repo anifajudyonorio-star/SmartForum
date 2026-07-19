@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Group;
+use App\Models\GroupMember;
 use App\Models\Notification;
+use App\Models\Question;
+use App\Models\QuestionOption;
 use App\Models\Quiz;
 use App\Models\QuizCategory;
 use App\Models\User;
@@ -32,7 +35,7 @@ class QuizNotificationTest extends TestCase
             'participation_marks' => 5,
             'start_time' => now()->addDay(),
             'end_time' => now()->addDay()->addHour(),
-            'status' => 'Scheduled',
+            'status' => Quiz::STATUS_SCHEDULED,
             'created_by' => $student->id,
         ]);
 
@@ -107,6 +110,10 @@ class QuizNotificationTest extends TestCase
         ]);
 
         $group->members()->attach($targetStudent->id, ['Member_Status' => 'Active']);
+        $group->members()->attach($lecturer->id, [
+            'Member_Status' => GroupMember::STATUS_ACTIVE,
+            'Member_Role' => GroupMember::ROLE_LECTURER,
+        ]);
 
         $category = QuizCategory::create([
             'category_name' => 'Group Category',
@@ -123,17 +130,24 @@ class QuizNotificationTest extends TestCase
             'participation_marks' => 5,
             'start_time' => now()->addHour(),
             'end_time' => now()->addHours(2),
-            'status' => 'Scheduled',
+            'status' => Quiz::STATUS_DRAFT,
             'created_by' => $lecturer->id,
         ]);
 
         // Add at least one question so the quiz can be published (publish guard).
-        \App\Models\Question::create([
+        $question = Question::create([
             'quiz_id' => $quiz->id,
             'question' => 'Sample question?',
             'question_type' => 'Multiple Choice',
             'marks' => 1,
         ]);
+        foreach (['Correct', 'Wrong A', 'Wrong B', 'Wrong C'] as $index => $text) {
+            QuestionOption::create([
+                'question_id' => $question->id,
+                'option_text' => $text,
+                'is_correct' => $index === 0,
+            ]);
+        }
 
         $response = $this->actingAs($lecturer)
             ->patch(route('quizzes.publish', $quiz));

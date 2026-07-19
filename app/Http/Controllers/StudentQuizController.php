@@ -4,173 +4,233 @@ namespace App\Http\Controllers;
 
 use App\Models\Quiz;
 use App\Models\QuizResult;
-use App\Models\QuizAttempt;
+use App\Services\QuizSubmissionService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
 class StudentQuizController extends Controller
 {
+    public function __construct(private readonly QuizSubmissionService $submissions) {}
+
     public function index()
     {
-        $groupIds = auth()->user()->groups()->pluck('groups.id');
+        $this->authorize('viewAvailable', Quiz::class);
 
         $quizzes = Quiz::withCount('questions')
+            ->withSum('questions', 'marks')
+            ->with(['group', 'questions.options'])
+            ->accessibleToStudent(auth()->user())
             ->where('end_time', '>=', now())
             ->whereHas('questions')
-            ->when($groupIds->isNotEmpty(), function ($query) use ($groupIds) {
-                $query->whereIn('group_id', $groupIds);
-            }, function ($query) {
-                $query->whereNull('group_id');
-            })
             ->orderBy('start_time')
-            ->get();
+            ->get()
+            ->filter(fn (Quiz $quiz) => $quiz->isVisibleToStudents())
+            ->values();
 
-        $completedQuizIds = QuizResult::where('student_id', auth()->id())
+        $completedQuizIds = QuizResult::where('user_id', auth()->id())
             ->pluck('quiz_id');
 
         return view('student.quizzes.index', compact('quizzes', 'completedQuizIds'));
     }
 
-    public function show(Quiz $quiz)
+    public function progress()
     {
+        $this->authorize('viewProgress', Quiz::class);
+
+        $user = auth()->user();
+        $results = QuizResult::query()
+            ->where('user_id', $user->id)
+            ->with(['quiz.group', 'attempt'])
+            ->orderByDesc('id')
+            ->get();
+
+        $history = $results->map(function (QuizResult $result) use ($user) {
+            $percentage = $result->finalPercentage();
+            $submittedAt = $this->safeSubmissionDate($result);
+            $maximumParticipation = null;
+
+            if ($result->maximum_total_score !== null && $result->maximum_score !== null) {
+                $maximumParticipation = max(
+                    0,
+                    $result->maximum_total_score - $result->maximum_score,
+                );
+            }
+
+            $reportAvailable = false;
+            try {
+                $reportAvailable = $result->quiz !== null
+                    && now()->gte($result->quiz->end_time)
+                    && $user->can('viewPublicReport', $result->quiz);
+            } catch (\Throwable) {
+                // A malformed legacy schedule must not break the student's history.
+            }
+
+            return [
+                'result' => $result,
+                'quiz' => $result->quiz,
+                'submitted_at' => $submittedAt,
+                'percentage' => $percentage,
+                'maximum_participation' => $maximumParticipation,
+                'report_available' => $reportAvailable,
+            ];
+        });
+
+        $comparable = $history->whereNotNull('percentage')->values();
+        $percentages = $comparable->pluck('percentage');
+        $latestPercentage = $percentages->first();
+        $previousPercentage = $percentages->get(1);
+        $trend = $latestPercentage !== null && $previousPercentage !== null
+            ? round($latestPercentage - $previousPercentage, 2)
+            : null;
+
+        $summary = [
+            'total_attempted' => $history->count(),
+            'comparable_attempts' => $comparable->count(),
+            'average_percentage' => $percentages->isEmpty()
+                ? null
+                : round($percentages->avg(), 2),
+            'highest_percentage' => $percentages->max(),
+            'latest_percentage' => $latestPercentage,
+            'pass_rate' => $percentages->isEmpty()
+                ? null
+                : round(
+                    ($percentages->filter(fn ($value) => $value >= 50)->count()
+                        / $percentages->count()) * 100,
+                    2,
+                ),
+            'trend' => $trend,
+        ];
+
+        $chartRows = $comparable->sort(function (array $left, array $right) {
+            $leftDate = $left['submitted_at']?->getTimestamp();
+            $rightDate = $right['submitted_at']?->getTimestamp();
+
+            if ($leftDate !== null && $rightDate !== null && $leftDate !== $rightDate) {
+                return $leftDate <=> $rightDate;
+            }
+            if ($leftDate === null && $rightDate !== null) {
+                return 1;
+            }
+            if ($leftDate !== null && $rightDate === null) {
+                return -1;
+            }
+
+            return $left['result']->id <=> $right['result']->id;
+        })->values();
+        $chartLabels = $chartRows->map(function (array $row) {
+            $title = $row['quiz']?->title ?? 'Deleted quiz';
+            $date = $row['submitted_at']?->format('M j, Y') ?? 'Date unavailable';
+
+            return "{$title} · {$date} · Result #{$row['result']->id}";
+        })->all();
+        $chartData = $chartRows->pluck('percentage')->all();
+
+        return view('student.quizzes.progress', compact(
+            'history',
+            'summary',
+            'chartLabels',
+            'chartData',
+        ));
+    }
+
+    public function show(Request $request, Quiz $quiz)
+    {
+        $this->authorize('take', $quiz);
+
+        if (! $quiz->isAvailableToStudents()) {
+            return redirect()
+                ->route('student.quizzes')
+                ->withErrors(['quiz' => 'This quiz is not currently available.']);
+        }
+
         if ($this->hasCompletedQuiz($quiz)) {
             return redirect()
                 ->route('student.quizzes')
                 ->withErrors(['quiz' => 'You have already completed this quiz.']);
         }
 
-        if ($quiz->group_id && ! auth()->user()->groups->contains($quiz->group_id)) {
-            return redirect()
-                ->route('student.quizzes')
-                ->withErrors(['quiz' => 'You are not assigned to this quiz.']);
-        }
-
-        if (! $this->quizIsAvailable($quiz)) {
-            return redirect()
-                ->route('student.quizzes')
-                ->withErrors(['quiz' => 'This quiz is not available yet.']);
-        }
-
         $quiz->load(['questions.options']);
+
+        // If the student hasn't explicitly started the quiz, show a preview
+        // page with a Start button. This avoids creating attempts automatically
+        // and prevents immediate expiry caused by stale attempts.
+        if (! $request->query('start')) {
+            return view('student.quizzes.preview', compact('quiz'));
+        }
 
         abort_if($quiz->questions->isEmpty(), 403, 'This quiz has no questions yet.');
 
-        // Find existing in-progress attempt for this student, or create one.
-        $attempt = QuizAttempt::where('quiz_id', $quiz->id)
-            ->where('user_id', auth()->id())
-            ->where('status', 'In Progress')
-            ->latest()
-            ->first();
+        $attempt = $this->submissions->startAttempt(auth()->user(), $quiz);
 
-        if (! $attempt) {
-            $attempt = QuizAttempt::create([
-                'quiz_id' => $quiz->id,
-                'user_id' => auth()->id(),
-                'started_at' => now(),
-                'status' => 'In Progress',
-            ]);
-        }
-
-        // Remaining seconds: constrained by per-attempt duration and global quiz end_time
-        $elapsed = now()->diffInSeconds($attempt->started_at);
-        $remainingByDuration = max(0, ($quiz->duration * 60) - $elapsed);
-        $remainingByEnd = max(0, $quiz->end_time->diffInSeconds(now()));
-        $remainingSeconds = min($remainingByDuration, $remainingByEnd);
-
-        if ($remainingSeconds <= 0) {
-            // No time left for this student to start/continue the quiz
+        if ($attempt instanceof QuizResult) {
             return redirect()
                 ->route('student.quizzes')
-                ->withErrors(['quiz' => 'The quiz window has closed for you.']);
+                ->withErrors(['quiz' => 'This attempt has already been finalized.']);
         }
+
+        $remainingSeconds = $this->submissions->remainingSeconds($attempt, $quiz);
 
         return view('student.quizzes.show', compact('quiz', 'attempt', 'remainingSeconds'));
     }
 
     public function submit(Request $request, Quiz $quiz)
-{
-    if ($this->hasCompletedQuiz($quiz)) {
-        return redirect()
-            ->route('student.quizzes')
-            ->withErrors(['quiz' => 'You have already completed this quiz.']);
-    }
+    {
+        $this->authorize('take', $quiz);
 
-    if ($quiz->group_id && ! auth()->user()->groups->contains($quiz->group_id)) {
-        return redirect()
-            ->route('student.quizzes')
-            ->withErrors(['quiz' => 'You are not assigned to this quiz.']);
-    }
-
-    if (! $this->quizIsAvailable($quiz)) {
-        return redirect()
-            ->route('student.quizzes')
-            ->withErrors(['quiz' => 'This quiz is not available yet.']);
-    }
-
-    $quiz->load(['questions.options']);
-
-    $score = 0;
-
-    foreach ($quiz->questions as $question) {
-
-        if (!in_array($question->question_type, ['Multiple Choice', 'True/False'])) {
-            continue;
-        }
-
-        $selected = $request->input('question_'.$question->id);
-
-        $correctOption = $question->options->firstWhere('is_correct', true);
-
-        if ($correctOption && (int)$selected === (int)$correctOption->id) {
-            $score += $question->marks;
-        }
-    }
-
-    $participationMarks = (int) ($quiz->participation_marks ?? 0);
-    $totalScore = $score + $participationMarks;
-
-    QuizResult::create([
-        'quiz_id' => $quiz->id,
-        'user_id' => auth()->id(),
-        'score' => $score,
-        'participation_marks' => $participationMarks,
-        'total_score' => $totalScore,
-    ]);
-
-    // Mark attempt as submitted
-    $attempt = QuizAttempt::where('quiz_id', $quiz->id)
-        ->where('user_id', auth()->id())
-        ->where('status', 'In Progress')
-        ->latest()
-        ->first();
-
-    if ($attempt) {
-        $attempt->update([
-            'submitted_at' => now(),
-            'score' => $totalScore,
-            'status' => 'Submitted',
+        $validated = $request->validate([
+            'attempt_id' => ['required', 'integer'],
+            'answers' => ['sometimes', 'array'],
         ]);
+
+        $result = $this->submissions->submit(
+            auth()->user(),
+            $quiz,
+            (int) $validated['attempt_id'],
+            $validated['answers'] ?? [],
+        );
+
+        $score = $result->score;
+        $totalMarks = $result->maximum_score;
+        $participationMarks = $result->participation_marks;
+        $totalScore = $result->total_score;
+
+        return view('student.quizzes.result', compact(
+            'result',
+            'quiz',
+            'score',
+            'totalMarks',
+            'participationMarks',
+            'totalScore'
+        ));
     }
-
-    $totalMarks = $quiz->questions->sum('marks');
-
-    return view('student.quizzes.result', compact(
-        'quiz',
-        'score',
-        'totalMarks',
-        'participationMarks',
-        'totalScore'
-    ));
-}
-
-    private function quizIsAvailable(Quiz $quiz): bool
-{
-    return $quiz->start_time <= now() && $quiz->end_time >= now();
-}
 
     private function hasCompletedQuiz(Quiz $quiz): bool
     {
         return QuizResult::where('quiz_id', $quiz->id)
             ->where('user_id', auth()->id())
             ->exists();
+    }
+
+    private function safeSubmissionDate(QuizResult $result): ?CarbonImmutable
+    {
+        $candidates = [
+            $result->getRawOriginal('graded_at'),
+            $result->attempt?->getRawOriginal('submitted_at'),
+            $result->getRawOriginal('created_at'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (! is_string($candidate) || trim($candidate) === '') {
+                continue;
+            }
+
+            try {
+                return CarbonImmutable::parse($candidate);
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return null;
     }
 }

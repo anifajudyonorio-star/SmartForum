@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.TopicSearchController">
+   <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" style="-fx-background-color: transparent; -fx-background: transparent;" vbarPolicy="AS_NEEDED">
+      <content>
+         <VBox maxWidth="1.7976931348623157E308" spacing="14.0" styleClass="dashboard-content">
+            <VBox spacing="4.0" styleClass="dashboard-header">
+               <Label styleClass="dashboard-title" text="🔍  Search Topics" />
+               <Label styleClass="dashboard-subtitle" text="Find discussions in your assigned groups by title or description." />
+            </VBox>
+
+            <VBox spacing="0.0" styleClass="dashboard-card">
+               <VBox spacing="12.0" styleClass="dashboard-card-body">
+                  <HBox alignment="BOTTOM_LEFT" spacing="10.0">
+                     <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                        <Label styleClass="form-label" text="Search" />
+                        <TextField fx:id="searchField" maxWidth="1.7976931348623157E308" onAction="#onSearch" promptText="Search by topic title or description..." />
+                     </VBox>
+                     <Button mnemonicParsing="false" onAction="#onSearch" styleClass="btn-primary" text="🔍  Search" />
+                  </HBox>
+               </VBox>
+            </VBox>
+
+            <Label fx:id="resultsSummaryLabel" managed="false" styleClass="dashboard-subtitle" visible="false" wrapText="true" />
+
+            <FlowPane fx:id="resultsGrid" hgap="12.0" maxWidth="1.7976931348623157E308" vgap="12.0" />
+
+            <VBox fx:id="emptyStateBox" alignment="CENTER" managed="false" spacing="10.0" styleClass="groups-empty-state" visible="false">
+               <Label styleClass="groups-empty-icon" text="📭" />
+               <Label fx:id="emptyStateLabel" text="No topics found in your groups yet." wrapText="true" />
+               <HBox alignment="CENTER" spacing="8.0">
+                  <Button fx:id="clearSearchBtn" managed="false" mnemonicParsing="false" onAction="#onClearSearch" styleClass="btn-outline" text="Clear Search" visible="false" />
+                  <Button fx:id="exploreGroupsBtn" managed="false" mnemonicParsing="false" onAction="#onExploreGroups" styleClass="btn-primary" text="Explore Groups" visible="false" />
+               </HBox>
+            </VBox>
+         </VBox>
+      </content>
+   </ScrollPane>
+</StackPane>

@@ -20,9 +20,17 @@ class GroupMember extends Model
 
     public const STATUS_ACTIVE = 'Active';
 
+    public const STATUS_PENDING = 'Pending';
+
     public const STATUS_SUSPENDED = 'Suspended';
 
     public const STATUS_BLOCKED = 'Blocked';
+
+    public const APPROVED_STATUSES = [
+        self::STATUS_ACTIVE,
+        self::STATUS_SUSPENDED,
+        self::STATUS_BLOCKED,
+    ];
 
     protected $table = 'group_members';
 
@@ -64,6 +72,11 @@ class GroupMember extends Model
     public function isActive(): bool
     {
         return ($this->Member_Status ?? self::STATUS_ACTIVE) === self::STATUS_ACTIVE;
+    }
+
+    public function isPending(): bool
+    {
+        return $this->Member_Status === self::STATUS_PENDING;
     }
 
     public function isSuspended(): bool

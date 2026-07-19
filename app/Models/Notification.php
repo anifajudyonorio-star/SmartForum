@@ -14,6 +14,7 @@ class Notification extends Model
         'Message',
         'Is_Read',
         'Post_ID',
+        'group_id',
         'parent_post_id',
         'reply_count',
         'quiz_id',
@@ -23,6 +24,8 @@ class Notification extends Model
     protected $casts = [
         'Is_Read' => 'boolean',
         'reply_count' => 'integer',
+        'quiz_id' => 'integer',
+        'expires_at' => 'datetime',
     ];
 
     public function getTitleAttribute(): ?string
@@ -54,8 +57,8 @@ class Notification extends Model
 
             if ($scheduledAt && $endsAt) {
                 $title = $this->quiz->title
-                    ? 'A new quiz "' . $this->quiz->title . '" is scheduled for ' . $scheduledAt . ' and closes on ' . $endsAt . '.'
-                    : 'A new quiz is scheduled for ' . $scheduledAt . ' and closes on ' . $endsAt . '.';
+                    ? 'A new quiz "'.$this->quiz->title.'" is scheduled for '.$scheduledAt.' and closes on '.$endsAt.'.'
+                    : 'A new quiz is scheduled for '.$scheduledAt.' and closes on '.$endsAt.'.';
 
                 return blank($message) || $message === 'A new quiz is available.' ? $title : $message;
             }
@@ -74,6 +77,11 @@ class Notification extends Model
         return $this->belongsTo(Post::class, 'Post_ID');
     }
 
+    public function group()
+    {
+        return $this->belongsTo(Group::class, 'group_id');
+    }
+
     public function parentPost()
     {
         return $this->belongsTo(Post::class, 'parent_post_id');
@@ -87,6 +95,27 @@ class Notification extends Model
     public function quiz()
     {
         return $this->belongsTo(Quiz::class, 'quiz_id');
+    }
+
+    public function destinationUrl(): string
+    {
+        if ($this->quiz) {
+            if ($this->user?->isStudent()) {
+                return $this->quiz->isAvailableToStudents()
+                    ? route('student.quiz.show', $this->quiz)
+                    : route('student.quizzes');
+            }
+
+            return route('quizzes.review', $this->quiz);
+        }
+
+        $this->loadMissing('post.topic');
+
+        if ($this->post?->topic) {
+            return route('topics.show', $this->post->topic).'#msg-'.$this->post->id;
+        }
+
+        return route('notifications.index');
     }
 
     public function scopeVisible($query)

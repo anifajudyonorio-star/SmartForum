@@ -5,33 +5,75 @@ namespace App\Http\Controllers;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\User;
+use App\Services\GroupJoinService;
 use App\Services\GroupStatisticsService;
+use App\Services\QuizNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 class GroupController extends Controller
 {
+    public function __construct(private readonly QuizNotificationService $quizNotifications) {}
+
     public function index()
     {
         $user = Auth::user();
 
-        if ($user->isAdmin()) {
-            $myGroups = Group::withCount('topics')
-                ->withCount('memberships as members_count')
-                ->with('user')
-                ->latest()
-                ->get();
-        } else {
-            $myGroups = $user->groups()
-                ->withCount('topics')
-                ->withCount('memberships as members_count')
-                ->with('user')
-                ->latest()
-                ->get();
-        }
+        $myGroups = $user->viewableGroupsQuery()
+            ->withCount('topics')
+            ->withCount('memberships as members_count')
+            ->with('user')
+            ->latest()
+            ->get();
 
         return view('groups.index', compact('myGroups'));
+    }
+
+    public function explore()
+    {
+        $exploreGroups = GroupJoinService::exploreGroups(Auth::user());
+
+        return view('groups.explore', compact('exploreGroups'));
+    }
+
+    public function requestJoin(Group $group)
+    {
+        try {
+            GroupJoinService::requestJoin(Auth::user(), $group);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()
+                ->route('groups.explore')
+                ->with('error', $e->validator->errors()->first('group'));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('groups.explore')
+                ->with('error', 'Could not send your join request. Please try again or contact support.');
+        }
+
+        return redirect()
+            ->route('groups.explore')
+            ->with('success', 'Your request to join "'.$group->Group_Name.'" was sent. A group admin will review it.');
+    }
+
+    public function approveJoinRequest(Group $group, User $user)
+    {
+        GroupJoinService::approveJoinRequest($group, $user, Auth::user());
+
+        return redirect()
+            ->route('groups.show', $group)
+            ->with('success', $user->name.' was approved and added to the group.');
+    }
+
+    public function rejectJoinRequest(Group $group, User $user)
+    {
+        GroupJoinService::rejectJoinRequest($group, $user, Auth::user());
+
+        return redirect()
+            ->route('groups.show', $group)
+            ->with('success', 'The join request from '.$user->name.' was declined.');
     }
 
     public function create()
@@ -81,7 +123,12 @@ class GroupController extends Controller
         $topics = $group->topics()->with('user')->latest()->get();
 
         // All group members (and system admins) can see who is in the group.
-        $members = $group->members()->orderBy('Fname')->orderBy('Lname')->get();
+        $members = $group->members()
+            ->wherePivot('Member_Status', '!=', GroupMember::STATUS_PENDING)
+            ->orderBy('Fname')
+            ->orderBy('Lname')
+            ->get();
+        $pendingJoinRequests = GroupJoinService::pendingRequestsFor($group);
         $availableUsers = collect();
 
         if ($canManage) {
@@ -107,7 +154,8 @@ class GroupController extends Controller
             'groupRole',
             'members',
             'availableUsers',
-            'groupStats'
+            'groupStats',
+            'pendingJoinRequests'
         ));
     }
 
@@ -129,6 +177,8 @@ class GroupController extends Controller
                 'Member_Role' => $role,
                 'warnings' => 0,
             ]);
+
+            $this->quizNotifications->notifyNewlyActiveMember($member, $group);
         }
 
         return redirect()

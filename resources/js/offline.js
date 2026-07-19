@@ -24,7 +24,26 @@ async function ensureToken() {
 }
 
 function getQueue() {
-    try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch { return []; }
+    try {
+        const parsed = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+        if (!Array.isArray(parsed)) return [];
+
+        let upgraded = false;
+        const queue = parsed.map((action) => {
+            if (action.action_uuid) return action;
+            upgraded = true;
+            return {
+                ...action,
+                action_uuid: crypto.randomUUID(),
+                status: action.status ?? 'pending',
+                last_error: action.last_error ?? null,
+            };
+        });
+        if (upgraded) localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+        return queue;
+    } catch {
+        return [];
+    }
 }
 
 function saveQueue(queue) {
@@ -63,14 +82,55 @@ function hideBanner() {
 }
 
 export function queueAction(actionType, payload, pendingEl) {
-    const pendingId = 'p-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
     const queue = getQueue();
-    queue.push({ action_type: actionType, payload, queued_at: Date.now(), pendingId });
+    const existing = actionType === 'submit_quiz'
+        ? queue.find((action) =>
+            action.action_type === 'submit_quiz'
+            && String(action.payload?.attempt_id) === String(payload?.attempt_id)
+        )
+        : null;
+
+    if (existing) {
+        showBanner('This quiz submission is already queued. It will not be queued twice.');
+        return existing.action_uuid;
+    }
+
+    const actionUuid = crypto.randomUUID();
+    const pendingId = 'p-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    queue.push({
+        action_uuid: actionUuid,
+        action_type: actionType,
+        payload,
+        queued_at: Date.now(),
+        pendingId,
+        status: 'pending',
+        last_error: null,
+    });
     saveQueue(queue);
     if (pendingEl) pendingEl.dataset.pendingId = pendingId;
     const count = queue.length;
     showBanner(`You're offline. ${count} action${count > 1 ? 's' : ''} queued — will sync when reconnected.`);
-    return pendingId;
+    return actionUuid;
+}
+
+function mergeActionResults(queue, results) {
+    const byUuid = new Map((results ?? []).map((result) => [result.action_uuid, result]));
+
+    return queue
+        .filter((action) => {
+            const result = byUuid.get(action.action_uuid);
+            return !result || !['succeeded', 'duplicate'].includes(result.status);
+        })
+        .map((action) => {
+            const result = byUuid.get(action.action_uuid);
+            if (!result) return action;
+
+            return {
+                ...action,
+                status: result.status === 'failed' ? 'failed' : 'pending',
+                last_error: result.reason ?? null,
+            };
+        });
 }
 
 async function registerDevice() {
@@ -87,7 +147,7 @@ async function registerDevice() {
 }
 
 async function flushQueue() {
-    const queue = getQueue();
+    let queue = getQueue();
     if (!queue.length) return;
     if (window._networkForced === false) return; // forced offline
     if (!await ensureToken()) return;
@@ -99,7 +159,24 @@ async function flushQueue() {
             body: JSON.stringify({ actions: queue }),
         });
 
-        if (!uploadRes.ok) return;
+        const uploadData = await uploadRes.json().catch(() => ({}));
+        if (!uploadRes.ok) {
+            const message = uploadData.message ?? 'Offline actions were rejected by the server.';
+            showBanner(`${message} Nothing was removed from your offline queue.`, 'danger');
+            return;
+        }
+
+        const originalQueue = queue;
+        queue = mergeActionResults(queue, uploadData.actions);
+        saveQueue(queue);
+
+        if (!queue.length) {
+            updateAcknowledgedMessages(originalQueue, queue);
+            updateSyncStatus();
+            localStorage.setItem('last_sync_time', new Date());
+            showBanner('Previously synchronized actions were acknowledged.', 'success');
+            return;
+        }
 
         const syncRes = await fetch('/api/sync', {
             method: 'POST',
@@ -112,31 +189,56 @@ async function flushQueue() {
             return;
         }
 
-        saveQueue([]);
-        updateSyncStatus();
-        localStorage.setItem("last_sync_time", new Date());
         const data = await syncRes.json();
+        const beforeSync = queue;
+        queue = mergeActionResults(queue, data.actions);
+        saveQueue(queue);
+        updateSyncStatus();
+        localStorage.setItem('last_sync_time', new Date());
         const conflicts = data.conflicts ?? [];
         const errors    = data.errors    ?? [];
+        updateAcknowledgedMessages(originalQueue, queue);
 
-        // Upgrade all pending ticks to sent
-        document.querySelectorAll('[data-pending-id]').forEach((msg) => {
-            const tick = msg.querySelector('.msg-tick--pending');
-            if (tick) {
-                tick.classList.replace('msg-tick--pending', 'msg-tick--sent');
-                tick.title = 'Sent';
-                tick.innerHTML = '&#10003;&#10003;';
+        // If on a topic page — reload the chat from server (includes the synced message)
+        const chat = document.getElementById('waChat');
+        const acknowledgedAny = beforeSync.length !== queue.length;
+        if (chat && acknowledgedAny) {
+            const topicId = chat.dataset.topicId;
+            const exportArea = document.getElementById('chatExportArea');
+            const messagesEl = document.getElementById('chatMessages');
+            if (topicId && exportArea) {
+                const postsRes = await fetch(`/topics/${topicId}/posts-fragment`, {
+                    headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+                }).catch(() => null);
+
+                if (postsRes && postsRes.ok) {
+                    exportArea.innerHTML = await postsRes.text();
+                    if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+                }
             }
-            delete msg.dataset.pendingId;
-        });
+        }
 
-        if (conflicts.length) {
-            const reasons = conflicts.map(c => c.reason).join(' | ');
-            showBanner(`Synced with conflicts: ${reasons}`, 'warning');
-            setTimeout(hideBanner, 8000);
-        } else if (errors.length) {
-            showBanner(`Sync completed with ${errors.length} error(s). Some actions may not have saved.`, 'danger');
-            setTimeout(hideBanner, 6000);
+        // Refresh latest posts on dashboard
+        const latestPostsCard = document.getElementById('latest-posts-list');
+        if (latestPostsCard) {
+            const dpRes = await fetch('/dashboard/latest-posts', {
+                headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+            }).catch(() => null);
+            if (dpRes && dpRes.ok) latestPostsCard.innerHTML = await dpRes.text();
+        }
+
+        const failed = queue.filter((action) => action.status === 'failed');
+        if (failed.length || conflicts.length) {
+            const reasons = failed
+                .map((action) => action.last_error)
+                .filter(Boolean)
+                .join(' | ');
+            showBanner(
+                `Some actions need attention and remain queued${reasons ? `: ${reasons}` : '.'}`,
+                'warning',
+            );
+        } else if (errors.length || queue.length) {
+            showBanner('Some actions were not acknowledged and remain queued for retry.', 'danger');
         } else {
             showBanner('Back online — offline actions synced!', 'success');
             setTimeout(hideBanner, 3000);
@@ -147,13 +249,35 @@ async function flushQueue() {
     }
 }
 
+function updateAcknowledgedMessages(previousQueue, remainingQueue) {
+    const remainingUuids = new Set(remainingQueue.map((action) => action.action_uuid));
+    const acknowledgedPendingIds = previousQueue
+        .filter((action) => !remainingUuids.has(action.action_uuid))
+        .map((action) => action.pendingId)
+        .filter(Boolean);
+
+    document.querySelectorAll('[data-pending-id]').forEach((message) => {
+        if (!acknowledgedPendingIds.includes(message.dataset.pendingId)) return;
+
+        const tick = message.querySelector('.msg-tick--pending');
+        if (tick) {
+            tick.classList.replace('msg-tick--pending', 'msg-tick--sent');
+            tick.title = 'Sent';
+            tick.innerHTML = '&#10003;&#10003;';
+        }
+        message.removeAttribute('data-pending-id');
+    });
+}
+
 window.addEventListener('offline', () => {
     showBanner("You're offline. Actions will be saved and synced when you reconnect.");
     localStorage.setItem("last_sync_time", new Date());
+    updateSyncStatus();
 });
 
 window.addEventListener('online', async () => {
     showBanner('Reconnected. Syncing…', 'info');
+    updateSyncStatus();
     await registerDevice();
     await flushQueue();
 });
@@ -161,19 +285,18 @@ window.addEventListener('online', async () => {
 export async function initOfflineSync() {
     if (!document.querySelector('meta[name="notifications-poll-url"]')) return;
 
+    const stored = localStorage.getItem('sf_network_forced');
+    window._networkForced = stored === 'false' ? false : null;
+
     await registerDevice();
 
-    if (navigator.onLine && getQueue().length) {
+    if (window._networkForced !== false && navigator.onLine && getQueue().length) {
         await flushQueue();
     }
 
     if (!navigator.onLine) {
         showBanner("You're offline. Actions will be saved and synced when you reconnect.");
     }
-
-    // Init network toggle button
-    const stored = localStorage.getItem('sf_network_forced');
-    window._networkForced = stored === 'false' ? false : null;
 
     // Apply stored state to button on page load
     if (window._networkForced === false) {
@@ -243,10 +366,6 @@ function updateSyncStatus() {
         if (time) lastSync.innerHTML = new Date(time).toLocaleString();
     }
 }
-
-window.addEventListener("online", updateSyncStatus);
-
-window.addEventListener("offline", updateSyncStatus);
 
 document.addEventListener("DOMContentLoaded", () => {
 

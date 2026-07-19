@@ -1,16 +1,12 @@
 import './bootstrap';
 import './chat';
-import { buildPendingBubble } from './chat';
 import './notifications';
 import { initOfflineSync, queueAction } from './offline';
 import { initPushNotifications } from './push';
-import { initReadCache } from './cache';
 
 window.queueAction = queueAction;
-
 initOfflineSync();
 initPushNotifications();
-initReadCache();
 
 // Intercept topic creation form when offline
 (function () {
@@ -37,16 +33,29 @@ initReadCache();
         const isOffline = window._networkForced === false || !navigator.onLine;
         if (!isOffline) return;
         e.preventDefault();
+        if (form.dataset.offlineQueued === 'true') return;
         const action = form.getAttribute('action');
         const quizId = action?.match(/\/quizzes\/(\d+)\//)?.[1];
-        if (!quizId) return;
+        const attemptId = form.querySelector('input[name="attempt_id"]')?.value;
+        if (!quizId || !attemptId) return;
         const answers = {};
         form.querySelectorAll('input[type="radio"]:checked').forEach((input) => {
-            const match = input.name.match(/question_(\d+)/);
+            const match = input.name.match(/answers\[(\d+)\]/);
             if (match) answers[match[1]] = input.value;
         });
-        queueAction('submit_quiz', { quiz_id: quizId, answers });
-        alert('You\'re offline. Your quiz answers have been saved and will be submitted when you reconnect.');
+        queueAction('submit_quiz', {
+            quiz_id: Number(quizId),
+            attempt_id: Number(attemptId),
+            answers,
+        });
+        form.dataset.offlineQueued = 'true';
+        form.querySelectorAll('button, input').forEach((element) => {
+            if (element.type !== 'hidden') element.disabled = true;
+        });
+        alert(
+            'Your quiz submission is queued once. The server deadline is authoritative; '
+            + 'if synchronization occurs after it, queued answer changes are ignored and the attempt times out.',
+        );
     });
 })();
 

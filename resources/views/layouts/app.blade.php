@@ -36,7 +36,7 @@ use Illuminate\Support\Facades\Auth;
             <nav class="navbar navbar-expand-md app-navbar">
                 <div class="container-fluid px-3 px-md-4">
                     @auth
-                        <button id="sidebarToggle" class="btn btn-outline-success btn-sm d-md-none me-2" type="button" aria-label="Toggle sidebar">
+                        <button id="sidebarToggle" class="btn btn-outline-secondary btn-sm d-md-none me-2" type="button" aria-label="Toggle sidebar">
                             <i class="bi bi-list"></i>
                         </button>
                     @endauth
@@ -50,10 +50,6 @@ use Illuminate\Support\Facades\Auth;
                     </a>
 
                     @auth
-                        <button id="networkToggleBtn" class="btn btn-sm btn-outline-success ms-auto me-2" title="Toggle network" onclick="window._toggleNetwork()">
-                            <i class="bi bi-wifi" id="networkToggleIcon"></i>
-                            <span class="d-none d-md-inline ms-1" id="networkToggleText">Online</span>
-                        </button>
                     @endauth
 
                     <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
@@ -127,7 +123,6 @@ use Illuminate\Support\Facades\Auth;
 
     @auth
         <div id="notifToastStack" class="wa-notif-stack" aria-live="polite"></div>
-        <div id="offlineBanner" class="offline-banner" role="alert" aria-live="assertive"></div>
     @endauth
 
     @stack('scripts')

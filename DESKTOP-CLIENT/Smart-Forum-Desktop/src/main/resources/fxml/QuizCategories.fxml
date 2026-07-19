@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/24.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.smartforum.controller.QuizCategoryController"
+            styleClass="quiz-page">
+
+    <!-- PAGE HEADER -->
+    <top>
+        <VBox styleClass="dashboard-header">
+            <padding><Insets top="20" right="24" bottom="16" left="24"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="12">
+                <VBox HBox.hgrow="ALWAYS" spacing="2">
+                    <Label text="Quiz Titles" styleClass="dashboard-title"/>
+                    <Label text="Manage quiz title templates used when creating quizzes."
+                           styleClass="dashboard-subtitle"/>
+                </VBox>
+                <Button fx:id="btnAdd" text="+ Add Quiz Title" onAction="#saveCategory"
+                        styleClass="btn-primary"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <center>
+        <VBox spacing="16" styleClass="dashboard-content">
+            <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
+
+            <!-- FORM CARD -->
+            <VBox styleClass="quiz-card">
+                <VBox spacing="10">
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <VBox spacing="4" HBox.hgrow="ALWAYS">
+                            <Label text="Quiz Title" styleClass="form-label"/>
+                            <TextField fx:id="txtCategoryName" promptText="Enter quiz title name"/>
+                        </VBox>
+                        <VBox spacing="4" HBox.hgrow="ALWAYS">
+                            <Label text="Description" styleClass="form-label"/>
+                            <TextArea fx:id="txtDescription" promptText="Enter description (optional)"
+                                      prefRowCount="2" wrapText="true" styleClass="form-textarea"/>
+                        </VBox>
+                    </HBox>
+                    <HBox spacing="8">
+                        <Button text="Save" onAction="#saveCategory"
+                                styleClass="btn-primary"/>
+                        <Button text="Update" onAction="#updateCategory"
+                                styleClass="btn-outline"/>
+                        <Button text="Delete" onAction="#deleteCategory"
+                                styleClass="btn-danger"/>
+                        <Button text="Clear" onAction="#clearFields"
+                                styleClass="btn-outline"/>
+                    </HBox>
+                </VBox>
+            </VBox>
+
+            <!-- TABLE CARD -->
+            <VBox VBox.vgrow="ALWAYS" styleClass="dashboard-card">
+                <TableView fx:id="tblCategories" VBox.vgrow="ALWAYS"
+                           styleClass="dashboard-table">
+                    <columns>
+                        <TableColumn fx:id="colCategory"    text="Quiz Title"   prefWidth="260"/>
+                        <TableColumn fx:id="colDescription" text="Description"  prefWidth="400"/>
+                        <TableColumn fx:id="colCreatedBy"   text="Created By"   prefWidth="160"/>
+                        <TableColumn fx:id="colId"          text="ID"           prefWidth="60"/>
+                    </columns>
+                    <placeholder><Label text="No quiz titles yet. Create one to start building quizzes."
+                                        styleClass="empty-label"/></placeholder>
+                </TableView>
+            </VBox>
+
+        </VBox>
+    </center>
+
+</BorderPane>

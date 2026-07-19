@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/24.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.smartforum.controller.QuestionController"
+            styleClass="quiz-page">
+
+    <!-- PAGE HEADER -->
+    <top>
+        <VBox styleClass="dashboard-header">
+            <padding><Insets top="20" right="24" bottom="16" left="24"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="12">
+                <VBox HBox.hgrow="ALWAYS" spacing="2">
+                    <Label text="Questions"
+                           styleClass="dashboard-title"/>
+                    <Label text="Add and manage questions for each quiz."
+                           styleClass="dashboard-subtitle"/>
+                </VBox>
+                <Button text="Add New Question" onAction="#saveQuestion"
+                        styleClass="btn-primary"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <center>
+        <VBox spacing="16" styleClass="dashboard-content">
+            <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
+
+            <!-- FORM CARD -->
+            <VBox spacing="12" styleClass="quiz-card">
+
+                <HBox spacing="12" alignment="CENTER_LEFT">
+                    <VBox spacing="4" prefWidth="220">
+                        <Label text="Quiz" styleClass="form-label"/>
+                        <ComboBox fx:id="cmbQuiz" maxWidth="Infinity"/>
+                    </VBox>
+                    <VBox spacing="4" prefWidth="160">
+                        <Label text="Correct Answer" styleClass="form-label"/>
+                        <ComboBox fx:id="cmbCorrect" maxWidth="Infinity"/>
+                    </VBox>
+                    <VBox spacing="4" prefWidth="110">
+                        <Label text="Marks" styleClass="form-label"/>
+                        <Spinner fx:id="spQuestionMarks" prefWidth="100"/>
+                    </VBox>
+                </HBox>
+
+                <VBox spacing="4">
+                    <Label text="Question" styleClass="form-label"/>
+                    <TextArea fx:id="txtQuestion" prefRowCount="3" wrapText="true"
+                              promptText="Enter the question text"
+                              styleClass="form-textarea"/>
+                </VBox>
+
+                <HBox spacing="12">
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label text="Option A" styleClass="form-label"/>
+                        <TextField fx:id="txtOptionA" promptText="Option A"/>
+                    </VBox>
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label text="Option B" styleClass="form-label"/>
+                        <TextField fx:id="txtOptionB" promptText="Option B"/>
+                    </VBox>
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label text="Option C" styleClass="form-label"/>
+                        <TextField fx:id="txtOptionC" promptText="Option C"/>
+                    </VBox>
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label text="Option D" styleClass="form-label"/>
+                        <TextField fx:id="txtOptionD" promptText="Option D"/>
+                    </VBox>
+                </HBox>
+
+                <HBox spacing="8">
+                    <Button text="Save Question" onAction="#saveQuestion"
+                            styleClass="btn-primary"/>
+                    <Button text="Update" onAction="#updateQuestion"
+                            styleClass="btn-outline"/>
+                    <Button text="Delete" onAction="#deleteQuestion"
+                            styleClass="btn-danger"/>
+                    <Button text="Clear" onAction="#clearFields"
+                            styleClass="btn-outline"/>
+                </HBox>
+            </VBox>
+
+            <!-- TABLE CARD — matches Laravel: ID / Question / Correct Answer -->
+            <VBox VBox.vgrow="ALWAYS" styleClass="dashboard-card">
+                <TableView fx:id="tblQuestions" VBox.vgrow="ALWAYS"
+                           styleClass="dashboard-table">
+                    <columns>
+                        <TableColumn fx:id="colId"       text="ID"             prefWidth="60"/>
+                        <TableColumn fx:id="colQuiz"     text="Quiz"           prefWidth="180"/>
+                        <TableColumn fx:id="colQuestion" text="Question"       prefWidth="420"/>
+                        <TableColumn fx:id="colCorrect"  text="Correct Answer" prefWidth="120"/>
+                        <TableColumn fx:id="colMarks"    text="Marks"          prefWidth="80"/>
+                    </columns>
+                    <placeholder><Label text="No questions found."
+                                        styleClass="empty-label"/></placeholder>
+                </TableView>
+            </VBox>
+
+        </VBox>
+    </center>
+
+</BorderPane>

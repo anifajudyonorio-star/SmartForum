@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/24.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.smartforum.controller.TakeQuizController"
+            styleClass="quiz-page">
+
+    <!-- PAGE HEADER -->
+    <top>
+        <VBox styleClass="dashboard-header">
+            <padding><Insets top="20" right="24" bottom="16" left="24"/></padding>
+            <VBox spacing="2">
+                <Label text="Available Quizzes"
+                       styleClass="dashboard-title"/>
+                <Label text="Take quizzes assigned to your category. Each quiz can only be taken once."
+                       styleClass="dashboard-subtitle"/>
+            </VBox>
+        </VBox>
+    </top>
+
+    <center>
+        <VBox spacing="16" styleClass="dashboard-content">
+            <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
+
+            <!-- STUDENT IDENTITY + SELF-ENROLLMENT -->
+            <VBox spacing="10" styleClass="quiz-card">
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Your Name:" styleClass="form-label"/>
+                    <TextField fx:id="txtStudentName" editable="false" prefWidth="220"/>
+                    <Label fx:id="lblCategoryInfo" wrapText="true" styleClass="quiz-info"/>
+                </HBox>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Quiz Category:" styleClass="form-label"/>
+                    <ComboBox fx:id="cmbSelfCategory" promptText="Select a category"
+                              prefWidth="260"/>
+                    <Button fx:id="btnSelfEnroll" text="Enroll Me"
+                            onAction="#selfEnroll" styleClass="btn-primary"/>
+                    <Label text="You can enroll in one quiz category."
+                           styleClass="dashboard-subtitle"/>
+                </HBox>
+            </VBox>
+            <Label fx:id="lblAttemptNotice" visible="false" managed="false"
+                   wrapText="true" styleClass="quiz-recovery-notice"/>
+
+            <!-- QUIZZES TABLE CARD -->
+            <VBox VBox.vgrow="ALWAYS" styleClass="dashboard-card">
+                <TableView fx:id="tblAvailableQuizzes" VBox.vgrow="ALWAYS"
+                           styleClass="dashboard-table">
+                    <columns>
+                        <TableColumn fx:id="colQTitle"     text="Quiz"           prefWidth="220"/>
+                        <TableColumn fx:id="colQCategory"  text="Category"       prefWidth="160"/>
+                        <TableColumn fx:id="colQQuestions" text="Questions"      prefWidth="90"/>
+                        <TableColumn fx:id="colQDuration"  text="Duration"       prefWidth="90"/>
+                        <TableColumn fx:id="colQStart"     text="Scheduled"      prefWidth="140"/>
+                        <TableColumn fx:id="colQEnd"       text="Ends At"        prefWidth="140"/>
+                        <TableColumn fx:id="colQStatus"    text="Status"         prefWidth="100"/>
+                    </columns>
+                    <placeholder><Label text="No quizzes are available for your enrolled category."
+                                        styleClass="empty-label"/></placeholder>
+                </TableView>
+            </VBox>
+
+            <!-- START QUIZ BUTTON ROW -->
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Button text="▶  Start Quiz" onAction="#startQuiz"
+                        styleClass="btn-primary"/>
+                <Button text="View Performance" onAction="#viewPerformanceReport"
+                        styleClass="btn-outline"/>
+                <Button text="Refresh" onAction="#refreshPage"
+                        styleClass="btn-outline"/>
+                <Label text="Reports become available after the selected quiz ends."
+                       styleClass="dashboard-subtitle"/>
+            </HBox>
+
+            <VBox fx:id="performanceReport" visible="false" managed="false"
+                  spacing="8" styleClass="dashboard-card">
+                <VBox spacing="2" styleClass="dashboard-card-header">
+                    <Label fx:id="lblReportTitle" text="Category Performance"
+                           styleClass="dashboard-card-title"/>
+                    <Label fx:id="lblReportEmpty" wrapText="true"
+                           styleClass="dashboard-subtitle"/>
+                </VBox>
+                <TableView fx:id="tblPerformance" prefHeight="190"
+                           styleClass="dashboard-table">
+                    <columns>
+                        <TableColumn fx:id="colStudentName" text="Student" prefWidth="260"/>
+                        <TableColumn fx:id="colStudentScore" text="Score / Final Possible" prefWidth="170"/>
+                        <TableColumn fx:id="colStudentPercentage" text="Percentage" prefWidth="120"/>
+                        <TableColumn fx:id="colStudentSubmission" text="Status" prefWidth="150"/>
+                    </columns>
+                    <placeholder><Label text="No enrolled students to display."
+                                        styleClass="empty-label"/></placeholder>
+                </TableView>
+            </VBox>
+
+        </VBox>
+    </center>
+
+</BorderPane>

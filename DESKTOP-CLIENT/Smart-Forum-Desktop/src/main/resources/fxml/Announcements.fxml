@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/24.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.smartforum.controller.AnnouncementsController"
+            prefWidth="900" prefHeight="600" styleClass="quiz-page">
+
+    <top>
+        <VBox spacing="2" styleClass="dashboard-header">
+            <padding><Insets top="20" right="24" bottom="16" left="24"/></padding>
+            <Label text="Announcements" styleClass="dashboard-title"/>
+            <Label text="Share updates with quiz categories and review published messages." styleClass="dashboard-subtitle"/>
+        </VBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.42" style="-fx-background-color:transparent;-fx-padding:20 24 20 24;">
+
+            <!-- LEFT: Post announcement (lecturer) -->
+            <VBox spacing="12" styleClass="quiz-card">
+                <Label text="Post Announcement" styleClass="dashboard-card-title"/>
+
+                <Label text="Target Category" styleClass="form-label"/>
+                <ComboBox fx:id="cmbCategory" maxWidth="Infinity"/>
+
+                <Label text="Title" styleClass="form-label"/>
+                <TextField fx:id="txtTitle" promptText="Announcement title"/>
+
+                <Label text="Message" styleClass="form-label"/>
+                <TextArea fx:id="txtMessage" promptText="Write your announcement…" prefRowCount="5" wrapText="true"
+                          styleClass="form-textarea"/>
+
+                <Label text="Posted by" styleClass="form-label"/>
+                <TextField fx:id="txtPostedBy" promptText="Your name / role"/>
+
+                <Button text="Post Announcement" onAction="#postAnnouncement" maxWidth="Infinity"
+                        styleClass="btn-primary"/>
+
+                <Separator/>
+
+                <!-- Student view filter -->
+                <Label text="View as Student" styleClass="dashboard-card-title"/>
+                <Label text="Your Name" styleClass="form-label"/>
+                <TextField fx:id="txtStudentFilter" promptText="Enter student name to filter"/>
+                <Button text="Load My Announcements" onAction="#loadStudentAnnouncements" maxWidth="Infinity"
+                        styleClass="btn-primary"/>
+            </VBox>
+
+            <!-- RIGHT: Announcement list -->
+            <VBox spacing="8" styleClass="quiz-card">
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <Label text="Announcements" styleClass="dashboard-card-title"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="Show All" onAction="#loadAll" styleClass="btn-outline"/>
+                    <Button text="Delete Selected" onAction="#deleteSelected"
+                            styleClass="btn-danger"/>
+                </HBox>
+
+                <TableView fx:id="tblAnnouncements" VBox.vgrow="ALWAYS" styleClass="dashboard-table">
+                    <columns>
+                        <TableColumn fx:id="colCategory" text="Category" prefWidth="120"/>
+                        <TableColumn fx:id="colTitle"    text="Title"    prefWidth="160"/>
+                        <TableColumn fx:id="colMessage"  text="Message"  prefWidth="260"/>
+                        <TableColumn fx:id="colBy"       text="Posted By" prefWidth="110"/>
+                        <TableColumn fx:id="colAt"       text="Date"      prefWidth="130"/>
+                    </columns>
+                </TableView>
+            </VBox>
+
+        </SplitPane>
+    </center>
+
+</BorderPane>

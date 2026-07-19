@@ -17,6 +17,11 @@
 <table class="table table-bordered">
 
 <tr>
+<th>Submission Status</th>
+<td>{{ $result->submissionStatus() }}</td>
+</tr>
+
+<tr>
 
 <th>Quiz</th>
 
@@ -28,7 +33,7 @@
 
 <th>Quiz Score</th>
 
-<td>{{ $score }} / {{ $totalMarks }}</td>
+<td>{{ $score }} / {{ $totalMarks ?? '—' }}</td>
 
 </tr>
 
@@ -44,8 +49,13 @@
 
 <th>Final Score</th>
 
-<td><strong>{{ $totalScore }}</strong></td>
+<td><strong>{{ $totalScore }} / {{ $result->maximum_total_score ?? '—' }}</strong></td>
 
+</tr>
+
+<tr>
+<th>Final Percentage</th>
+<td>{{ $result->finalPercentage() !== null ? $result->finalPercentage().'%' : 'Snapshot unavailable' }}</td>
 </tr>
 
 </table>

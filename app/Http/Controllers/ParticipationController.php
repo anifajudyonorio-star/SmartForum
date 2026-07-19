@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Group;
 use App\Models\User;
+use App\Services\StatisticsScopeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -62,21 +63,7 @@ class ParticipationController extends Controller
 
     private function availableGroupsFor(User $user): Collection
     {
-        if ($user->isAdmin()) {
-            return Group::orderBy('Group_Name')->get();
-        }
-
-        $groups = $user->administeredGroups()->orderBy('Group_Name')->get();
-
-        if ($user->isLecturer()) {
-            $groups = $groups
-                ->merge($user->groups()->orderBy('Group_Name')->get())
-                ->unique('id')
-                ->sortBy('Group_Name')
-                ->values();
-        }
-
-        return $groups;
+        return StatisticsScopeService::participationGroupsFor($user);
     }
 
     /**

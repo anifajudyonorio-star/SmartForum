@@ -31,12 +31,16 @@
                             <td>{{ $category->description ?: '—' }}</td>
                             <td>{{ $category->quizzes_count }}</td>
                             <td>
-                                <a href="{{ route('quiz-categories.edit', $category) }}" class="btn btn-warning btn-sm">Edit</a>
-                                <form action="{{ route('quiz-categories.destroy', $category) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this quiz title?')">Delete</button>
-                                </form>
+                                @can('update', $category)
+                                    <a href="{{ route('quiz-categories.edit', $category) }}" class="btn btn-warning btn-sm">Edit</a>
+                                @endcan
+                                @can('delete', $category)
+                                    <form action="{{ route('quiz-categories.destroy', $category) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this quiz title?')">Delete</button>
+                                    </form>
+                                @endcan
                             </td>
                         </tr>
                     @empty

@@ -15,6 +15,8 @@
         </div>
     </div>
 
+    @include('dashboard.partials.group-admin-groups')
+
     <div class="row g-2 mb-2">
         <div class="col-6 col-md-4">
             <div class="stat-card stat-card-compact fly-in fly-in-delay-1">

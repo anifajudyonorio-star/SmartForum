@@ -4,44 +4,35 @@ namespace App\Http\Controllers;
 
 use App\Models\Group;
 use App\Models\Quiz;
-use App\Models\Notification;
 use App\Models\QuizCategory;
+use App\Services\QuizNotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class QuizController extends Controller
 {
+    public function __construct(private readonly QuizNotificationService $notifications) {}
+
     public function index()
-{
-    $quizzes = Quiz::with(['category', 'group'])
-        ->withCount('questions')
-        ->latest()
-        ->get();
+    {
+        $this->authorize('viewAny', Quiz::class);
 
-    foreach ($quizzes as $quiz) {
+        $quizzes = Quiz::manageableBy(auth()->user())
+            ->with(['category', 'group'])
+            ->withCount('questions')
+            ->withSum('questions', 'marks')
+            ->latest()
+            ->get();
 
-        if (now()->lt($quiz->start_time)) {
-
-            $quiz->status = 'Scheduled';
-
-        } elseif (now()->between($quiz->start_time, $quiz->end_time)) {
-
-            $quiz->status = 'Active';
-
-        } else {
-
-            $quiz->status = 'Closed';
-
-        }
-
+        return view('quizzes.index', compact('quizzes'));
     }
-
-    return view('quizzes.index', compact('quizzes'));
-}
 
     public function create()
     {
-        $categories = QuizCategory::orderBy('category_name')->get();
-        $groups = Group::orderBy('Group_Name')->get();
+        $this->authorize('create', Quiz::class);
+
+        $categories = $this->manageableCategories();
+        $groups = $this->manageableGroups();
 
         return view('quizzes.create', compact('categories', 'groups'));
     }
@@ -49,28 +40,33 @@ class QuizController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-    'category_id' => 'required|exists:quiz_categories,id',
-    'group_id' => 'required|exists:groups,id',
-    'title' => 'required|string|max:255',
-    'description' => 'required|string',
-    'duration' => 'required|integer|min:1',
-    'participation_marks' => 'required|integer|min:0',
-    'start_time' => 'required|date',
-    'end_time' => 'required|date|after:start_time',
-]);
+            'category_id' => 'required|exists:quiz_categories,id',
+            'group_id' => 'required|exists:groups,id',
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'duration' => 'required|integer|min:1',
+            'participation_marks' => 'required|integer|min:0',
+            'start_time' => 'required|date',
+            'end_time' => 'required|date|after:start_time',
+        ]);
+
+        $group = Group::findOrFail($request->integer('group_id'));
+        $category = QuizCategory::findOrFail($request->integer('category_id'));
+        $this->authorize('create', [Quiz::class, $group]);
+        $this->authorize('assign', $category);
 
         Quiz::create([
-    'category_id' => $request->category_id,
-    'group_id' => $request->group_id,
-    'title' => $request->title,
-    'description' => $request->description,
-    'duration' => $request->duration,
-    'participation_marks' => $request->participation_marks,
-    'start_time' => $request->start_time,
-    'end_time' => $request->end_time,
-    'status' => 'Scheduled',
-    'created_by' => auth()->id(),
-]);
+            'category_id' => $request->category_id,
+            'group_id' => $request->group_id,
+            'title' => $request->title,
+            'description' => $request->description,
+            'duration' => $request->duration,
+            'participation_marks' => $request->participation_marks,
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
+            'status' => Quiz::STATUS_DRAFT,
+            'created_by' => auth()->id(),
+        ]);
 
         return redirect()->route('quizzes.index')
             ->with('success', 'Quiz created successfully. Add questions, then publish it.');
@@ -78,108 +74,163 @@ class QuizController extends Controller
 
     public function edit(Quiz $quiz)
     {
-        $categories = QuizCategory::orderBy('category_name')->get();
-        $groups = Group::orderBy('Group_Name')->get();
+        $this->authorize('update', $quiz);
+
+        $categories = $this->manageableCategories($quiz);
+        $groups = $this->manageableGroups();
 
         return view('quizzes.edit', compact('quiz', 'categories', 'groups'));
     }
 
     public function review(Quiz $quiz)
     {
+        $this->authorize('view', $quiz);
+
         $quiz->load(['questions.options', 'category', 'group']);
         $quiz->loadCount('questions');
+        $quiz->loadSum('questions', 'marks');
 
         return view('quizzes.review', compact('quiz'));
     }
 
     public function update(Request $request, Quiz $quiz)
     {
+        $this->authorize('update', $quiz);
+
+        if ($request->filled('group_id')
+            && $request->integer('group_id') !== (int) $quiz->group_id) {
+            $group = Group::findOrFail($request->integer('group_id'));
+            $this->authorize('create', [Quiz::class, $group]);
+        }
+
+        if ($request->filled('category_id')
+            && $request->integer('category_id') !== (int) $quiz->category_id) {
+            $category = QuizCategory::findOrFail($request->integer('category_id'));
+            $this->authorize('assign', $category);
+        }
+
+        if (! $quiz->isDraft() || $quiz->hasAssessmentActivity()) {
+            if ($request->hasAny([
+                'category_id',
+                'group_id',
+                'duration',
+                'participation_marks',
+                'start_time',
+                'end_time',
+                'status',
+            ])) {
+                throw ValidationException::withMessages([
+                    'quiz' => 'Published quiz assignment, schedule, duration, marks, and lifecycle status are immutable.',
+                ]);
+            }
+
+            $validated = $request->validate([
+                'title' => ['required', 'string', 'max:255'],
+                'description' => ['required', 'string'],
+            ]);
+
+            $quiz->update($validated);
+
+            return redirect()->route('quizzes.index')
+                ->with('success', 'Quiz metadata updated successfully.');
+        }
+
         $request->validate([
-    'category_id' => 'required|exists:quiz_categories,id',
-    'group_id' => 'required|exists:groups,id',
-    'title' => 'required|string|max:255',
-    'description' => 'required|string',
-    'duration' => 'required|integer|min:1',
-    'participation_marks' => 'required|integer|min:0',
-    'start_time' => 'required|date',
-    'end_time' => 'required|date|after:start_time',
-    'status' => 'required|in:Draft,Scheduled,Active,Closed',
-]);
+            'category_id' => 'required|exists:quiz_categories,id',
+            'group_id' => 'required|exists:groups,id',
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'duration' => 'required|integer|min:1',
+            'participation_marks' => 'required|integer|min:0',
+            'start_time' => 'required|date',
+            'end_time' => 'required|date|after:start_time',
+        ]);
+
+        $group = Group::findOrFail($request->integer('group_id'));
+        $this->authorize('create', [Quiz::class, $group]);
+
+        if ($request->integer('category_id') !== (int) $quiz->category_id) {
+            $category = QuizCategory::findOrFail($request->integer('category_id'));
+            $this->authorize('assign', $category);
+        }
 
         $quiz->update($request->only([
-    'category_id',
-    'group_id',
-    'title',
-    'description',
-    'duration',
-    'participation_marks',
-    'start_time',
-    'end_time',
-    'status',
-]));
+            'category_id',
+            'group_id',
+            'title',
+            'description',
+            'duration',
+            'participation_marks',
+            'start_time',
+            'end_time',
+        ]));
 
         return redirect()->route('quizzes.index')
             ->with('success', 'Quiz updated successfully.');
     }
 
     public function publish(Quiz $quiz)
-{
-    if ($quiz->questions()->count() == 0) {
-        return back()->withErrors([
-            'quiz' => 'Please add at least one question before publishing the quiz.'
-        ]);
-    }
+    {
+        $this->authorize('publish', $quiz);
 
-    if ($quiz->status === 'Active') {
-        return back()->with('success', 'Quiz is already published.');
-    }
+        $errors = $quiz->publicationErrors();
 
-    $quiz->update([
-        'status' => 'Active'
-    ]);
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
 
-    $students = \App\Models\User::where('role', 'student')
-        ->whereHas('groups', function ($query) use ($quiz) {
-            $query->where('groups.id', $quiz->group_id);
-        })
-        ->get();
+        if ($quiz->isPublished()) {
+            $this->notifications->notifyPublishedQuiz($quiz);
 
-    foreach ($students as $student) {
+            return back()->with('success', 'Quiz is already published.');
+        }
 
-        \App\Models\Notification::create([
-
-            'user_ID' => $student->id,
-
-            'Notification_Type' => 'Quiz',
-
-            'Notification_Title' => 'New Quiz Available',
-
-            'Message' => 'A new quiz "' . $quiz->title . '" is scheduled for '
-                . $quiz->start_time->format('d M Y H:i')
-                . ' and closes on '
-                . $quiz->end_time->format('d M Y H:i') . '.',
-
-            'Is_Read' => false,
-
-            'Post_ID' => null,
-
-            'quiz_id' => $quiz->id,
-
-            'expires_at' => $quiz->end_time,
-
+        $quiz->update([
+            'status' => now()->lt($quiz->start_time)
+                ? Quiz::STATUS_SCHEDULED
+                : Quiz::STATUS_ACTIVE,
         ]);
 
-    }
+        $this->notifications->notifyPublishedQuiz($quiz->fresh());
 
-    return redirect()->route('quizzes.index')
-        ->with('success', 'Quiz published successfully and all students have been notified.');
-}
+        return redirect()->route('quizzes.index')
+            ->with('success', 'Quiz published successfully and all students have been notified.');
+    }
 
     public function destroy(Quiz $quiz)
     {
+        $this->authorize('delete', $quiz);
+
+        if (! $quiz->canBeDeleted()) {
+            return back()->withErrors([
+                'quiz' => 'Published quizzes or quizzes with attempts/results cannot be deleted.',
+            ]);
+        }
+
         $quiz->delete();
 
         return redirect()->route('quizzes.index')
             ->with('success', 'Quiz deleted successfully.');
+    }
+
+    private function manageableGroups()
+    {
+        $user = auth()->user();
+
+        return $user->isAdmin()
+            ? Group::orderBy('Group_Name')->get()
+            : $user->teachableGroups()->orderBy('Group_Name')->get();
+    }
+
+    private function manageableCategories(?Quiz $quiz = null)
+    {
+        $user = auth()->user();
+        $query = QuizCategory::manageableBy($user);
+
+        if (! $user->isAdmin() && $quiz !== null) {
+            $query->orWhere('id', $quiz->category_id);
+        }
+
+        return $query->orderBy('category_name')->get();
     }
 }

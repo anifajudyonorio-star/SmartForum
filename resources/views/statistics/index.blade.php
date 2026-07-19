@@ -5,12 +5,16 @@
 <div class="container-fluid px-0">
 
     <h2 class="stats-page-title fly-in">
-        @if(auth()->user()->isAdmin())
+        @if(!empty($isSystemScope) && $isSystemScope)
             Forum Statistics
         @else
             My Group Statistics
         @endif
     </h2>
+
+    @if(empty($isSystemScope) || ! $isSystemScope)
+        <p class="text-muted small mb-3">Showing statistics only for groups you administer as group admin.</p>
+    @endif
 
     <div class="card mb-3 fly-in">
         <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
@@ -100,7 +104,7 @@
         <div class="col-6 col-md-3">
             <div class="stat-card fly-in fly-in-delay-4">
                 <div class="stat-card-icon"><i class="bi bi-person-fill"></i></div>
-                <p class="stat-label">Total Users</p>
+                <p class="stat-label">{{ !empty($isSystemScope) && $isSystemScope ? 'Total Users' : 'Total Members' }}</p>
                 <p class="stat-number">{{ $totalUsers }}</p>
             </div>
         </div>

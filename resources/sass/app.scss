@@ -2,10 +2,10 @@
 @use 'variables' as *;
 
 // Bootstrap
-@use 'bootstrap' as *;
+@use 'bootstrap/scss/bootstrap' as *;
 
 // Fonts
-@import url('https://fonts.bunny.net/css?family=Nunito');
+@import url('https://fonts.bunny.net/css?family=Nunito:400,500,600,700');
 
 
 // Custom theme & components

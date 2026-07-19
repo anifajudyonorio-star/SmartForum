@@ -51,6 +51,12 @@
 
     <form id="quizForm" method="POST" action="{{ route('student.quiz.submit', $quiz) }}">
         @csrf
+        <input type="hidden" name="attempt_id" value="{{ $attempt->id }}">
+
+        <div class="alert alert-info py-2">
+            Offline submissions are accepted only when synchronized before the server-stored attempt deadline.
+            If synchronization happens later, queued answer changes are ignored and the attempt is auto-submitted.
+        </div>
 
         @foreach($quiz->questions as $question)
             <div class="card shadow-sm mb-3 fly-in">
@@ -62,7 +68,7 @@
                     @forelse($question->options as $option)
                         <div class="form-check mb-2 py-1">
                             <input class="form-check-input" type="radio"
-                                   name="question_{{ $question->id }}"
+                                   name="answers[{{ $question->id }}]"
                                    id="q{{ $question->id }}_o{{ $option->id }}"
                                    value="{{ $option->id }}" required>
                             <label class="form-check-label" for="q{{ $question->id }}_o{{ $option->id }}">
@@ -108,7 +114,8 @@ const countdown = setInterval(function () {
     if (timeLeft <= 0) {
         clearInterval(countdown);
         timer.innerHTML = 'Submitting...';
-        form.submit();
+        form.noValidate = true;
+        form.requestSubmit();
     }
 
     timeLeft--;

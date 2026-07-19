@@ -110,9 +110,9 @@
             @if(($search ?? '') !== '')
                 <p class="text-muted small mb-2">No topics matched your search.</p>
                 <a href="{{ route('topics.search') }}" class="btn btn-outline-primary btn-sm">Clear search</a>
-            @elseif(auth()->user()->groups()->count() === 0 && ! auth()->user()->isAdmin())
-                <p class="text-muted small mb-2">Ask an admin to assign you to a group before searching its topics.</p>
-                <a href="{{ route('groups.index') }}" class="btn btn-primary btn-sm">Explore Groups</a>
+            @elseif(auth()->user()->viewableGroupIds()->isEmpty())
+                <p class="text-muted small mb-2">Join a group to start searching its topics.</p>
+                <a href="{{ route('groups.explore') }}" class="btn btn-primary btn-sm">Explore Groups</a>
             @else
                 <p class="text-muted small mb-0">No topics found in your groups yet.</p>
             @endif

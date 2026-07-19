@@ -12,29 +12,29 @@
         <div class="col-6 col-md-3">
             <div class="stat-card stat-card-compact fly-in fly-in-delay-1">
                 <div class="stat-card-icon"><i class="bi bi-bar-chart-fill"></i></div>
-                <p class="stat-label">Average Score</p>
-                <p class="stat-number">{{ $averageScore }}</p>
+                <p class="stat-label">Average Percentage</p>
+                <p class="stat-number">{{ $averagePercentage !== null ? $averagePercentage.'%' : '—' }}</p>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card stat-card-compact fly-in fly-in-delay-2">
                 <div class="stat-card-icon"><i class="bi bi-trophy-fill"></i></div>
-                <p class="stat-label">Highest Score</p>
-                <p class="stat-number">{{ $highestScore ?? '—' }}</p>
+                <p class="stat-label">Highest Percentage</p>
+                <p class="stat-number">{{ $highestPercentage !== null ? $highestPercentage.'%' : '—' }}</p>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card stat-card-compact fly-in fly-in-delay-3">
                 <div class="stat-card-icon"><i class="bi bi-arrow-down-circle-fill"></i></div>
-                <p class="stat-label">Lowest Score</p>
-                <p class="stat-number">{{ $lowestScore ?? '—' }}</p>
+                <p class="stat-label">Pass Rate</p>
+                <p class="stat-number">{{ $passRate !== null ? $passRate.'%' : '—' }}</p>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card stat-card-compact fly-in fly-in-delay-4">
                 <div class="stat-card-icon"><i class="bi bi-people-fill"></i></div>
-                <p class="stat-label">Total Attempts</p>
-                <p class="stat-number">{{ $totalAttempts }}</p>
+                <p class="stat-label">Comparable Attempts</p>
+                <p class="stat-number">{{ $comparableAttempts }} / {{ $totalAttempts }}</p>
             </div>
         </div>
     </div>
@@ -52,7 +52,8 @@
                             <th>Quiz</th>
                             <th>Quiz Score</th>
                             <th>Participation</th>
-                            <th class="pe-3">Total</th>
+                            <th>Status</th>
+                            <th class="pe-3">Final Result</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -62,11 +63,19 @@
                                 <td class="small">{{ $result->quiz->title ?? '—' }}</td>
                                 <td class="small">{{ $result->score }}</td>
                                 <td class="small">{{ $result->participation_marks }}</td>
-                                <td class="pe-3"><span class="badge bg-primary">{{ $result->total_score }}</span></td>
+                                <td class="small">{{ $result->submissionStatus() }}</td>
+                                <td class="pe-3">
+                                    <span class="badge bg-primary">
+                                        {{ $result->total_score }} / {{ $result->maximum_total_score ?? 'snapshot unavailable' }}
+                                        @if($result->finalPercentage() !== null)
+                                            ({{ $result->finalPercentage() }}%)
+                                        @endif
+                                    </span>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-3 small">No quiz results found.</td>
+                                <td colspan="6" class="text-center text-muted py-3 small">No quiz results found.</td>
                             </tr>
                         @endforelse
                     </tbody>

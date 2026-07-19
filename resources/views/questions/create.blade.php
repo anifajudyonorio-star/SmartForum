@@ -39,7 +39,6 @@
                     <select name="question_type" id="question_type" class="form-select">
                         <option value="Multiple Choice" @selected(old('question_type') === 'Multiple Choice')>Multiple Choice</option>
                         <option value="True/False" @selected(old('question_type') === 'True/False')>True / False</option>
-                        <option value="Short Answer" @selected(old('question_type') === 'Short Answer')>Short Answer</option>
                     </select>
                 </div>
 
@@ -75,11 +74,30 @@
 @push('scripts')
 <script>
 document.getElementById('question_type').addEventListener('change', function () {
-    const showOptions = ['Multiple Choice', 'True/False'].includes(this.value);
-    document.getElementById('options-block').style.display = showOptions ? 'block' : 'none';
-    document.querySelectorAll('#options-block input[type="radio"], #options-block input[type="text"]').forEach(el => {
-        el.required = showOptions && el.type === 'radio' ? true : showOptions;
-    });
+    syncQuestionOptions(this.value);
 });
+
+function syncQuestionOptions(type) {
+    const trueFalse = type === 'True/False';
+    const rows = document.querySelectorAll('#options-block .input-group');
+
+    rows.forEach((row, index) => {
+        const radio = row.querySelector('input[type="radio"]');
+        const text = row.querySelector('input[type="text"]');
+        const enabled = !trueFalse || index < 2;
+
+        row.classList.toggle('d-none', !enabled);
+        radio.disabled = !enabled;
+        text.disabled = !enabled;
+        text.required = enabled;
+        text.readOnly = trueFalse && enabled;
+
+        if (trueFalse && enabled) {
+            text.value = index === 0 ? 'True' : 'False';
+        }
+    });
+}
+
+syncQuestionOptions(document.getElementById('question_type').value);
 </script>
 @endpush

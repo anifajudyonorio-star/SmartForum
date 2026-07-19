@@ -31,13 +31,7 @@ class AuthApiController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user'  => [
-                'id'    => $user->id,
-                'Fname' => $user->Fname,
-                'Lname' => $user->Lname,
-                'email' => $user->email,
-                'role'  => $user->role,
-            ],
+            'user'  => $this->formatUser($user),
         ]);
     }
 
@@ -67,13 +61,22 @@ class AuthApiController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user'  => [
-                'id'    => $user->id,
-                'Fname' => $user->Fname,
-                'Lname' => $user->Lname,
-                'email' => $user->email,
-                'role'  => $user->role,
-            ],
+            'user'  => $this->formatUser($user),
         ], 201);
+    }
+
+    private function formatUser(User $user): array
+    {
+        return [
+            'id'    => $user->id,
+            'Fname' => $user->Fname,
+            'Lname' => $user->Lname,
+            'email' => $user->email,
+            'role'  => $user->role,
+            'can_view_statistics' => $user->canViewStatistics(),
+            'can_view_participation' => $user->canViewParticipation(),
+            'administers_groups' => $user->administeredGroups()->exists(),
+            'administered_groups_count' => $user->administeredGroups()->count(),
+        ];
     }
 }

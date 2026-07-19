@@ -8,7 +8,8 @@
     ];
 
     if ($user && $user->isStudent()) {
-        $navItems[] = ['route' => 'student.quizzes', 'match' => 'student.*', 'label' => 'Quizzes', 'icon' => 'bi-patch-question-fill'];
+        $navItems[] = ['route' => 'student.quizzes', 'match' => 'student.quizzes', 'label' => 'Quizzes', 'icon' => 'bi-patch-question-fill'];
+        $navItems[] = ['route' => 'student.quizzes.progress', 'match' => 'student.quizzes.progress', 'label' => 'Quiz Progress', 'icon' => 'bi-graph-up-arrow'];
     }
 
     $showGroupAdminTools = $user && $user->canViewStatistics();

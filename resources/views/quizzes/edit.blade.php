@@ -4,6 +4,12 @@
 <div class="container">
     <h2 class="mb-4">Edit Quiz</h2>
 
+    @if(!$quiz->isDraft() || $quiz->hasAssessmentActivity())
+        <div class="alert alert-info">
+            Published assessment settings are locked. Only the title and description can be updated.
+        </div>
+    @endif
+
     @if($errors->any())
         <div class="alert alert-danger">
             <ul class="mb-0">
@@ -22,7 +28,7 @@
 
                 <div class="mb-3">
                     <label class="form-label">Select Quiz Title</label>
-                    <select name="category_id" class="form-select" required>
+                    <select name="category_id" class="form-select" required @disabled(!$quiz->isDraft() || $quiz->hasAssessmentActivity())>
                         @foreach($categories as $category)
                             <option value="{{ $category->id }}" @selected(old('category_id', $quiz->category_id) == $category->id)>
                                 {{ $category->category_name }}
@@ -33,7 +39,7 @@
 
                 <div class="mb-3">
                     <label class="form-label">Assign To Group</label>
-                    <select name="group_id" class="form-select" required>
+                    <select name="group_id" class="form-select" required @disabled(!$quiz->isDraft() || $quiz->hasAssessmentActivity())>
                         @foreach($groups as $group)
                             <option value="{{ $group->id }}" @selected(old('group_id', $quiz->group_id) == $group->id)>
                                 {{ $group->Group_Name }}
@@ -54,7 +60,8 @@
 
                 <div class="mb-3">
                     <label class="form-label">Duration (minutes)</label>
-                    <input type="number" name="duration" class="form-control" value="{{ old('duration', $quiz->duration) }}" min="1" required>
+                    <input type="number" name="duration" class="form-control" value="{{ old('duration', $quiz->duration) }}" min="1" required
+                           @disabled(!$quiz->isDraft() || $quiz->hasAssessmentActivity())>
                 </div>
                 <div class="mb-3">
                       <label class="form-label">Participation Marks</label>
@@ -65,29 +72,29 @@
                         class="form-control"
                    value="{{ old('participation_marks',$quiz->participation_marks) }}"
         min="0"
-        required>
+        required
+        @disabled(!$quiz->isDraft() || $quiz->hasAssessmentActivity())>
 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Start Time</label>
                         <input type="datetime-local" name="start_time" class="form-control"
-                               value="{{ old('start_time', $quiz->start_time?->format('Y-m-d\TH:i')) }}" required>
+                               value="{{ old('start_time', $quiz->start_time?->format('Y-m-d\TH:i')) }}" required
+                               @disabled(!$quiz->isDraft() || $quiz->hasAssessmentActivity())>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">End Time</label>
                         <input type="datetime-local" name="end_time" class="form-control"
-                               value="{{ old('end_time', $quiz->end_time?->format('Y-m-d\TH:i')) }}" required>
+                               value="{{ old('end_time', $quiz->end_time?->format('Y-m-d\TH:i')) }}" required
+                               @disabled(!$quiz->isDraft() || $quiz->hasAssessmentActivity())>
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Status</label>
-                    <select name="status" class="form-select" required>
-                        @foreach(['Draft', 'Scheduled', 'Active', 'Closed'] as $status)
-                            <option value="{{ $status }}" @selected(old('status', $quiz->status) === $status)>{{ $status }}</option>
-                        @endforeach
-                    </select>
+                    <input type="text" class="form-control" value="{{ $quiz->lifecycleStatus() }}" disabled>
+                    <div class="form-text">Status is derived from publication state and the configured schedule.</div>
                 </div>
 
                 <button type="submit" class="btn btn-success">Update Quiz</button>
