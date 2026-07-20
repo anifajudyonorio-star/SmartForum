@@ -5,8 +5,6 @@
 .topic-panel { -fx-background-color: #166534; }
 .topic-panel-header { -fx-background-color: #14532d; -fx-padding: 14 12 14 12; }
 .panel-title { -fx-text-fill: white; -fx-font-size: 15px; -fx-font-weight: bold; }
-.status-online { -fx-text-fill: #4ade80; -fx-font-size: 11px; }
-.status-offline { -fx-text-fill: #f87171; -fx-font-size: 11px; }
 
 .network-btn-online {
     -fx-background-color: rgba(74,222,128,0.18);
@@ -51,7 +49,7 @@
 .chat-panel { -fx-background-color: #e5ddd5; }
 .chat-header {
     -fx-background-color: #166534;
-    -fx-padding: 12 16 12 16;
+    -fx-padding: 10 16 10 16;
     -fx-min-height: 52px;
 }
 .chat-title { -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; }
@@ -62,6 +60,76 @@
     -fx-padding: 3 8 3 8;
     -fx-background-radius: 999;
 }
+
+/* ── User dropdown trigger (navbar) ── */
+.user-trigger {
+    -fx-background-color: rgba(255,255,255,0.1);
+    -fx-background-radius: 8;
+    -fx-padding: 5 10 5 10;
+    -fx-cursor: hand;
+}
+.user-trigger:hover { -fx-background-color: rgba(255,255,255,0.18); }
+
+.nav-avatar {
+    -fx-background-color: #15803d;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-min-width: 30px;
+    -fx-min-height: 30px;
+    -fx-max-width: 30px;
+    -fx-max-height: 30px;
+    -fx-background-radius: 50%;
+    -fx-alignment: CENTER;
+}
+.nav-username {
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+/* ── User dropdown menu ── */
+.user-menu {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 12, 0, 0, 4);
+    -fx-padding: 0;
+    -fx-spacing: 0;
+}
+.user-menu-header {
+    -fx-padding: 12 16 12 16;
+    -fx-spacing: 3;
+    -fx-border-color: transparent transparent #e5e7eb transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.menu-name {
+    -fx-text-fill: #111827;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+.menu-email {
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 11px;
+}
+.menu-role-badge {
+    -fx-background-color: #dcfce7;
+    -fx-text-fill: #166534;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 8 2 8;
+    -fx-background-radius: 999;
+}
+.menu-logout-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #ef4444;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 16 10 16;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER_LEFT;
+    -fx-background-radius: 0 0 8 8;
+}
+.menu-logout-btn:hover { -fx-background-color: #fef2f2; }
 
 /* ── Messages ── */
 .messages-scroll { -fx-background-color: transparent; -fx-background: transparent; }

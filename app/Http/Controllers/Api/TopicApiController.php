@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Group;
 use App\Models\Topic;
+use App\Models\TopicView;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -63,6 +64,19 @@ class TopicApiController extends Controller
         $topic->load('user')->loadCount('posts');
 
         return response()->json(['topic' => $this->formatTopic($topic)], 201);
+    }
+
+    public function view(Topic $topic)
+    {
+        abort_unless(Auth::user()->canViewGroup($topic->group), 403);
+
+        TopicView::create([
+            'user_id' => Auth::id(),
+            'topic_id' => $topic->id,
+            'viewed_at' => now(),
+        ]);
+
+        return response()->json(['success' => true]);
     }
 
     public function search(Request $request)

@@ -30,7 +30,23 @@
                 <Label fx:id="topicTitleLabel" text="Select a topic" styleClass="chat-title"/>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label fx:id="syncStatusLabel" text="" styleClass="sync-badge"/>
+                <!-- User dropdown trigger -->
+                <HBox fx:id="userDropdownTrigger" styleClass="user-trigger" alignment="CENTER" spacing="8" onMouseClicked="#toggleUserMenu">
+                    <Label fx:id="navAvatarLabel" text="U" styleClass="nav-avatar"/>
+                    <Label fx:id="navNameLabel" text="" styleClass="nav-username"/>
+                    <Label text="▾" style="-fx-text-fill: rgba(255,255,255,0.7); -fx-font-size: 10;"/>
+                </HBox>
             </HBox>
+
+            <!-- User dropdown menu (hidden by default) -->
+            <VBox fx:id="userMenu" visible="false" managed="false" styleClass="user-menu">
+                <VBox styleClass="user-menu-header">
+                    <Label fx:id="menuNameLabel" text="" styleClass="menu-name"/>
+                    <Label fx:id="menuEmailLabel" text="" styleClass="menu-email"/>
+                    <Label fx:id="menuRoleLabel" text="" styleClass="menu-role-badge"/>
+                </VBox>
+                <Button text="⏻  Logout" onAction="#handleLogout" maxWidth="Infinity" styleClass="menu-logout-btn"/>
+            </VBox>
 
             <!-- Messages -->
             <ScrollPane fx:id="scrollPane" VBox.vgrow="ALWAYS" fitToWidth="true"

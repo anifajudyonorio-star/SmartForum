@@ -11,6 +11,7 @@ use App\Models\Quiz;
 use App\Models\SyncLog;
 use App\Models\SyncQueue;
 use App\Models\Topic;
+use App\Models\TopicView;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -72,7 +73,7 @@ class SyncService
             'actions.*.action_uuid' => ['required', 'uuid'],
             'actions.*.action_type' => [
                 'required',
-                Rule::in(['create_post', 'create_topic', 'submit_quiz']),
+                Rule::in(['create_post', 'create_topic', 'submit_quiz', 'view_topic']),
             ],
             'actions.*.payload' => ['required', 'array'],
         ]);

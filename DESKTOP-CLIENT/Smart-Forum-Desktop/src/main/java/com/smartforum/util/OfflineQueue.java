@@ -12,6 +12,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class OfflineQueue {
     private static final Path QUEUE_FILE = Paths.get(System.getProperty("user.home"), ".smartforum_queue.json");
@@ -22,13 +23,15 @@ public class OfflineQueue {
     public static class QueueEntry {
         public String actionType;
         public JsonObject payload;
+        public String actionUuid;
         public String pendingId;
         public long queuedAt;
 
         public QueueEntry(String actionType, JsonObject payload) {
             this.actionType = actionType;
             this.payload = payload;
-            this.pendingId = "p-" + System.currentTimeMillis();
+            this.actionUuid = UUID.randomUUID().toString();
+            this.pendingId = this.actionUuid;
             this.queuedAt = System.currentTimeMillis();
         }
     }
@@ -39,7 +42,20 @@ public class OfflineQueue {
             String json = Files.readString(QUEUE_FILE);
             Type type = new TypeToken<List<QueueEntry>>() {}.getType();
             List<QueueEntry> list = GSON.fromJson(json, type);
-            return list != null ? list : new ArrayList<>();
+            if (list == null) {
+                return new ArrayList<>();
+            }
+            for (QueueEntry entry : list) {
+                if (entry.actionUuid == null || entry.actionUuid.isBlank()) {
+                    entry.actionUuid = entry.pendingId != null && !entry.pendingId.isBlank()
+                            ? entry.pendingId
+                            : UUID.randomUUID().toString();
+                }
+                if (entry.pendingId == null || entry.pendingId.isBlank()) {
+                    entry.pendingId = entry.actionUuid;
+                }
+            }
+            return list;
         } catch (IOException e) {
             return new ArrayList<>();
         }
@@ -86,6 +102,7 @@ public class OfflineQueue {
                 JsonArray actions = new JsonArray();
                 for (QueueEntry e : queue) {
                     JsonObject action = new JsonObject();
+                    action.addProperty("action_uuid", e.actionUuid);
                     action.addProperty("action_type", e.actionType);
                     action.add("payload", e.payload);
                     actions.add(action);
