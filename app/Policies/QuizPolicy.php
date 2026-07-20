@@ -72,7 +72,9 @@ class QuizPolicy
             && $quiz->group_id !== null
             && $quiz->group !== null
             && $quiz->group->isActive()
-            && $quiz->group->isActiveMember($user->id);
+            && $quiz->group->isActiveMember($user->id)
+            && $quiz->category_id !== null
+            && $user->isEnrolledInCategory((int) $quiz->category_id);
     }
 
     public function viewPublicReport(User $user, Quiz $quiz): bool

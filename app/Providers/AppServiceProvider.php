@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Models\Question;
 use App\Models\Quiz;
+use App\Models\QuizAnnouncement;
 use App\Models\QuizCategory;
 use App\Policies\QuestionPolicy;
+use App\Policies\QuizAnnouncementPolicy;
 use App\Policies\QuizCategoryPolicy;
 use App\Policies\QuizPolicy;
 use Illuminate\Support\Facades\Event;
@@ -33,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Quiz::class, QuizPolicy::class);
         Gate::policy(Question::class, QuestionPolicy::class);
         Gate::policy(QuizCategory::class, QuizCategoryPolicy::class);
+        Gate::policy(QuizAnnouncement::class, QuizAnnouncementPolicy::class);
 
         Event::listen(SocialiteWasCalled::class, AppleExtendSocialite::class.'@handle');
 

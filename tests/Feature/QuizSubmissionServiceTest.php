@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CategoryStudent;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Question;
@@ -252,6 +253,10 @@ class QuizSubmissionServiceTest extends TestCase
         $group->members()->attach($student->id, [
             'Member_Status' => GroupMember::STATUS_ACTIVE,
             'Member_Role' => GroupMember::ROLE_MEMBER,
+        ]);
+        CategoryStudent::create([
+            'category_id' => $category->id,
+            'user_id' => $student->id,
         ]);
         $quiz = Quiz::create([
             'category_id' => $category->id,

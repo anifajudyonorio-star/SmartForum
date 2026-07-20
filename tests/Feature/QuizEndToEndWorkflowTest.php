@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CategoryStudent;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Question;
@@ -42,6 +43,10 @@ class QuizEndToEndWorkflowTest extends TestCase
         $category = QuizCategory::create([
             'category_name' => 'End-to-End Category',
             'created_by' => $lecturer->id,
+        ]);
+        CategoryStudent::create([
+            'category_id' => $category->id,
+            'user_id' => $student->id,
         ]);
         $start = now()->subMinute();
         $end = now()->addHour();

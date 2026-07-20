@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CategoryStudent;
 use App\Models\Quiz;
+use App\Models\QuizAttempt;
+use App\Models\QuizCategory;
 use App\Models\QuizResult;
 use App\Services\QuizSubmissionService;
 use Carbon\CarbonImmutable;
@@ -16,10 +19,16 @@ class StudentQuizController extends Controller
     {
         $this->authorize('viewAvailable', Quiz::class);
 
+        $user = auth()->user();
+        $enrolledCategory = $user->enrolledCategory();
+        $availableCategories = QuizCategory::query()
+            ->orderBy('category_name')
+            ->get();
+
         $quizzes = Quiz::withCount('questions')
             ->withSum('questions', 'marks')
             ->with(['group', 'questions.options'])
-            ->accessibleToStudent(auth()->user())
+            ->accessibleToStudent($user)
             ->where('end_time', '>=', now())
             ->whereHas('questions')
             ->orderBy('start_time')
@@ -30,7 +39,74 @@ class StudentQuizController extends Controller
         $completedQuizIds = QuizResult::where('user_id', auth()->id())
             ->pluck('quiz_id');
 
-        return view('student.quizzes.index', compact('quizzes', 'completedQuizIds'));
+        return view('student.quizzes.index', compact(
+            'quizzes',
+            'completedQuizIds',
+            'enrolledCategory',
+            'availableCategories',
+        ));
+    }
+
+    public function enroll(Request $request)
+    {
+        $this->authorize('viewAvailable', Quiz::class);
+
+        $validated = $request->validate([
+            'category_id' => ['required', 'integer', 'exists:quiz_categories,id'],
+        ]);
+
+        $user = auth()->user();
+        if ($user->enrolledCategoryId() !== null) {
+            return redirect()
+                ->route('student.quizzes')
+                ->withErrors(['category_id' => 'You are already enrolled in a quiz title.']);
+        }
+
+        CategoryStudent::create([
+            'category_id' => $validated['category_id'],
+            'user_id' => $user->id,
+        ]);
+
+        $category = QuizCategory::find($validated['category_id']);
+
+        return redirect()
+            ->route('student.quizzes')
+            ->with('success', 'You are now enrolled in '.($category?->category_name ?? 'the selected quiz title').'.');
+    }
+
+    public function unenroll(Request $request)
+    {
+        $this->authorize('viewAvailable', Quiz::class);
+
+        $user = auth()->user();
+        $enrollment = CategoryStudent::where('user_id', $user->id)->first();
+
+        if ($enrollment === null) {
+            return redirect()
+                ->route('student.quizzes')
+                ->withErrors(['category_id' => 'You are not enrolled in any quiz title.']);
+        }
+
+        // Block unenroll while an in-progress attempt exists for that category.
+        $hasOpenAttempt = Quiz::query()
+            ->where('category_id', $enrollment->category_id)
+            ->whereHas('attempts', function ($query) use ($user) {
+                $query->where('user_id', $user->id)
+                    ->where('status', QuizAttempt::STATUS_IN_PROGRESS);
+            })
+            ->exists();
+
+        if ($hasOpenAttempt) {
+            return redirect()
+                ->route('student.quizzes')
+                ->withErrors(['category_id' => 'Finish or wait for your open quiz attempt before unenrolling.']);
+        }
+
+        $enrollment->delete();
+
+        return redirect()
+            ->route('student.quizzes')
+            ->with('success', 'You have been unenrolled from the quiz title.');
     }
 
     public function progress()

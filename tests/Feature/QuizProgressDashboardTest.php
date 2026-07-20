@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CategoryStudent;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Quiz;
@@ -34,10 +35,18 @@ class QuizProgressDashboardTest extends TestCase
         $student = User::factory()->create();
         $peer = User::factory()->create();
         $group = $this->groupWithStudents($student, $peer);
-        $olderQuiz = $this->quiz($student, $group, 'Repeated title');
-        $newerQuiz = $this->quiz($student, $group, 'Repeated title');
-        $legacyQuiz = $this->quiz($student, $group, 'Legacy denominator');
-        $peerQuiz = $this->quiz($student, $group, 'Peer secret quiz');
+        $category = QuizCategory::create([
+            'category_name' => 'Progress Category '.uniqid(),
+            'created_by' => $student->id,
+        ]);
+        CategoryStudent::create([
+            'category_id' => $category->id,
+            'user_id' => $student->id,
+        ]);
+        $olderQuiz = $this->quiz($student, $group, 'Repeated title', $category);
+        $newerQuiz = $this->quiz($student, $group, 'Repeated title', $category);
+        $legacyQuiz = $this->quiz($student, $group, 'Legacy denominator', $category);
+        $peerQuiz = $this->quiz($student, $group, 'Peer secret quiz', $category);
 
         $older = $this->createResult(
             $student,
@@ -174,9 +183,13 @@ class QuizProgressDashboardTest extends TestCase
         return $group;
     }
 
-    private function quiz(User $creator, Group $group, string $title): Quiz
-    {
-        $category = QuizCategory::create([
+    private function quiz(
+        User $creator,
+        Group $group,
+        string $title,
+        ?QuizCategory $category = null,
+    ): Quiz {
+        $category ??= QuizCategory::create([
             'category_name' => 'Progress Category '.uniqid(),
             'created_by' => $creator->id,
         ]);

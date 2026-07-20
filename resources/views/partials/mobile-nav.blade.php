@@ -9,7 +9,7 @@
     if ($user && $user->isStudent()) {
         $items[] = ['route' => 'student.quizzes', 'match' => 'student.*', 'label' => 'Quiz', 'icon' => 'bi-patch-question-fill'];
     } elseif ($user && ($user->isLecturer() || $user->isAdmin())) {
-        $items[] = ['route' => 'quizzes.index', 'match' => 'quizzes.*|quiz-categories.*|questions.*', 'label' => 'Quiz', 'icon' => 'bi-patch-question-fill'];
+        $items[] = ['route' => 'quizzes.index', 'match' => 'quizzes.*|quiz-categories.*|questions.*|category-enrollments.*', 'label' => 'Quiz', 'icon' => 'bi-patch-question-fill'];
     }
 @endphp
 

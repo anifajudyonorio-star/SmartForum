@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CategoryStudent;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Question;
@@ -114,6 +115,10 @@ class QuizResultOwnershipTest extends TestCase
             'Member_Status' => GroupMember::STATUS_ACTIVE,
             'Member_Role' => GroupMember::ROLE_MEMBER,
         ]);
+        CategoryStudent::create([
+            'category_id' => $quiz->category_id,
+            'user_id' => $student->id,
+        ]);
         $question = Question::create([
             'quiz_id' => $quiz->id,
             'question' => 'A reportable question',
@@ -205,6 +210,13 @@ class QuizResultOwnershipTest extends TestCase
                 ? GroupMember::ROLE_LECTURER
                 : GroupMember::ROLE_MEMBER,
         ]);
+
+        if ($creator->isStudent()) {
+            CategoryStudent::create([
+                'category_id' => $category->id,
+                'user_id' => $creator->id,
+            ]);
+        }
 
         return Quiz::create([
             'category_id' => $category->id,
