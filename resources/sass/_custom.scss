@@ -303,6 +303,44 @@ h5 { font-size: 1rem; }
     visibility: visible;
 }
 
+// ── Navbar dropdown actions ────────────────────────────────
+.dropdown-item-icon {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #374151;
+    border-radius: 0.4rem;
+    margin: 0 0.35rem;
+
+    i {
+        font-size: 1rem;
+        width: 1.1rem;
+        text-align: center;
+        flex-shrink: 0;
+        color: var(--primary-dark);
+    }
+
+    &:hover, &:focus {
+        background: var(--primary-muted);
+        color: #111827;
+    }
+
+    &.active {
+        background: var(--primary-muted);
+        color: var(--primary-dark);
+        font-weight: 600;
+    }
+}
+
+.dropdown-item-danger {
+    color: #dc2626;
+    i { color: #dc2626; }
+    &:hover, &:focus { background: #fef2f2 !important; color: #b91c1c !important; }
+}
+
 // ── User profile ───────────────────────────────────────────
 .user-profile-trigger {
     display: flex;
