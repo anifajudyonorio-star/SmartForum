@@ -4,6 +4,7 @@ import com.smartforum.service.AppSession;
 import com.smartforum.service.SyncStatusService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -13,6 +14,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.HBox;
 import org.kordamp.ikonli.bootstrapicons.BootstrapIcons;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -46,9 +48,11 @@ public class MainShellController implements ShellNavigator {
     @FXML private Label pendingLabel;
     @FXML private Label offlineBanner;
     @FXML private VBox profileMenu;
+    @FXML private Group profileMenuWrapper;
     @FXML private Label profileMenuName;
     @FXML private Label profileMenuEmail;
     @FXML private Label profileMenuRole;
+    @FXML private HBox profileTrigger;
 
     private GroupController groupController;
     private TopicController topicController;
@@ -78,12 +82,10 @@ public class MainShellController implements ShellNavigator {
 
         // Populate profile menu
         profileMenuName.setText(user.getName());
-        profileMenuEmail.setText(
-            com.smartforum.UserSession.getInstance().getEmail() != null
-            ? com.smartforum.UserSession.getInstance().getEmail() : "");
-        String role = com.smartforum.UserSession.getInstance().getRole();
-        profileMenuRole.setText(role != null
-            ? role.substring(0, 1).toUpperCase() + role.substring(1) : "Student");
+        profileMenuEmail.setText(user.getEmail() != null ? user.getEmail() : "");
+        profileMenuRole.setText(formatRoleLabel(user.getSystemRole()));
+
+        profileMenu.setMaxWidth(260);
 
         SyncStatusService sync = SyncStatusService.getInstance();
         syncStatusLabel.textProperty().bind(sync.statusTextProperty());
@@ -107,40 +109,78 @@ public class MainShellController implements ShellNavigator {
 
     @FXML
     private void toggleProfileMenu() {
-        boolean show = !profileMenu.isVisible();
-        profileMenu.setVisible(show);
-        profileMenu.setManaged(show);
+        boolean show = !profileMenuWrapper.isVisible();
+        profileMenuWrapper.setVisible(show);
+        profileMenuWrapper.setManaged(show);
         if (show) {
-            profileMenu.getScene().addEventFilter(
+            javafx.scene.Scene scene = profileTrigger.getScene();
+            if (scene == null) {
+                return;
+            }
+            scene.addEventFilter(
                 javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
-                    if (!profileMenu.localToScene(profileMenu.getBoundsInLocal()).contains(e.getSceneX(), e.getSceneY())) {
-                        profileMenu.setVisible(false);
-                        profileMenu.setManaged(false);
+                    if (isInsideNode(profileMenu, e.getSceneX(), e.getSceneY())
+                            || isInsideNode(profileTrigger, e.getSceneX(), e.getSceneY())) {
+                        return;
                     }
+                    hideProfileMenu();
                 }
             );
         }
     }
 
+    private void hideProfileMenu() {
+        profileMenuWrapper.setVisible(false);
+        profileMenuWrapper.setManaged(false);
+    }
+
+    private String formatRoleLabel(String role) {
+        if (role == null || role.isBlank()) {
+            return "Student";
+        }
+        return switch (role.toLowerCase()) {
+            case "admin" -> "Super Admin";
+            case "lecturer" -> "Lecturer";
+            case "student" -> "Student";
+            default -> role.substring(0, 1).toUpperCase() + role.substring(1);
+        };
+    }
+
+    private boolean isInsideNode(Node node, double sceneX, double sceneY) {
+        if (node == null || node.getScene() == null) {
+            return false;
+        }
+        return node.localToScene(node.getBoundsInLocal()).contains(sceneX, sceneY);
+    }
+
     @FXML
     private void handleProfile() {
-        profileMenu.setVisible(false);
-        profileMenu.setManaged(false);
-        // Show profile info in an alert (can be replaced with a profile view later)
+        hideProfileMenu();
+        navigateWithBack(this::showProfileInternal);
+    }
+
+    private void showProfileInternal() {
+        loadView("profile.fxml", null, controller -> {
+            if (controller instanceof ProfileController profile) {
+                profile.setOnUserUpdated(this::refreshUserDisplay);
+                profile.setOnAccountDeleted(this::handleLogout);
+            }
+        });
+        pageTitleLabel.setText("Profile");
+    }
+
+    private void refreshUserDisplay() {
         var user = AppSession.getInstance().getCurrentUser();
-        String role = com.smartforum.UserSession.getInstance().getRole();
-        String email = com.smartforum.UserSession.getInstance().getEmail();
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Profile");
-        alert.setHeaderText(user.getName());
-        alert.setContentText("Email: " + email + "\nRole: " + (role != null ? role : "student"));
-        alert.showAndWait();
+        topBarUserLabel.setText(user.getName());
+        topBarUserAvatar.setText(user.getInitials());
+        profileMenuName.setText(user.getName());
+        profileMenuEmail.setText(user.getEmail() != null ? user.getEmail() : "");
+        profileMenuRole.setText(formatRoleLabel(user.getSystemRole()));
     }
 
     @FXML
     private void handleLogout() {
-        profileMenu.setVisible(false);
-        profileMenu.setManaged(false);
+        hideProfileMenu();
         SyncStatusService.getInstance().stop();
         com.smartforum.util.SessionManager.getInstance().clear();
         com.smartforum.UserSession.getInstance().clear();
