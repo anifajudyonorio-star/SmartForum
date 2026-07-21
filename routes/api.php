@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\GroupApiController;
 use App\Http\Controllers\Api\NotificationApiController;
 use App\Http\Controllers\Api\ParticipationApiController;
 use App\Http\Controllers\Api\PostApiController;
+use App\Http\Controllers\Api\ProfileApiController;
 use App\Http\Controllers\Api\StatisticsApiController;
 use App\Http\Controllers\Api\TopicApiController;
 use App\Http\Controllers\SyncController;
@@ -80,6 +81,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/notifications/{id}/read', [NotificationApiController::class, 'markAsRead']);
 
     Route::get('/recommendations', [RecommendationController::class, 'index']);
+
+    Route::patch('/profile', [ProfileApiController::class, 'update']);
+    Route::put('/profile/password', [ProfileApiController::class, 'updatePassword']);
+    Route::delete('/profile', [ProfileApiController::class, 'destroy']);
 });
 
 Route::prefix('push')->middleware(['auth:sanctum'])->group(function () {

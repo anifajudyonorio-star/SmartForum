@@ -254,6 +254,7 @@ class SyncService
             'create_post' => $this->processCreatePost($action),
             'create_topic' => $this->processCreateTopic($action),
             'submit_quiz' => $this->processSubmitQuiz($action),
+            'view_topic' => $this->processViewTopic($action),
             default => throw new \InvalidArgumentException("Unknown action type: {$action->action_type}"),
         };
     }
@@ -322,6 +323,35 @@ class SyncService
             'Group_ID'          => $groupId,
             'Created_By'        => $action->user_id,
         ]);
+    }
+
+    private function processViewTopic(SyncQueue $action): void
+    {
+        $topicId = (int) ($action->payload['topic_id'] ?? 0);
+        if ($topicId <= 0) {
+            throw new ConflictException('Invalid topic view payload.');
+        }
+
+        $topic = Topic::find($topicId);
+        if (! $topic) {
+            throw new ConflictException('The topic no longer exists.');
+        }
+
+        $isMember = GroupMember::where('Group_ID', $topic->Group_ID)
+            ->where('User_ID', $action->user_id)
+            ->exists();
+
+        if (! $isMember) {
+            throw new ConflictException('You are no longer a member of this group.');
+        }
+
+        TopicView::updateOrCreate(
+            [
+                'user_id' => $action->user_id,
+                'topic_id' => $topicId,
+            ],
+            ['viewed_at' => now()],
+        );
     }
 
     public function status(Request $request)
@@ -394,6 +424,11 @@ class SyncService
                 'payload.answers' => ['present', 'array', 'max:200'],
                 'payload.answers.*' => ['required', 'integer', 'min:1'],
             ],
+            'view_topic' => [
+                'payload' => ['required', 'array:topic_id'],
+                'payload.topic_id' => ['required', 'integer', 'min:1'],
+            ],
+            default => throw new \InvalidArgumentException("Unknown action type: {$actionType}"),
         };
 
         $validator = Validator::make(['payload' => $payload], $rules);

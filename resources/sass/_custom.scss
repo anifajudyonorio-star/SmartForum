@@ -304,6 +304,49 @@ h5 { font-size: 1rem; }
 }
 
 // ── Navbar dropdown actions ────────────────────────────────
+.dropdown-menu-actions {
+    padding: 0.35rem 0.5rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.dropdown-item-action {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.55rem 0.875rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff !important;
+    background: var(--primary);
+    border-radius: 0.375rem;
+    margin: 0;
+    text-decoration: none;
+    transition: background 0.15s ease;
+
+    i {
+        font-size: 1rem;
+        width: 1.1rem;
+        text-align: center;
+        flex-shrink: 0;
+        color: #fff !important;
+    }
+
+    &:hover, &:focus {
+        background: var(--primary-dark) !important;
+        color: #fff !important;
+
+        i { color: #fff !important; }
+    }
+
+    &.active {
+        background: var(--primary-dark);
+        color: #fff !important;
+        font-weight: 600;
+    }
+}
+
 .dropdown-item-icon {
     display: flex;
     align-items: center;

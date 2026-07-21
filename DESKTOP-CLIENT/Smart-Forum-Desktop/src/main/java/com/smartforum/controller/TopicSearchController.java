@@ -55,7 +55,7 @@ public class TopicSearchController {
 
     @FXML
     private void initialize() {
-        index();
+        // Search runs after the shell wires the navigator.
     }
 
     /** Web: search() initial page */
@@ -85,35 +85,50 @@ public class TopicSearchController {
 
     public void search(String query) {
         currentQuery = query == null ? "" : query.trim();
-        searchField.setText(currentQuery);
-
-        if (!topicService.hasSearchableGroups()) {
-            showNoGroupsState();
-            return;
+        if (searchField != null) {
+            searchField.setText(currentQuery);
         }
 
-        List<TopicSearchResult> results = topicService.searchTopics(currentQuery);
-        resultsGrid.getChildren().clear();
+        try {
+            if (!topicService.hasSearchableGroups()) {
+                showNoGroupsState();
+                return;
+            }
 
-        if (!currentQuery.isEmpty()) {
-            resultsSummaryLabel.setText(results.size() + " result(s) for \"" + currentQuery + "\"");
-            resultsSummaryLabel.setVisible(true);
-            resultsSummaryLabel.setManaged(true);
-        } else {
+            List<TopicSearchResult> results = topicService.searchTopics(currentQuery);
+            resultsGrid.getChildren().clear();
+
+            if (!currentQuery.isEmpty()) {
+                resultsSummaryLabel.setText(results.size() + " result(s) for \"" + currentQuery + "\"");
+                resultsSummaryLabel.setVisible(true);
+                resultsSummaryLabel.setManaged(true);
+            } else {
+                resultsSummaryLabel.setVisible(false);
+                resultsSummaryLabel.setManaged(false);
+            }
+
+            if (results.isEmpty()) {
+                showEmptyResultsState();
+                return;
+            }
+
+            emptyStateBox.setVisible(false);
+            emptyStateBox.setManaged(false);
+
+            for (TopicSearchResult result : results) {
+                resultsGrid.getChildren().add(buildResultCard(result));
+            }
+        } catch (RuntimeException e) {
+            resultsGrid.getChildren().clear();
             resultsSummaryLabel.setVisible(false);
             resultsSummaryLabel.setManaged(false);
-        }
-
-        if (results.isEmpty()) {
-            showEmptyResultsState();
-            return;
-        }
-
-        emptyStateBox.setVisible(false);
-        emptyStateBox.setManaged(false);
-
-        for (TopicSearchResult result : results) {
-            resultsGrid.getChildren().add(buildResultCard(result));
+            emptyStateLabel.setText("Topic search is unavailable right now. Check your connection and try again.");
+            clearSearchBtn.setVisible(false);
+            clearSearchBtn.setManaged(false);
+            exploreGroupsBtn.setVisible(false);
+            exploreGroupsBtn.setManaged(false);
+            emptyStateBox.setVisible(true);
+            emptyStateBox.setManaged(true);
         }
     }
 

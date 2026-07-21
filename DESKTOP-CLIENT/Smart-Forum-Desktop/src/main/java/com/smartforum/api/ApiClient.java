@@ -49,6 +49,13 @@ public class ApiClient {
     }
 
     private static boolean sendJson(String method, String path, JsonObject body) {
+        return mutateJson(method, path, body).success();
+    }
+
+    public record MutationResult(boolean success, int statusCode, String message, JsonObject body) {
+    }
+
+    public static MutationResult mutateJson(String method, String path, JsonObject body) {
         try {
             HttpRequest.Builder req = builder(path);
             HttpRequest.BodyPublisher publisher = body == null
@@ -59,16 +66,76 @@ public class ApiClient {
                 case "POST" -> req.POST(publisher).build();
                 case "PUT" -> req.PUT(publisher).build();
                 case "PATCH" -> req.method("PATCH", publisher).build();
-                case "DELETE" -> req.DELETE().build();
+                case "DELETE" -> body == null
+                        ? req.DELETE().build()
+                        : req.method("DELETE", publisher).build();
                 default -> req.GET().build();
             };
 
             HttpResponse<String> res = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
-            return res.statusCode() >= 200 && res.statusCode() < 300;
+            JsonObject parsed = parseBody(res.body());
+            boolean ok = res.statusCode() >= 200 && res.statusCode() < 300;
+            String message = extractMessage(parsed, ok);
+            return new MutationResult(ok, res.statusCode(), message, parsed);
         } catch (Exception e) {
             e.printStackTrace();
-            return false;
+            JsonObject err = new JsonObject();
+            err.addProperty("message", "Could not reach the server.");
+            return new MutationResult(false, 0, err.get("message").getAsString(), err);
         }
+    }
+
+    private static JsonObject parseBody(String body) {
+        if (body == null || body.isBlank()) {
+            return new JsonObject();
+        }
+        try {
+            return JsonParser.parseString(body).getAsJsonObject();
+        } catch (Exception ignored) {
+            JsonObject fallback = new JsonObject();
+            fallback.addProperty("message", body);
+            return fallback;
+        }
+    }
+
+    private static String extractMessage(JsonObject json, boolean ok) {
+        if (json.has("message")) {
+            return json.get("message").getAsString();
+        }
+        return ok ? "Success" : "Request failed";
+    }
+
+    public static String firstFieldError(JsonObject json, String field) {
+        if (json == null || !json.has("errors") || !json.get("errors").isJsonObject()) {
+            return null;
+        }
+        JsonObject errors = json.getAsJsonObject("errors");
+        if (!errors.has(field) || !errors.get(field).isJsonArray()) {
+            return null;
+        }
+        JsonArray arr = errors.getAsJsonArray(field);
+        return arr.isEmpty() ? null : arr.get(0).getAsString();
+    }
+
+    public static MutationResult updateProfile(String name, String email) {
+        JsonObject body = new JsonObject();
+        body.addProperty("name", name);
+        body.addProperty("email", email);
+        return mutateJson("PATCH", "/api/profile", body);
+    }
+
+    public static MutationResult updatePassword(String currentPassword, String password, String confirmation) {
+        JsonObject body = new JsonObject();
+        body.addProperty("current_password", currentPassword);
+        body.addProperty("password", password);
+        body.addProperty("password_confirmation", confirmation);
+        return mutateJson("PUT", "/api/profile/password", body);
+    }
+
+    public static MutationResult deleteAccount(String password) {
+        JsonObject body = new JsonObject();
+        body.addProperty("password", password);
+        return mutateJson("DELETE", "/api/profile", body);
     }
 
     // ΓöÇΓöÇ Auth ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ

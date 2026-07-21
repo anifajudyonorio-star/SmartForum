@@ -92,17 +92,19 @@ use Illuminate\Support\Facades\Auth;
                                                 @endif
                                             </small>
                                         </div>
-                                        <a class="dropdown-item dropdown-item-icon {{ request()->routeIs('profile.*') ? 'active' : '' }}"
+                                        <div class="dropdown-menu-actions">
+                                        <a class="dropdown-item dropdown-item-action {{ request()->routeIs('profile.*') ? 'active' : '' }}"
                                            href="{{ route('profile.edit') }}">
                                             <i class="bi bi-person-circle"></i>
                                             <span>{{ __('Profile') }}</span>
                                         </a>
-                                        <a class="dropdown-item dropdown-item-icon dropdown-item-danger"
+                                        <a class="dropdown-item dropdown-item-action"
                                            href="{{ route('logout') }}"
                                            onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                                             <i class="bi bi-box-arrow-right"></i>
                                             <span>{{ __('Logout') }}</span>
                                         </a>
+                                        </div>
 
                                         <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                                             @csrf

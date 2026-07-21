@@ -1,10 +1,12 @@
 <?php
 namespace App\Services;
 
-use App\Models\Topic;
 use App\Models\Post;
+use App\Models\Topic;
+use Illuminate\Http\Client\ConnectionException;
 use App\Models\SyncQueue;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class MachineLearningService
 {
@@ -17,13 +19,17 @@ class MachineLearningService
 
     public function classifyTopic($title, $content)
     {
-        $response = Http::post("{$this->baseUrl}/classify", [
-            'title' => $title,
-            'content' => $content,
-        ]);
+        try {
+            $response = Http::timeout(5)->post("{$this->baseUrl}/classify", [
+                'title' => $title,
+                'content' => $content,
+            ]);
 
-        if ($response->successful()) {
-            return $response->json('category');
+            if ($response->successful()) {
+                return $response->json('category');
+            }
+        } catch (ConnectionException $e) {
+            Log::warning('ML classify service unavailable', ['error' => $e->getMessage()]);
         }
 
         return 'unclassified';
@@ -74,15 +80,19 @@ class MachineLearningService
 
         $history = collect($postHistory)->concat($viewHistory)->values()->toArray();
 
-        $response = Http::timeout(5)->post("{$this->baseUrl}/recommend", [
-            'user_id' => $userId,
-            'topics' => $topics,
-            'history' => $history,
-            'limit' => 5,
-        ]);
+        try {
+            $response = Http::timeout(5)->post("{$this->baseUrl}/recommend", [
+                'user_id' => $userId,
+                'topics' => $topics,
+                'history' => $history,
+                'limit' => 5,
+            ]);
 
-        if ($response->successful()) {
-            return $response->json('recommendations', []);
+            if ($response->successful()) {
+                return $response->json('recommendations', []);
+            }
+        } catch (ConnectionException $e) {
+            Log::warning('ML recommendation service unavailable', ['error' => $e->getMessage()]);
         }
 
         return [];

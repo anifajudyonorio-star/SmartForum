@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+            style="-fx-background-color: transparent; -fx-background: transparent;"
+            stylesheets="@../css/app.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.smartforum.controller.ProfileController">
+   <content>
+      <VBox maxWidth="1.7976931348623157E308" spacing="12.0" styleClass="dashboard-content">
+         <VBox spacing="4.0" styleClass="page-header">
+            <Label styleClass="page-title" text="👤  Profile" />
+            <Label styleClass="page-subtitle" text="Manage your account information and security settings." />
+         </VBox>
+
+         <Label fx:id="successBanner" managed="false" styleClass="profile-alert profile-alert-success" visible="false" />
+
+         <GridPane hgap="12.0" maxWidth="1.7976931348623157E308" vgap="12.0">
+            <columnConstraints>
+               <ColumnConstraints hgrow="ALWAYS" minWidth="280.0" percentWidth="50.0" />
+               <ColumnConstraints hgrow="ALWAYS" minWidth="280.0" percentWidth="50.0" />
+            </columnConstraints>
+            <rowConstraints>
+               <RowConstraints minHeight="10.0" vgrow="NEVER" />
+               <RowConstraints minHeight="10.0" vgrow="NEVER" />
+            </rowConstraints>
+
+            <VBox spacing="12.0" styleClass="profile-section" GridPane.columnIndex="0" GridPane.rowIndex="0">
+               <Label styleClass="profile-section-title" text="Profile Information" />
+               <Label styleClass="profile-section-desc" text="Update your name and email address." />
+
+               <VBox spacing="4.0">
+                  <Label styleClass="form-label" text="Name" />
+                  <TextField fx:id="nameField" promptText="Your name" />
+                  <Label fx:id="nameErrorLabel" managed="false" styleClass="profile-field-error" visible="false" />
+               </VBox>
+
+               <VBox spacing="4.0">
+                  <Label styleClass="form-label" text="Email" />
+                  <TextField fx:id="emailField" promptText="you@example.com" />
+                  <Label fx:id="emailErrorLabel" managed="false" styleClass="profile-field-error" visible="false" />
+               </VBox>
+
+               <HBox alignment="CENTER_LEFT" onMouseClicked="#onSaveProfile" styleClass="profile-page-btn" spacing="0">
+                  <Label styleClass="profile-page-btn-label" text="Save Changes" />
+               </HBox>
+            </VBox>
+
+            <VBox spacing="12.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+               <VBox spacing="12.0" styleClass="profile-section">
+                  <Label styleClass="profile-section-title" text="Update Password" />
+                  <Label styleClass="profile-section-desc" text="Use a strong, unique password for your account." />
+
+                  <VBox spacing="4.0">
+                     <Label styleClass="form-label" text="Current Password" />
+                     <PasswordField fx:id="currentPasswordField" />
+                     <Label fx:id="currentPasswordErrorLabel" managed="false" styleClass="profile-field-error" visible="false" />
+                  </VBox>
+
+                  <VBox spacing="4.0">
+                     <Label styleClass="form-label" text="New Password" />
+                     <PasswordField fx:id="newPasswordField" />
+                     <Label fx:id="newPasswordErrorLabel" managed="false" styleClass="profile-field-error" visible="false" />
+                  </VBox>
+
+                  <VBox spacing="4.0">
+                     <Label styleClass="form-label" text="Confirm Password" />
+                     <PasswordField fx:id="confirmPasswordField" />
+                     <Label fx:id="confirmPasswordErrorLabel" managed="false" styleClass="profile-field-error" visible="false" />
+                  </VBox>
+
+                  <HBox alignment="CENTER_LEFT" onMouseClicked="#onUpdatePassword" styleClass="profile-page-btn" spacing="0">
+                     <Label styleClass="profile-page-btn-label" text="Update Password" />
+                  </HBox>
+               </VBox>
+
+               <VBox spacing="12.0" styleClass="profile-section profile-section-danger">
+                  <Label styleClass="profile-section-title profile-section-title-danger" text="Delete Account" />
+                  <Label styleClass="profile-section-desc" text="Permanently delete your account and all associated data." />
+                  <Button mnemonicParsing="false" onAction="#onDeleteAccount" styleClass="btn-outline-danger btn-sm" text="Delete Account" />
+               </VBox>
+            </VBox>
+         </GridPane>
+      </VBox>
+   </content>
+</ScrollPane>
