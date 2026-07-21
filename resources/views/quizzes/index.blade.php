@@ -8,8 +8,10 @@
             <h1 class="page-title"><i class="bi bi-patch-question-fill me-2 text-primary"></i>Manage Quizzes</h1>
             <p class="page-subtitle">Create quiz titles, quizzes, and questions. Publish when ready.</p>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
+            <div class="d-flex gap-2 flex-wrap">
             <a href="{{ route('quiz-categories.index') }}" class="btn btn-outline-secondary btn-sm">Title</a>
+            <a href="{{ route('category-enrollments.index') }}" class="btn btn-outline-secondary btn-sm">Enrollment</a>
+            <a href="{{ route('quiz-announcements.index') }}" class="btn btn-outline-secondary btn-sm">Announcements</a>
             <a href="{{ route('questions.index') }}" class="btn btn-outline-secondary btn-sm">Questions</a>
             <a href="{{ route('quizzes.create') }}" class="btn btn-primary btn-sm">Create Quiz</a>
         </div>

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CategoryStudent;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Question;
@@ -23,7 +24,7 @@ class QuizLifecycleAuthoringTest extends TestCase
         $now = CarbonImmutable::parse('2026-07-17 10:00:00');
         $this->travelTo($now);
         [$lecturer, $group, $category] = $this->authoringContext();
-        $student = $this->studentIn($group);
+        $student = $this->studentIn($group, $category);
         $quiz = $this->quiz($lecturer, $group, $category, [
             'start_time' => $now->addHour(),
             'end_time' => $now->addHours(2),
@@ -54,7 +55,7 @@ class QuizLifecycleAuthoringTest extends TestCase
     public function test_draft_and_closed_quizzes_are_not_student_accessible(): void
     {
         [$lecturer, $group, $category] = $this->authoringContext();
-        $student = $this->studentIn($group);
+        $student = $this->studentIn($group, $category);
         $draft = $this->quiz($lecturer, $group, $category);
         $closed = $this->quiz($lecturer, $group, $category, [
             'status' => Quiz::STATUS_ACTIVE,
@@ -316,13 +317,20 @@ class QuizLifecycleAuthoringTest extends TestCase
         return [$lecturer, $group, $category];
     }
 
-    private function studentIn(Group $group): User
+    private function studentIn(Group $group, ?QuizCategory $category = null): User
     {
         $student = User::factory()->create(['role' => 'student']);
         $group->members()->attach($student->id, [
             'Member_Status' => GroupMember::STATUS_ACTIVE,
             'Member_Role' => GroupMember::ROLE_MEMBER,
         ]);
+
+        if ($category !== null) {
+            CategoryStudent::create([
+                'category_id' => $category->id,
+                'user_id' => $student->id,
+            ]);
+        }
 
         return $student;
     }

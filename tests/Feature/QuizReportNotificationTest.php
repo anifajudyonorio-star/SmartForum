@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CategoryStudent;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Notification;
@@ -25,9 +26,9 @@ class QuizReportNotificationTest extends TestCase
         $first = $this->quiz($lecturer, $group, $category, ended: true);
         $second = $this->quiz($lecturer, $group, $category, ended: true);
         $legacy = $this->quiz($lecturer, $group, $category, ended: true);
-        $firstStudent = $this->studentIn($group, 'First', 'Student');
-        $secondStudent = $this->studentIn($group, 'Second', 'Student');
-        $legacyStudent = $this->studentIn($group, 'Legacy', 'Student');
+        $firstStudent = $this->studentIn($group, 'First', 'Student', $category);
+        $secondStudent = $this->studentIn($group, 'Second', 'Student', $category);
+        $legacyStudent = $this->studentIn($group, 'Legacy', 'Student', $category);
         $this->createResult($first, $firstStudent, total: 5, maximum: 10);
         $this->createResult($second, $secondStudent, total: 9, maximum: 30);
         QuizResult::create([
@@ -53,9 +54,9 @@ class QuizReportNotificationTest extends TestCase
     {
         [$lecturer, $group, $category] = $this->context();
         $quiz = $this->quiz($lecturer, $group, $category, ended: true);
-        $submitted = $this->studentIn($group, 'Submitted', 'Learner');
-        $timedOut = $this->studentIn($group, 'Timed', 'Out');
-        $missing = $this->studentIn($group, 'No', 'Attempt');
+        $submitted = $this->studentIn($group, 'Submitted', 'Learner', $category);
+        $timedOut = $this->studentIn($group, 'Timed', 'Out', $category);
+        $missing = $this->studentIn($group, 'No', 'Attempt', $category);
         $this->createResult($quiz, $submitted, total: 8, maximum: 10);
         $attempt = QuizAttempt::create([
             'quiz_id' => $quiz->id,
@@ -91,12 +92,12 @@ class QuizReportNotificationTest extends TestCase
     {
         [$lecturer, $group, $category] = $this->context();
         $quiz = $this->quiz($lecturer, $group, $category, ended: true);
-        $viewer = $this->studentIn($group, 'Private', 'Viewer');
+        $viewer = $this->studentIn($group, 'Private', 'Viewer', $category);
         $others = collect();
 
         $this->createResult($quiz, $viewer, total: 8, maximum: 10);
         foreach (range(1, 4) as $index) {
-            $student = $this->studentIn($group, "Hidden{$index}", 'Student');
+            $student = $this->studentIn($group, "Hidden{$index}", 'Student', $category);
             $others->push($student);
             $this->createResult($quiz, $student, total: $index + 4, maximum: 10);
         }
@@ -114,7 +115,7 @@ class QuizReportNotificationTest extends TestCase
             $response->assertDontSee($other->email);
         }
 
-        $nonSubmitter = $this->studentIn($group, 'No', 'Submission');
+        $nonSubmitter = $this->studentIn($group, 'No', 'Submission', $category);
         $this->actingAs($nonSubmitter)
             ->get(route('quizzes.report', $quiz))
             ->assertOk()
@@ -136,7 +137,7 @@ class QuizReportNotificationTest extends TestCase
     public function test_publish_notification_has_web_and_api_quiz_navigation_and_is_idempotent(): void
     {
         [$lecturer, $group, $category] = $this->context();
-        $student = $this->studentIn($group, 'Notification', 'Student');
+        $student = $this->studentIn($group, 'Notification', 'Student', $category);
         $suspended = User::factory()->create(['role' => 'student']);
         $group->members()->attach($suspended->id, [
             'Member_Status' => GroupMember::STATUS_SUSPENDED,
@@ -179,7 +180,7 @@ class QuizReportNotificationTest extends TestCase
     public function test_deleted_quiz_nulls_notification_link_without_deleting_history(): void
     {
         [$lecturer, $group, $category] = $this->context();
-        $student = $this->studentIn($group, 'Historical', 'Student');
+        $student = $this->studentIn($group, 'Historical', 'Student', $category);
         $quiz = $this->quiz($lecturer, $group, $category);
         $this->validQuestion($quiz);
         $this->actingAs($lecturer)->patch(route('quizzes.publish', $quiz))->assertRedirect();
@@ -268,7 +269,7 @@ class QuizReportNotificationTest extends TestCase
         return [$lecturer, $group, $category];
     }
 
-    private function studentIn(Group $group, string $first, string $last): User
+    private function studentIn(Group $group, string $first, string $last, ?QuizCategory $category = null): User
     {
         $student = User::factory()->create([
             'Fname' => $first,
@@ -279,6 +280,13 @@ class QuizReportNotificationTest extends TestCase
             'Member_Status' => GroupMember::STATUS_ACTIVE,
             'Member_Role' => GroupMember::ROLE_MEMBER,
         ]);
+
+        if ($category !== null) {
+            CategoryStudent::create([
+                'category_id' => $category->id,
+                'user_id' => $student->id,
+            ]);
+        }
 
         return $student;
     }

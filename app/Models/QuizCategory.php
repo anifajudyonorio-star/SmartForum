@@ -21,6 +21,22 @@ class QuizCategory extends Model
         return $this->hasMany(Quiz::class, 'category_id');
     }
 
+    public function enrollments()
+    {
+        return $this->hasMany(CategoryStudent::class, 'category_id');
+    }
+
+    public function students()
+    {
+        return $this->belongsToMany(User::class, 'category_students', 'category_id', 'user_id')
+            ->withTimestamps();
+    }
+
+    public function announcements()
+    {
+        return $this->hasMany(QuizAnnouncement::class, 'category_id');
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

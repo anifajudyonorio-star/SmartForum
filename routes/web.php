@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\Auth\SocialAuthController;
+use App\Http\Controllers\CategoryEnrollmentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupModerationController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\PerformanceReportController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuestionController;
+use App\Http\Controllers\QuizAnnouncementController;
 use App\Http\Controllers\QuizCategoryController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\StatisticsController;
@@ -100,8 +102,14 @@ Route::middleware('auth')->group(function () {
     // Student quizzes
     Route::middleware('role:student')->group(function () {
         Route::get('/student/quizzes', [StudentQuizController::class, 'index'])->name('student.quizzes');
+        Route::post('/student/quizzes/enroll', [StudentQuizController::class, 'enroll'])
+            ->name('student.quizzes.enroll');
+        Route::post('/student/quizzes/unenroll', [StudentQuizController::class, 'unenroll'])
+            ->name('student.quizzes.unenroll');
         Route::get('/student/quizzes/progress', [StudentQuizController::class, 'progress'])
             ->name('student.quizzes.progress');
+        Route::get('/student/announcements', [QuizAnnouncementController::class, 'studentIndex'])
+            ->name('student.announcements');
         Route::get('/student/quizzes/{quiz}', [StudentQuizController::class, 'show'])->name('student.quiz.show');
         Route::post('/student/quizzes/{quiz}/submit', [StudentQuizController::class, 'submit'])->name('student.quiz.submit');
     });
@@ -115,6 +123,22 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:lecturer')->group(function () {
 
         Route::resource('quiz-categories', QuizCategoryController::class)->except(['show']);
+
+        Route::get('/category-enrollments', [CategoryEnrollmentController::class, 'index'])
+            ->name('category-enrollments.index');
+        Route::post('/category-enrollments', [CategoryEnrollmentController::class, 'store'])
+            ->name('category-enrollments.store');
+        Route::delete('/category-enrollments', [CategoryEnrollmentController::class, 'destroy'])
+            ->name('category-enrollments.destroy');
+        Route::post('/category-enrollments/lookup', [CategoryEnrollmentController::class, 'lookup'])
+            ->name('category-enrollments.lookup');
+
+        Route::get('/quiz-announcements', [QuizAnnouncementController::class, 'index'])
+            ->name('quiz-announcements.index');
+        Route::post('/quiz-announcements', [QuizAnnouncementController::class, 'store'])
+            ->name('quiz-announcements.store');
+        Route::delete('/quiz-announcements/{quiz_announcement}', [QuizAnnouncementController::class, 'destroy'])
+            ->name('quiz-announcements.destroy');
 
         Route::resource('quizzes', QuizController::class)->except(['show']);
         Route::get('/quizzes/{quiz}/review', [QuizController::class, 'review'])

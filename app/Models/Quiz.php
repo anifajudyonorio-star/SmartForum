@@ -101,10 +101,17 @@ class Quiz extends Model
 
     public function scopeAccessibleToStudent(Builder $query, User $user): Builder
     {
+        $enrolledCategoryId = $user->enrolledCategoryId();
+
+        if ($enrolledCategoryId === null) {
+            return $query->whereRaw('0 = 1');
+        }
+
         return $query->whereIn('status', [
             self::STATUS_SCHEDULED,
             self::STATUS_ACTIVE,
         ])
+            ->where('category_id', $enrolledCategoryId)
             ->whereNotNull('group_id')
             ->whereHas('group', function (Builder $query) use ($user) {
                 $query->where('Status', 'Active')

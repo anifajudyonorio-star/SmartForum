@@ -100,6 +100,15 @@ public class TopicService {
         return topic;
     }
 
+    public void recordTopicView(int topicId) {
+        if (ApiSupport.useApi()) {
+            boolean success = NetworkMonitor.isOnline() && ApiClient.recordTopicView(topicId);
+            if (!success) {
+                queueOfflineTopicView(topicId);
+            }
+        }
+    }
+
     public boolean canViewTopic(int topicId) {
         Optional<Topic> topic = getTopic(topicId);
         return topic.filter(value -> groups().canViewGroup(value.getGroupId())).isPresent();
@@ -203,6 +212,13 @@ public class TopicService {
         topicsById.put(id, topic);
         PostService.getInstance().initTopicPosts(id);
         return topic;
+    }
+
+    private void queueOfflineTopicView(int topicId) {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("topic_id", topicId);
+        OfflineQueue.add("view_topic", payload);
+        SyncStatusService.getInstance().refreshNow();
     }
 
     private boolean containsIgnoreCase(String value, String needle) {

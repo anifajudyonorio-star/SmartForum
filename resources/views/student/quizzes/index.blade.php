@@ -6,16 +6,58 @@
     <div class="page-header fly-in d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2">
         <div>
             <h1 class="page-title"><i class="bi bi-patch-question-fill me-2 text-primary"></i>Available Quizzes</h1>
-            <p class="page-subtitle mb-0">Take quizzes within their active time window. Each quiz can only be taken once.</p>
+            <p class="page-subtitle mb-0">Enroll in a quiz title, then take quizzes within their active window. Each quiz can only be taken once.</p>
         </div>
-        <a href="{{ route('student.quizzes.progress') }}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-graph-up-arrow me-1"></i>My Quiz Progress
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('student.announcements') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-megaphone me-1"></i>Announcements
+            </a>
+            <a href="{{ route('student.quizzes.progress') }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-graph-up-arrow me-1"></i>My Quiz Progress
+            </a>
+        </div>
     </div>
+
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
 
     @if($errors->any())
         <div class="alert alert-danger">{{ $errors->first() }}</div>
     @endif
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-header"><strong>Quiz Title Enrollment</strong></div>
+        <div class="card-body">
+            @if($enrolledCategory)
+                <p class="mb-2">
+                    You are enrolled in <strong>{{ $enrolledCategory->category_name }}</strong>.
+                    Only quizzes under this title are shown below.
+                </p>
+                <form method="POST" action="{{ route('student.quizzes.unenroll') }}" class="d-inline">
+                    @csrf
+                    <button class="btn btn-outline-danger btn-sm" onclick="return confirm('Unenroll from this quiz title?')">Unenroll</button>
+                </form>
+            @else
+                <p class="mb-3 text-muted">You must enroll in one quiz title before you can take quizzes.</p>
+                <form method="POST" action="{{ route('student.quizzes.enroll') }}" class="row g-2 align-items-end">
+                    @csrf
+                    <div class="col-md-8">
+                        <label class="form-label">Select quiz title</label>
+                        <select name="category_id" class="form-select" required>
+                            <option value="">Choose a quiz title</option>
+                            @foreach($availableCategories as $category)
+                                <option value="{{ $category->id }}">{{ $category->category_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-primary w-100">Enroll Me</button>
+                    </div>
+                </form>
+            @endif
+        </div>
+    </div>
 
     <div class="responsive-table-wrap">
         <div class="card shadow-sm">
@@ -67,7 +109,9 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center py-4">No quizzes are available right now.</td>
+                                    <td colspan="8" class="text-center py-4">
+                                        {{ $enrolledCategory ? 'No quizzes are available right now.' : 'Enroll in a quiz title to see available quizzes.' }}
+                                    </td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -103,7 +147,9 @@
             @empty
                 <div class="groups-empty-state">
                     <div class="groups-empty-icon"><i class="bi bi-patch-question"></i></div>
-                    <p class="text-muted mb-0">No quizzes available right now.</p>
+                    <p class="text-muted mb-0">
+                        {{ $enrolledCategory ? 'No quizzes available right now.' : 'Enroll in a quiz title to see available quizzes.' }}
+                    </p>
                 </div>
             @endforelse
         </div>

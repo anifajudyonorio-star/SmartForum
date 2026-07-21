@@ -59,6 +59,36 @@ class User extends Authenticatable
         return $this->hasMany(QuizAttempt::class);
     }
 
+    public function categoryEnrollments()
+    {
+        return $this->hasMany(CategoryStudent::class);
+    }
+
+    public function enrolledCategories()
+    {
+        return $this->belongsToMany(QuizCategory::class, 'category_students', 'user_id', 'category_id')
+            ->withTimestamps();
+    }
+
+    public function enrolledCategory(): ?QuizCategory
+    {
+        return $this->enrolledCategories()->first();
+    }
+
+    public function enrolledCategoryId(): ?int
+    {
+        $enrollment = $this->categoryEnrollments()->first();
+
+        return $enrollment?->category_id;
+    }
+
+    public function isEnrolledInCategory(int $categoryId): bool
+    {
+        return $this->categoryEnrollments()
+            ->where('category_id', $categoryId)
+            ->exists();
+    }
+
     public function getNameAttribute(): string
     {
         return trim(($this->Fname ?? '').' '.($this->Lname ?? '')) ?: $this->email;

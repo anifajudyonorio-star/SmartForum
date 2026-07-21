@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Group;
 use App\Models\Post;
+use App\Models\Quiz;
+use App\Models\QuizResult;
 use App\Models\Topic;
 use App\Models\User;
 use App\Services\GroupStatisticsService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -111,6 +115,83 @@ class DashboardController extends Controller
             'myGroups' => Auth::user()->viewableGroupsQuery()->count(),
             'myTopics' => Topic::where('Created_By', Auth::id())->count(),
             'participants' => $participants->sortByDesc('score')->take(10),
+            'quizProgress' => $this->lecturerQuizProgress(Auth::user()),
+        ];
+    }
+
+    /**
+     * @return array{
+     *     results: Collection<int, QuizResult>,
+     *     summary: array<string, int|float|null>,
+     *     quizAverages: array{labels: list<string>, values: list<float>},
+     *     distribution: array<string, int>,
+     *     quizzes: Collection<int, Quiz>
+     * }
+     */
+    private function lecturerQuizProgress(User $lecturer): array
+    {
+        $results = QuizResult::with(['quiz', 'user', 'attempt'])
+            ->whereHas('quiz', fn (Builder $query) => $query->manageableBy($lecturer))
+            ->latest('id')
+            ->get();
+
+        $percentages = $results
+            ->map(fn (QuizResult $result) => $result->finalPercentage())
+            ->filter(fn ($value) => $value !== null)
+            ->values();
+
+        $studentsAssessed = $results
+            ->map(fn (QuizResult $result) => $result->user_id ?? ('name:'.strtolower((string) $result->user?->name)))
+            ->filter()
+            ->unique()
+            ->count();
+
+        $quizAverages = [];
+        $quizLabels = [];
+        foreach ($results as $result) {
+            $percentage = $result->finalPercentage();
+            if ($percentage === null || $result->quiz_id === null) {
+                continue;
+            }
+
+            $quizId = (int) $result->quiz_id;
+            $quizAverages[$quizId] ??= ['total' => 0.0, 'count' => 0];
+            $quizAverages[$quizId]['total'] += $percentage;
+            $quizAverages[$quizId]['count']++;
+            $quizLabels[$quizId] = $result->quiz?->title ?? ('Quiz #'.$quizId);
+        }
+
+        $averageLabels = [];
+        $averageValues = [];
+        foreach ($quizAverages as $quizId => $stats) {
+            $averageLabels[] = $quizLabels[$quizId];
+            $averageValues[] = round($stats['total'] / max(1, $stats['count']), 1);
+        }
+
+        $distribution = [
+            'Excellent (80%+)' => $percentages->filter(fn ($value) => $value >= 80)->count(),
+            'Good (60–79%)' => $percentages->filter(fn ($value) => $value >= 60 && $value < 80)->count(),
+            'Pass (50–59%)' => $percentages->filter(fn ($value) => $value >= 50 && $value < 60)->count(),
+            'Needs support (<50%)' => $percentages->filter(fn ($value) => $value < 50)->count(),
+        ];
+
+        return [
+            'results' => $results->take(25),
+            'summary' => [
+                'submissions' => $results->count(),
+                'students_assessed' => $studentsAssessed,
+                'average_percentage' => $percentages->isEmpty() ? null : round($percentages->avg(), 1),
+                'pass_rate' => $percentages->isEmpty()
+                    ? null
+                    : round(($percentages->filter(fn ($value) => $value >= 50)->count() / $percentages->count()) * 100, 1),
+                'comparable_attempts' => $percentages->count(),
+            ],
+            'quizAverages' => [
+                'labels' => $averageLabels,
+                'values' => $averageValues,
+            ],
+            'distribution' => $distribution,
+            'quizzes' => Quiz::manageableBy($lecturer)->orderByDesc('id')->get(['id', 'title']),
         ];
     }
 

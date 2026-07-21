@@ -262,6 +262,10 @@ public class ApiClient {
         }
     }
 
+    public static boolean recordTopicView(int topicId) {
+        return sendJson("POST", "/api/topics/" + topicId + "/view", null);
+    }
+ 
     public static boolean sendPost(int topicId, String content, Integer parentPostId) {
         JsonObject body = new JsonObject();
         body.addProperty("Post_Content", content);

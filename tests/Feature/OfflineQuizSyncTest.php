@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CategoryStudent;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Question;
@@ -60,6 +61,10 @@ class OfflineQuizSyncTest extends TestCase
         $this->assertDatabaseCount('sync_queue', 0);
 
         $other = $this->studentIn($fixture['group']);
+        CategoryStudent::create([
+            'category_id' => $fixture['quiz']->category_id,
+            'user_id' => $other->id,
+        ]);
         $otherAttempt = app(QuizSubmissionService::class)->startAttempt($other, $fixture['quiz']);
         $this->uploadQuizAction(
             $fixture,
@@ -300,6 +305,10 @@ class OfflineQuizSyncTest extends TestCase
         $category = QuizCategory::create([
             'category_name' => 'Offline Quiz Category '.uniqid(),
             'created_by' => $student->id,
+        ]);
+        CategoryStudent::create([
+            'category_id' => $category->id,
+            'user_id' => $student->id,
         ]);
         $quiz = Quiz::create([
             'category_id' => $category->id,

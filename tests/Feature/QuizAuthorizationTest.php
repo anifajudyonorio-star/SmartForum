@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CategoryStudent;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Question;
@@ -163,8 +164,21 @@ class QuizAuthorizationTest extends TestCase
             'Member_Role' => GroupMember::ROLE_MEMBER,
         ]);
         $quiz = $this->quizFor($lecturer, $group);
-        $reportQuiz = $this->quizFor($lecturer, $group, ended: true);
+        $reportQuiz = $this->quizFor($lecturer, $group, ended: true, category: $quiz->category);
         $this->questionFor($quiz);
+        CategoryStudent::create([
+            'category_id' => $quiz->category_id,
+            'user_id' => $active->id,
+        ]);
+        // Suspended/inactive students remain enrolled so access denials come from membership status.
+        CategoryStudent::create([
+            'category_id' => $quiz->category_id,
+            'user_id' => $suspended->id,
+        ]);
+        CategoryStudent::create([
+            'category_id' => $quiz->category_id,
+            'user_id' => $inactive->id,
+        ]);
 
         $this->actingAs($active)->get(route('student.quizzes'))->assertSee($quiz->title);
         $this->actingAs($active)->get(route('student.quiz.show', $quiz))->assertOk();
@@ -243,9 +257,13 @@ class QuizAuthorizationTest extends TestCase
         return $group;
     }
 
-    private function quizFor(User $creator, ?Group $group, bool $ended = false): Quiz
-    {
-        $category = QuizCategory::create([
+    private function quizFor(
+        User $creator,
+        ?Group $group,
+        bool $ended = false,
+        ?QuizCategory $category = null,
+    ): Quiz {
+        $category ??= QuizCategory::create([
             'category_name' => 'Authorization Category '.uniqid(),
             'created_by' => $creator->id,
         ]);
