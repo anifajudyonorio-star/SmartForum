@@ -116,10 +116,37 @@ def recommend_topics(topics: List[Dict[str, Any]], history: List[Dict[str, Any]]
     similarities = cosine_similarity(user_vector, topic_matrix).ravel()
 
     scored: List[Dict[str, Any]] = []
+    engagement_counts ={}
+    for item in history:
+        h_id = int(item.get("topic_id")or 0)
+        engagement_counts[h_id] = engagement_counts.get(h_id, 0) + 1
     for index, topic in enumerate(topics):
         topic_id = int(topic.get("id") or topic.get("topic_id") or topic.get("Topic_ID"))
-        if topic_id in engaged_ids:
-            continue
+        #if topic_id in engaged_ids:
+        #    continue
+
+        engagement_frequency  = engagement_counts.get(topic_id, 0)
+
+        topic_text = topic_texts[index]
+        title = str(topic.get("title") or topic.get("Title") or "")
+        description = str(topic.get("description") or topic.get("Description") or topic.get("Topic_Description") or "")
+
+        history_text = " ".join(history_texts) if history_texts else ""
+        lexical = max(token_overlap_score(topic_text, history_text), token_overlap_score(title, history_text))
+        engagement_bonus = sum(float(item.get("engagement_score", 0) or 0) for item in history if int(item.get("topic_id") or 0) == topic_id) 
+
+        similarity_score = float(similarities[index]) 
+
+        frequency_boost = engagement_frequency * 0.5
+
+        score = (similarity_score * 0.4) + (lexical * 0.1) + engagement_bonus
+
+        scored.append({
+            "id": topic_id,
+            "title": title,
+            "description": description,
+            "score": round(score, 3),
+        })
 
         topic_text = topic_texts[index]
         title = str(topic.get("title") or topic.get("Title") or "")
