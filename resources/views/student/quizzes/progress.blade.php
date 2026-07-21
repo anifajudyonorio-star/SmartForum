@@ -12,10 +12,12 @@
         </a>
     </div>
 
+    @if(($summary['total_attempted'] - $summary['comparable_attempts']) > 0)
     <div class="alert alert-info small" role="note">
         Percentage statistics include only results with a valid saved final denominator.
         {{ $summary['total_attempted'] - $summary['comparable_attempts'] }} legacy {{ \Illuminate\Support\Str::plural('result', $summary['total_attempted'] - $summary['comparable_attempts']) }} {{ ($summary['total_attempted'] - $summary['comparable_attempts']) === 1 ? 'is' : 'are' }} excluded from percentage comparisons.
     </div>
+    @endif
 
     <div class="row g-2 mb-3">
         @php
