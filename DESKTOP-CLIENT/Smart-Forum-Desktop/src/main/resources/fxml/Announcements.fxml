@@ -13,41 +13,42 @@
         <VBox spacing="2" styleClass="dashboard-header">
             <padding><Insets top="20" right="24" bottom="16" left="24"/></padding>
             <Label text="Announcements" styleClass="dashboard-title"/>
-            <Label text="Share updates with quiz categories and review published messages." styleClass="dashboard-subtitle"/>
+            <Label fx:id="pageSubtitleLabel" text="Share updates with quiz categories and review published messages." styleClass="dashboard-subtitle"/>
         </VBox>
     </top>
 
     <center>
-        <SplitPane dividerPositions="0.42" style="-fx-background-color:transparent;-fx-padding:20 24 20 24;">
+        <SplitPane fx:id="announcementsSplit" dividerPositions="0.42" style="-fx-background-color:transparent;-fx-padding:20 24 20 24;">
 
             <!-- LEFT: Post announcement (lecturer) -->
-            <VBox spacing="12" styleClass="quiz-card">
-                <Label text="Post Announcement" styleClass="dashboard-card-title"/>
+            <VBox fx:id="leftToolsPane" spacing="12">
+                <VBox fx:id="lecturerComposePane" spacing="12" styleClass="quiz-card">
+                    <Label text="Post Announcement" styleClass="dashboard-card-title"/>
 
-                <Label text="Target Category" styleClass="form-label"/>
-                <ComboBox fx:id="cmbCategory" maxWidth="Infinity"/>
+                    <Label text="Target Category" styleClass="form-label"/>
+                    <ComboBox fx:id="cmbCategory" maxWidth="Infinity"/>
 
-                <Label text="Title" styleClass="form-label"/>
-                <TextField fx:id="txtTitle" promptText="Announcement title"/>
+                    <Label text="Title" styleClass="form-label"/>
+                    <TextField fx:id="txtTitle" promptText="Announcement title"/>
 
-                <Label text="Message" styleClass="form-label"/>
-                <TextArea fx:id="txtMessage" promptText="Write your announcement…" prefRowCount="5" wrapText="true"
-                          styleClass="form-textarea"/>
+                    <Label text="Message" styleClass="form-label"/>
+                    <TextArea fx:id="txtMessage" promptText="Write your announcement…" prefRowCount="5" wrapText="true"
+                              styleClass="form-textarea"/>
 
-                <Label text="Posted by" styleClass="form-label"/>
-                <TextField fx:id="txtPostedBy" promptText="Your name / role"/>
+                    <Label text="Posted by" styleClass="form-label"/>
+                    <TextField fx:id="txtPostedBy" promptText="Your name / role"/>
 
-                <Button text="Post Announcement" onAction="#postAnnouncement" maxWidth="Infinity"
-                        styleClass="btn-primary"/>
+                    <Button text="Post Announcement" onAction="#postAnnouncement" maxWidth="Infinity"
+                            styleClass="btn-primary"/>
+                </VBox>
 
-                <Separator/>
-
-                <!-- Student view filter -->
-                <Label text="View as Student" styleClass="dashboard-card-title"/>
-                <Label text="Your Name" styleClass="form-label"/>
-                <TextField fx:id="txtStudentFilter" promptText="Enter student name to filter"/>
-                <Button text="Load My Announcements" onAction="#loadStudentAnnouncements" maxWidth="Infinity"
-                        styleClass="btn-primary"/>
+                <VBox fx:id="studentFilterPane" spacing="10" styleClass="quiz-card">
+                    <Label text="View as Student" styleClass="dashboard-card-title"/>
+                    <Label text="Your Name" styleClass="form-label"/>
+                    <TextField fx:id="txtStudentFilter" promptText="Enter student name to filter"/>
+                    <Button text="Load My Announcements" onAction="#loadStudentAnnouncements" maxWidth="Infinity"
+                            styleClass="btn-primary"/>
+                </VBox>
             </VBox>
 
             <!-- RIGHT: Announcement list -->
@@ -55,8 +56,8 @@
                 <HBox alignment="CENTER_LEFT" spacing="10">
                     <Label text="Announcements" styleClass="dashboard-card-title"/>
                     <Region HBox.hgrow="ALWAYS"/>
-                    <Button text="Show All" onAction="#loadAll" styleClass="btn-outline"/>
-                    <Button text="Delete Selected" onAction="#deleteSelected"
+                    <Button fx:id="btnShowAll" text="Show All" onAction="#loadAll" styleClass="btn-outline"/>
+                    <Button fx:id="btnDeleteSelected" text="Delete Selected" onAction="#deleteSelected"
                             styleClass="btn-danger"/>
                 </HBox>
 
@@ -68,6 +69,7 @@
                         <TableColumn fx:id="colBy"       text="Posted By" prefWidth="110"/>
                         <TableColumn fx:id="colAt"       text="Date"      prefWidth="130"/>
                     </columns>
+                    <placeholder><Label text="No announcements to show." styleClass="empty-label"/></placeholder>
                 </TableView>
             </VBox>
 

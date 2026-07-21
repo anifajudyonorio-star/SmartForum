@@ -39,6 +39,9 @@ public class MainShellController implements ShellNavigator {
     @FXML private Button topicSearchNavBtn;
     @FXML private Button notificationsNavBtn;
     @FXML private Button quizzesNavBtn;
+    @FXML private Button announcementsNavBtn;
+    @FXML private Button quizProgressNavBtn;
+    @FXML private Button quizReportsNavBtn;
     @FXML private VBox groupAdminSection;
     @FXML private Button statisticsNavBtn;
     @FXML private Button participationNavBtn;
@@ -71,7 +74,8 @@ public class MainShellController implements ShellNavigator {
 
         navButtons.addAll(List.of(
                 dashboardNavBtn, groupsNavBtn, topicSearchNavBtn, notificationsNavBtn,
-                quizzesNavBtn, statisticsNavBtn, participationNavBtn, quizNavBtn
+                quizzesNavBtn, announcementsNavBtn, quizProgressNavBtn, quizReportsNavBtn,
+                statisticsNavBtn, participationNavBtn, quizNavBtn
         ));
 
         var user = AppSession.getInstance().getCurrentUser();
@@ -227,7 +231,22 @@ public class MainShellController implements ShellNavigator {
         participationNavBtn.setManaged(showParticipation);
 
         boolean isStudent = AppSession.getInstance().isStudent();
-        quizzesNavBtn.setText(isStudent ? "Quizzes" : "Quiz Management");
+        boolean isLecturerTools = AppSession.getInstance().isLecturer()
+                || AppSession.getInstance().isSystemAdmin();
+
+        quizzesNavBtn.setText(isStudent ? "Quizzes" : "Quizzes");
+        quizzesNavBtn.setVisible(isStudent || isLecturerTools);
+        quizzesNavBtn.setManaged(isStudent || isLecturerTools);
+
+        announcementsNavBtn.setVisible(isStudent || isLecturerTools);
+        announcementsNavBtn.setManaged(isStudent || isLecturerTools);
+
+        quizProgressNavBtn.setVisible(isStudent);
+        quizProgressNavBtn.setManaged(isStudent);
+
+        quizReportsNavBtn.setVisible(isLecturerTools);
+        quizReportsNavBtn.setManaged(isLecturerTools);
+
         quizNavBtn.setVisible(false);
         quizNavBtn.setManaged(false);
     }
@@ -238,6 +257,9 @@ public class MainShellController implements ShellNavigator {
         setNavIcon(topicSearchNavBtn, BootstrapIcons.SEARCH);
         setNavIcon(notificationsNavBtn, BootstrapIcons.BELL_FILL);
         setNavIcon(quizzesNavBtn, BootstrapIcons.PATCH_QUESTION_FILL);
+        setNavIcon(announcementsNavBtn, BootstrapIcons.MEGAPHONE_FILL);
+        setNavIcon(quizProgressNavBtn, BootstrapIcons.GRAPH_UP);
+        setNavIcon(quizReportsNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(statisticsNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(participationNavBtn, BootstrapIcons.BAR_CHART_FILL);
         setNavIcon(quizNavBtn, BootstrapIcons.PATCH_QUESTION);
@@ -270,6 +292,36 @@ public class MainShellController implements ShellNavigator {
         navigateWithBack(this::showQuizzesInternal);
     }
 
+    @FXML
+    private void showAnnouncementsFromNav() {
+        navigateWithBack(this::showAnnouncementsInternal);
+    }
+
+    @Override
+    public void showAnnouncements() {
+        navigateWithBack(this::showAnnouncementsInternal);
+    }
+
+    @FXML
+    private void showQuizProgressFromNav() {
+        navigateWithBack(this::showQuizProgressInternal);
+    }
+
+    @Override
+    public void showQuizProgress() {
+        navigateWithBack(this::showQuizProgressInternal);
+    }
+
+    @FXML
+    private void showQuizReportsFromNav() {
+        navigateWithBack(this::showQuizReportsInternal);
+    }
+
+    @Override
+    public void showQuizReports() {
+        navigateWithBack(this::showQuizReportsInternal);
+    }
+
     private void showQuizzesInternal() {
         if (AppSession.getInstance().isStudent()) {
             try {
@@ -289,6 +341,47 @@ public class MainShellController implements ShellNavigator {
             }
         } else {
             loadView("quiz-management.fxml", quizzesNavBtn, null);
+        }
+    }
+
+    private void showAnnouncementsInternal() {
+        try {
+            URL resource = getClass().getResource("/fxml/Announcements.fxml");
+            if (resource == null) throw new IOException("Announcements.fxml not found at /fxml/Announcements.fxml");
+            FXMLLoader loader = new FXMLLoader(resource);
+            Node view = loader.load();
+            AnnouncementsController ctrl = loader.getController();
+            ctrl.configureForCurrentUser();
+            fillContentArea(view);
+            contentArea.getChildren().setAll(view);
+            activeContentKey = "Announcements.fxml";
+            pageTitleLabel.setText(APP_TITLE);
+            setActiveNav(announcementsNavBtn);
+        } catch (Exception e) {
+            showLoadError("Announcements.fxml", e);
+        }
+    }
+
+    private void showQuizProgressInternal() {
+        // Student quiz progress lives on the student dashboard (Laravel also exposes it from main nav).
+        showDashboardInternal();
+        setActiveNav(quizProgressNavBtn);
+        activeContentKey = "quiz-progress";
+    }
+
+    private void showQuizReportsInternal() {
+        try {
+            URL resource = getClass().getResource("/fxml/Results.fxml");
+            if (resource == null) throw new IOException("Results.fxml not found at /fxml/Results.fxml");
+            FXMLLoader loader = new FXMLLoader(resource);
+            Node view = loader.load();
+            fillContentArea(view);
+            contentArea.getChildren().setAll(view);
+            activeContentKey = "Results.fxml";
+            pageTitleLabel.setText(APP_TITLE);
+            setActiveNav(quizReportsNavBtn);
+        } catch (Exception e) {
+            showLoadError("Results.fxml", e);
         }
     }
 
@@ -524,6 +617,13 @@ public class MainShellController implements ShellNavigator {
         }
 
         if ("participation.fxml".equals(activeContentKey)) {
+            return this::showDashboardInternal;
+        }
+
+        if ("TakeQuiz.fxml".equals(activeContentKey)
+                || "Announcements.fxml".equals(activeContentKey)
+                || "Results.fxml".equals(activeContentKey)
+                || "quiz-progress".equals(activeContentKey)) {
             return this::showDashboardInternal;
         }
 

@@ -81,6 +81,20 @@ public class StudentDashboardController {
     }
 
     @FXML
+    private void onAnnouncements() {
+        if (navigator != null) {
+            navigator.showAnnouncements();
+        }
+    }
+
+    @FXML
+    private void onQuizProgress() {
+        if (navigator != null) {
+            navigator.showQuizProgress();
+        }
+    }
+
+    @FXML
     private void onExploreGroups() {
         if (navigator != null) {
             navigator.showExploreGroups();

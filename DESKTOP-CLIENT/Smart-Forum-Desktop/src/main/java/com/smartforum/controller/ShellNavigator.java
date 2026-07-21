@@ -15,4 +15,7 @@ public interface ShellNavigator {
     void showGroupStatistics(int groupId);
     void showParticipation();
     void showQuizzes();
+    void showAnnouncements();
+    void showQuizProgress();
+    void showQuizReports();
 }

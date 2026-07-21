@@ -27,7 +27,8 @@
     -fx-font-family: "Nunito", sans-serif;
     -fx-font-size: 14px;
     -fx-font-weight: 400;
-    -fx-background-color: #ecfdf5;
+    -fx-background-color: #dcfce7; /* Laravel --primary-muted */
+    -fx-text-fill: #1f2937;
 }
 
 .label,
@@ -47,7 +48,7 @@
 }
 
 .app-shell {
-    -fx-background-color: #ecfdf5;
+    -fx-background-color: #dcfce7;
 }
 
 /* ── Sidebar ───────────────────────────────────────────── */
@@ -185,7 +186,7 @@
     -fx-text-fill: #16a34a;
     -fx-font-size: 12px;
     -fx-font-weight: 600;
-    -fx-background-color: #ecfdf5;
+    -fx-background-color: #dcfce7;
     -fx-background-radius: 999;
     -fx-padding: 4 10 4 10;
 }
@@ -373,22 +374,24 @@
     -fx-background-color: #dcfce7;
     -fx-border-color: #d1fae5;
     -fx-border-width: 0 0 1 0;
-    -fx-padding: 10 0 12 0;
+    -fx-padding: 8 0 10 0;
 }
 
 .dashboard-title {
-    -fx-font-size: 17px;
-    -fx-font-weight: bold;
+    -fx-font-size: 18px;
+    -fx-font-weight: 700;
     -fx-text-fill: #111827;
 }
 
 .dashboard-subtitle {
     -fx-font-size: 12px;
+    -fx-font-weight: 400;
     -fx-text-fill: #6b7280;
 }
 
 .dashboard-content {
     -fx-padding: 0 4 16 4;
+    -fx-background-color: #dcfce7;
 }
 
 /* ── Stat cards ────────────────────────────────────────── */
@@ -498,22 +501,22 @@
 /* ── Dashboard cards ───────────────────────────────────── */
 .dashboard-card {
     -fx-background-color: white;
-    -fx-background-radius: 10;
+    -fx-background-radius: 8;
     -fx-border-color: #d1fae5;
-    -fx-border-radius: 10;
+    -fx-border-radius: 8;
     -fx-border-width: 1;
-    -fx-effect: dropshadow(gaussian, rgba(22, 101, 52, 0.05), 6, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(22, 101, 52, 0.06), 4, 0, 0, 1);
 }
 
 .dashboard-card-header {
     -fx-padding: 10 14 8 14;
-    -fx-border-color: #ecfdf5;
+    -fx-border-color: #d1fae5;
     -fx-border-width: 0 0 1 0;
 }
 
 .dashboard-card-title {
     -fx-font-size: 13px;
-    -fx-font-weight: bold;
+    -fx-font-weight: 700;
     -fx-text-fill: #111827;
 }
 
@@ -525,15 +528,16 @@
     -fx-padding: 0;
 }
 
-/* ── Buttons ───────────────────────────────────────────── */
+/* ── Buttons (match Laravel .btn-primary / .btn-outline-primary) ─ */
 .btn-primary {
     -fx-background-color: #16a34a;
     -fx-background-insets: 0;
     -fx-text-fill: white;
+    -fx-font-family: "Nunito", sans-serif;
     -fx-font-size: 12px;
     -fx-font-weight: 600;
-    -fx-background-radius: 6;
-    -fx-padding: 6 14 6 14;
+    -fx-background-radius: 8;
+    -fx-padding: 7 14 7 14;
     -fx-cursor: hand;
     -fx-border-width: 0;
     -fx-effect: null;
@@ -552,8 +556,9 @@
     -fx-background-color: white;
     -fx-text-fill: #15803d;
     -fx-border-color: #16a34a;
-    -fx-border-radius: 6;
+    -fx-border-radius: 8;
     -fx-border-width: 1;
+    -fx-font-family: "Nunito", sans-serif;
     -fx-font-size: 12px;
     -fx-font-weight: 600;
     -fx-padding: 6 14 6 14;
@@ -561,40 +566,47 @@
 }
 
 .btn-outline:hover {
-    -fx-background-color: #dcfce7;
+    -fx-background-color: #16a34a;
+    -fx-text-fill: white;
+    -fx-border-color: #16a34a;
 }
 
 .btn-danger {
-    -fx-background-color: #dc2626;
+    -fx-background-color: #ef4444;
     -fx-text-fill: white;
+    -fx-font-family: "Nunito", sans-serif;
     -fx-font-size: 12px;
     -fx-font-weight: 600;
-    -fx-background-radius: 6;
-    -fx-padding: 6 14 6 14;
+    -fx-background-radius: 8;
+    -fx-padding: 7 14 7 14;
     -fx-cursor: hand;
 }
 
 .btn-danger:hover {
-    -fx-background-color: #b91c1c;
+    -fx-background-color: #dc2626;
 }
 
+/* ── Quiz module (aligned to Laravel quiz pages) ───────── */
 .quiz-page {
-    -fx-background-color: #ecfdf5;
+    -fx-background-color: #dcfce7;
+    -fx-font-family: "Nunito", sans-serif;
+    -fx-text-fill: #1f2937;
 }
 
 .quiz-card {
     -fx-background-color: white;
-    -fx-background-radius: 10;
+    -fx-background-radius: 8;
     -fx-border-color: #d1fae5;
-    -fx-border-radius: 10;
+    -fx-border-radius: 8;
     -fx-border-width: 1;
     -fx-padding: 14 18 14 18;
-    -fx-effect: dropshadow(gaussian, rgba(22, 101, 52, 0.05), 6, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(22, 101, 52, 0.06), 4, 0, 0, 1);
 }
 
 .quiz-tabs {
     -fx-background-color: transparent;
     -fx-tab-min-height: 36;
+    -fx-font-family: "Nunito", sans-serif;
 }
 
 .quiz-tabs .tab-header-area {
@@ -609,7 +621,8 @@
 
 .quiz-tabs .tab {
     -fx-background-color: transparent;
-    -fx-padding: 6 14 6 14;
+    -fx-padding: 7 16 7 16;
+    -fx-background-radius: 8 8 0 0;
 }
 
 .quiz-tabs .tab:selected {
@@ -619,23 +632,29 @@
 }
 
 .quiz-tabs .tab-label {
-    -fx-text-fill: #4b5563;
-    -fx-font-size: 12px;
+    -fx-text-fill: #6b7280;
+    -fx-font-family: "Nunito", sans-serif;
+    -fx-font-size: 13px;
     -fx-font-weight: 600;
 }
 
 .quiz-tabs .tab:selected .tab-label {
-    -fx-text-fill: #166534;
+    -fx-text-fill: #15803d;
+}
+
+.quiz-tabs .tab:hover .tab-label {
+    -fx-text-fill: #16a34a;
 }
 
 .quiz-info {
     -fx-font-size: 12px;
+    -fx-font-weight: 500;
     -fx-text-fill: #15803d;
 }
 
 .quiz-recovery-notice {
     -fx-background-color: #dcfce7;
-    -fx-text-fill: #166534;
+    -fx-text-fill: #15803d;
     -fx-border-color: #86efac;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
@@ -650,39 +669,57 @@
     -fx-font-size: 11px;
     -fx-font-weight: 600;
     -fx-padding: 3 9 3 9;
-    -fx-background-radius: 999;
+    -fx-background-radius: 8;
 }
 
 .quiz-timer {
+    -fx-font-family: "Nunito", sans-serif;
     -fx-font-size: 26px;
-    -fx-font-weight: bold;
+    -fx-font-weight: 700;
     -fx-text-fill: #15803d;
 }
 
 .quiz-timer-warning {
+    -fx-font-family: "Nunito", sans-serif;
     -fx-font-size: 26px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #dc2626;
+    -fx-font-weight: 700;
+    -fx-text-fill: #ef4444;
 }
 
 .quiz-option {
     -fx-font-size: 13px;
-    -fx-text-fill: #111827;
-    -fx-padding: 7 9 7 9;
-    -fx-background-color: #f9fafb;
-    -fx-background-radius: 6;
+    -fx-font-weight: 500;
+    -fx-text-fill: #1f2937;
+    -fx-padding: 8 10 8 10;
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-border-color: #d1fae5;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+}
+
+.quiz-option:hover,
+.quiz-option:selected {
+    -fx-background-color: #dcfce7;
+    -fx-border-color: #16a34a;
 }
 
 .result-header {
-    -fx-background-color: #166534;
-    -fx-background-radius: 10 10 0 0;
+    -fx-background-color: #15803d; /* Laravel bg-success */
+    -fx-background-radius: 8 8 0 0;
     -fx-padding: 14 20 14 20;
+}
+
+.result-header .label {
+    -fx-text-fill: white;
+    -fx-font-family: "Nunito", sans-serif;
 }
 
 .result-row {
     -fx-padding: 12 20 12 20;
-    -fx-border-color: #ecfdf5;
+    -fx-border-color: #d1fae5;
     -fx-border-width: 0 0 1 0;
+    -fx-background-color: white;
 }
 
 .result-row-highlight {
@@ -727,26 +764,55 @@
 
 .dashboard-table {
     -fx-background-color: white;
-    -fx-border-color: transparent;
+    -fx-border-color: #d1fae5;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-font-family: "Nunito", sans-serif;
+}
+
+.dashboard-table .column-header-background {
+    -fx-background-color: #f0fdf4;
+    -fx-background-radius: 8 8 0 0;
 }
 
 .dashboard-table .column-header {
-    -fx-background-color: #f9fafb;
+    -fx-background-color: #f0fdf4;
+    -fx-font-family: "Nunito", sans-serif;
     -fx-font-size: 12px;
-    -fx-font-weight: bold;
+    -fx-font-weight: 700;
     -fx-text-fill: #374151;
+    -fx-border-color: #d1fae5;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 8 10 8 10;
+}
+
+.dashboard-table .table-cell {
+    -fx-font-family: "Nunito", sans-serif;
+    -fx-font-size: 12px;
+    -fx-text-fill: #1f2937;
+    -fx-padding: 7 10 7 10;
+    -fx-border-color: transparent transparent #ecfdf5 transparent;
 }
 
 .dashboard-table .table-row-cell {
     -fx-font-size: 12px;
+    -fx-background-color: white;
 }
 
 .dashboard-table .table-row-cell:odd {
     -fx-background-color: #fafafa;
 }
 
-.dashboard-table .table-row-cell:selected {
+.dashboard-table .table-row-cell:hover {
     -fx-background-color: #dcfce7;
+}
+
+.dashboard-table .table-row-cell:selected {
+    -fx-background-color: #bbf7d0;
+    -fx-text-fill: #111827;
+}
+
+.dashboard-table .table-row-cell:selected .table-cell {
     -fx-text-fill: #111827;
 }
 
@@ -954,23 +1020,31 @@
 .text-field, .text-area, .combo-box {
     -fx-background-color: white;
     -fx-border-color: #d1fae5;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
-    -fx-padding: 6 8 6 8;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 7 10 7 10;
+    -fx-font-family: "Nunito", sans-serif;
+    -fx-font-size: 13px;
+    -fx-text-fill: #1f2937;
+}
+
+.text-field:focused, .text-area:focused, .combo-box:focused {
+    -fx-border-color: #16a34a;
 }
 
 /* Single-box look for TextArea (no inner border) */
 .form-textarea {
     -fx-background-color: white;
     -fx-border-color: #d1fae5;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
     -fx-padding: 4;
+    -fx-font-family: "Nunito", sans-serif;
 }
 
 .form-textarea .content {
     -fx-background-color: white;
-    -fx-background-radius: 4;
+    -fx-background-radius: 6;
     -fx-padding: 4 6 4 6;
 }
 
@@ -982,6 +1056,7 @@
     -fx-font-size: 12px;
     -fx-font-weight: 600;
     -fx-text-fill: #374151;
+    -fx-font-family: "Nunito", sans-serif;
 }
 
 /* ── Topic chat (matches web wa-chat) ─────────────────── */

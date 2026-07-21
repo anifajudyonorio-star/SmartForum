@@ -10,6 +10,7 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
 <ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;" stylesheets="@../css/app.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.LecturerDashboardController">
@@ -18,8 +19,9 @@
          <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-header">
             <VBox spacing="4.0" HBox.hgrow="ALWAYS">
                <Label styleClass="dashboard-title" text="Welcome back, Lecturer!" />
-               <Label styleClass="dashboard-subtitle" text="Create topics in your assigned groups and monitor student participation scores." />
+               <Label styleClass="dashboard-subtitle" text="Monitor student participation and track quiz performance across your groups." />
             </VBox>
+            <Button mnemonicParsing="false" onAction="#onViewQuizReports" styleClass="btn-outline" text="📈  Quiz Reports" />
             <Button mnemonicParsing="false" onAction="#onViewParticipation" styleClass="btn-primary" text="📊  Participation" />
          </HBox>
 
@@ -63,6 +65,61 @@
                <Label fx:id="participantsCountLabel" styleClass="stat-number" text="0" />
             </VBox>
          </GridPane>
+
+         <VBox spacing="0.0" styleClass="dashboard-card">
+            <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-card-header">
+               <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                  <Label styleClass="dashboard-card-title" text="❓ Student Quiz Progress" />
+                  <Label styleClass="list-item-meta" text="Track previous quiz outcomes for students in your quizzes." />
+               </VBox>
+               <Button mnemonicParsing="false" onAction="#onViewQuizReports" styleClass="btn-outline btn-sm" text="View all reports" />
+            </HBox>
+            <VBox spacing="12.0" styleClass="dashboard-card-body">
+               <GridPane hgap="10.0" vgap="10.0">
+                  <columnConstraints>
+                     <ColumnConstraints hgrow="SOMETIMES" percentWidth="25.0" />
+                     <ColumnConstraints hgrow="SOMETIMES" percentWidth="25.0" />
+                     <ColumnConstraints hgrow="SOMETIMES" percentWidth="25.0" />
+                     <ColumnConstraints hgrow="SOMETIMES" percentWidth="25.0" />
+                  </columnConstraints>
+                  <VBox spacing="4.0" styleClass="stat-card" GridPane.columnIndex="0">
+                     <Label styleClass="stat-label" text="Submissions" />
+                     <Label fx:id="quizSubmissionsLabel" styleClass="stat-number" text="0" />
+                  </VBox>
+                  <VBox spacing="4.0" styleClass="stat-card" GridPane.columnIndex="1">
+                     <Label styleClass="stat-label" text="Students Assessed" />
+                     <Label fx:id="quizStudentsLabel" styleClass="stat-number" text="0" />
+                  </VBox>
+                  <VBox spacing="4.0" styleClass="stat-card" GridPane.columnIndex="2">
+                     <Label styleClass="stat-label" text="Average Score" />
+                     <Label fx:id="quizAverageLabel" styleClass="stat-number" text="—" />
+                  </VBox>
+                  <VBox spacing="4.0" styleClass="stat-card" GridPane.columnIndex="3">
+                     <Label styleClass="stat-label" text="Pass Rate" />
+                     <Label fx:id="quizPassRateLabel" styleClass="stat-number" text="—" />
+                  </VBox>
+               </GridPane>
+
+               <HBox spacing="8.0">
+                  <Button mnemonicParsing="false" onAction="#onManageQuizzes" styleClass="btn-outline btn-sm" text="Manage Quizzes" />
+                  <Button mnemonicParsing="false" onAction="#onAnnouncements" styleClass="btn-outline btn-sm" text="Announcements" />
+                  <Region HBox.hgrow="ALWAYS" />
+               </HBox>
+
+               <TableView fx:id="quizResultsTable" prefHeight="220.0" styleClass="dashboard-table">
+                  <placeholder>
+                     <Label styleClass="empty-label" text="No quiz submissions yet." />
+                  </placeholder>
+                  <columns>
+                     <TableColumn fx:id="quizStudentColumn" prefWidth="160.0" text="Student" />
+                     <TableColumn fx:id="quizTitleColumn" prefWidth="180.0" text="Quiz" />
+                     <TableColumn fx:id="quizScoreColumn" prefWidth="100.0" text="Score" />
+                     <TableColumn fx:id="quizPercentageColumn" prefWidth="100.0" text="Percentage" />
+                     <TableColumn fx:id="quizDateColumn" prefWidth="150.0" text="Submitted" />
+                  </columns>
+               </TableView>
+            </VBox>
+         </VBox>
 
          <VBox spacing="0.0" styleClass="dashboard-card">
             <HBox styleClass="dashboard-card-header">
