@@ -154,6 +154,18 @@ public class ChatController {
         boolean show = !userMenu.isVisible();
         userMenu.setVisible(show);
         userMenu.setManaged(show);
+        // Close menu when clicking elsewhere
+        if (show) {
+            userMenu.getScene().addEventFilter(
+                javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
+                    if (!userMenu.getBoundsInParent().contains(
+                            userMenu.getParent().sceneToLocal(e.getSceneX(), e.getSceneY()))) {
+                        userMenu.setVisible(false);
+                        userMenu.setManaged(false);
+                    }
+                }
+            );
+        }
     }
 
     @FXML

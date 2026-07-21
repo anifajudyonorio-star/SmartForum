@@ -45,6 +45,10 @@ public class MainShellController implements ShellNavigator {
     @FXML private Label syncStatusLabel;
     @FXML private Label pendingLabel;
     @FXML private Label offlineBanner;
+    @FXML private VBox profileMenu;
+    @FXML private Label profileMenuName;
+    @FXML private Label profileMenuEmail;
+    @FXML private Label profileMenuRole;
 
     private GroupController groupController;
     private TopicController topicController;
@@ -72,6 +76,15 @@ public class MainShellController implements ShellNavigator {
         pageTitleLabel.setText(APP_TITLE);
         updateBackButton();
 
+        // Populate profile menu
+        profileMenuName.setText(user.getName());
+        profileMenuEmail.setText(
+            com.smartforum.UserSession.getInstance().getEmail() != null
+            ? com.smartforum.UserSession.getInstance().getEmail() : "");
+        String role = com.smartforum.UserSession.getInstance().getRole();
+        profileMenuRole.setText(role != null
+            ? role.substring(0, 1).toUpperCase() + role.substring(1) : "Student");
+
         SyncStatusService sync = SyncStatusService.getInstance();
         syncStatusLabel.textProperty().bind(sync.statusTextProperty());
         sync.statusTextProperty().addListener((obs, oldVal, newVal) -> {
@@ -90,6 +103,60 @@ public class MainShellController implements ShellNavigator {
         sync.start();
 
         showDashboard();
+    }
+
+    @FXML
+    private void toggleProfileMenu() {
+        boolean show = !profileMenu.isVisible();
+        profileMenu.setVisible(show);
+        profileMenu.setManaged(show);
+        if (show) {
+            profileMenu.getScene().addEventFilter(
+                javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
+                    if (!profileMenu.localToScene(profileMenu.getBoundsInLocal()).contains(e.getSceneX(), e.getSceneY())) {
+                        profileMenu.setVisible(false);
+                        profileMenu.setManaged(false);
+                    }
+                }
+            );
+        }
+    }
+
+    @FXML
+    private void handleProfile() {
+        profileMenu.setVisible(false);
+        profileMenu.setManaged(false);
+        // Show profile info in an alert (can be replaced with a profile view later)
+        var user = AppSession.getInstance().getCurrentUser();
+        String role = com.smartforum.UserSession.getInstance().getRole();
+        String email = com.smartforum.UserSession.getInstance().getEmail();
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Profile");
+        alert.setHeaderText(user.getName());
+        alert.setContentText("Email: " + email + "\nRole: " + (role != null ? role : "student"));
+        alert.showAndWait();
+    }
+
+    @FXML
+    private void handleLogout() {
+        profileMenu.setVisible(false);
+        profileMenu.setManaged(false);
+        SyncStatusService.getInstance().stop();
+        com.smartforum.util.SessionManager.getInstance().clear();
+        com.smartforum.UserSession.getInstance().clear();
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                getClass().getResource("/com/smartforum/auth-view.fxml"));
+            javafx.scene.Scene scene = new javafx.scene.Scene(loader.load(), 480, 600);
+            scene.setFill(javafx.scene.paint.Color.web("#0a0f1e"));
+            javafx.stage.Stage stage = (javafx.stage.Stage) contentArea.getScene().getWindow();
+            stage.setScene(scene);
+            stage.setResizable(false);
+            stage.setMaximized(false);
+            stage.setTitle("Smart Discussion Forum");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void showBanner(String message, String type) {
