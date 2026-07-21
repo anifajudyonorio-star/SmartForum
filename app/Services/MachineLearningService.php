@@ -3,6 +3,7 @@ namespace App\Services;
 
 use App\Models\Topic;
 use App\Models\Post;
+use App\Models\SyncQueue;
 use Illuminate\Support\Facades\Http;
 
 class MachineLearningService
@@ -42,7 +43,7 @@ class MachineLearningService
             })
             ->toArray();
 
-        $history = Post::query()
+        $postHistory = Post::query()
             ->where('Created_By', $userId)
             ->select('Topic_ID', 'Post_Content')
             ->get()
@@ -54,6 +55,24 @@ class MachineLearningService
                 ];
             })
             ->toArray();
+        
+        $viewHistory = SyncQueue::query()
+            ->where('user_id', $userId)
+            ->where('action_type','view_topic')
+            ->get()
+            ->map(function ($queueItem) {
+                $payload = is_string($queueItem->payload) ? json_decode($queueItem->payload, true) : $queueItem->payload;
+                return [
+                    'topic_id' => (int) ($payload['topic_id'] ?? 0),
+                    'engagement_score' => 0.2,
+                    'title' => $payload['topic_title'] ?? $payload['title'] ?? '',
+                ];
+            })
+            ->filter(function ($view) {
+                return $view['topic_id'] > 0;
+            });
+
+        $history = collect($postHistory)->concat($viewHistory)->values()->toArray();
 
         $response = Http::timeout(5)->post("{$this->baseUrl}/recommend", [
             'user_id' => $userId,
