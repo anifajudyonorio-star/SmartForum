@@ -43,29 +43,57 @@
          </ScrollPane>
       </VBox>
    </left>
+
    <center>
-      <BorderPane>
-         <top>
-            <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="top-bar">
-               <Button fx:id="backNavBtn" mnemonicParsing="false" onAction="#onBack" styleClass="top-bar-back" />
-               <Label fx:id="pageTitleLabel" styleClass="top-bar-title" text="Smart Discussion" />
-               <Label fx:id="syncStatusLabel" styleClass="top-bar-online-badge" text="● Online" />
-               <Label fx:id="pendingLabel" styleClass="top-bar-pending" text="" />
-               <HBox HBox.hgrow="ALWAYS" />
-               <Label fx:id="topBarUserAvatar" styleClass="top-bar-user-avatar" text="S" />
-               <Label fx:id="topBarUserLabel" styleClass="top-bar-user" text="Super Admin" />
-            </HBox>
-         </top>
-         <center>
-            <StackPane fx:id="contentArea" BorderPane.alignment="CENTER">
-               <padding>
-                  <Insets bottom="16.0" left="20.0" right="20.0" top="16.0" />
-               </padding>
-            </StackPane>
-         </center>
-         <bottom>
-            <Label fx:id="offlineBanner" managed="false" maxWidth="1.7976931348623157E308" styleClass="offline-banner" text="" visible="false" BorderPane.alignment="CENTER" />
-         </bottom>
-      </BorderPane>
+      <!-- StackPane so profile dropdown floats over content -->
+      <StackPane>
+
+         <BorderPane>
+            <top>
+               <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="top-bar">
+                  <Button fx:id="backNavBtn" mnemonicParsing="false" onAction="#onBack" styleClass="top-bar-back" />
+                  <Label fx:id="pageTitleLabel" styleClass="top-bar-title" text="Smart Discussion" />
+                  <Label fx:id="syncStatusLabel" styleClass="top-bar-online-badge" text="● Online" />
+                  <Label fx:id="pendingLabel" styleClass="top-bar-pending" text="" />
+                  <HBox HBox.hgrow="ALWAYS" />
+                  <!-- Profile dropdown trigger -->
+                  <HBox fx:id="profileTrigger" styleClass="profile-trigger" alignment="CENTER" spacing="8" onMouseClicked="#toggleProfileMenu">
+                     <Label fx:id="topBarUserAvatar" styleClass="top-bar-user-avatar" text="S" />
+                     <Label fx:id="topBarUserLabel" styleClass="top-bar-user" text="" />
+                     <Label fx:id="profileArrow" text="▾" style="-fx-text-fill: #6b7280; -fx-font-size: 10;" />
+                  </HBox>
+               </HBox>
+            </top>
+            <center>
+               <StackPane fx:id="contentArea" BorderPane.alignment="CENTER">
+                  <padding>
+                     <Insets bottom="16.0" left="20.0" right="20.0" top="16.0" />
+                  </padding>
+               </StackPane>
+            </center>
+            <bottom>
+               <Label fx:id="offlineBanner" managed="false" maxWidth="1.7976931348623157E308" styleClass="offline-banner" text="" visible="false" BorderPane.alignment="CENTER" />
+            </bottom>
+         </BorderPane>
+
+         <!-- Profile dropdown — floats top-right over content -->
+         <VBox fx:id="profileMenu" visible="false" managed="false"
+               styleClass="profile-menu" maxWidth="240"
+               StackPane.alignment="TOP_RIGHT">
+            <StackPane.margin><Insets top="52" right="12" /></StackPane.margin>
+
+            <!-- User info header -->
+            <VBox styleClass="profile-menu-header">
+               <Label fx:id="profileMenuName" text="" styleClass="profile-menu-name" />
+               <Label fx:id="profileMenuEmail" text="" styleClass="profile-menu-email" />
+               <Label fx:id="profileMenuRole" text="" styleClass="profile-menu-role" />
+            </VBox>
+
+            <!-- Actions -->
+            <Button text="👤  Profile" onAction="#handleProfile" maxWidth="Infinity" styleClass="profile-menu-item" />
+            <Button text="⏻  Logout" onAction="#handleLogout" maxWidth="Infinity" styleClass="profile-menu-item profile-menu-logout" />
+         </VBox>
+
+      </StackPane>
    </center>
 </BorderPane>

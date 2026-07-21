@@ -13,33 +13,59 @@
         <VBox prefWidth="260" styleClass="topic-panel">
             <HBox styleClass="topic-panel-header" alignment="CENTER_LEFT" spacing="8">
                 <Label text="Topics" styleClass="panel-title"/>
-                <Region HBox.hgrow="ALWAYS"/>
-                <Button fx:id="networkToggleBtn" text="● Online" styleClass="network-btn-online"
-                        onAction="#onToggleNetwork"/>
             </HBox>
             <ListView fx:id="topicListView" VBox.vgrow="ALWAYS" styleClass="topic-list"/>
         </VBox>
     </left>
 
-    <!-- CENTER: Chat area -->
+    <!-- CENTER: Chat area wrapped in StackPane so dropdown floats -->
     <center>
-        <VBox styleClass="chat-panel">
+        <StackPane>
 
-            <!-- Chat header -->
-            <HBox fx:id="chatHeader" styleClass="chat-header" alignment="CENTER_LEFT" spacing="10">
-                <Label fx:id="topicTitleLabel" text="Select a topic" styleClass="chat-title"/>
-                <Region HBox.hgrow="ALWAYS"/>
-                <Label fx:id="syncStatusLabel" text="" styleClass="sync-badge"/>
-                <!-- User dropdown trigger -->
-                <HBox fx:id="userDropdownTrigger" styleClass="user-trigger" alignment="CENTER" spacing="8" onMouseClicked="#toggleUserMenu">
-                    <Label fx:id="navAvatarLabel" text="U" styleClass="nav-avatar"/>
-                    <Label fx:id="navNameLabel" text="" styleClass="nav-username"/>
-                    <Label text="▾" style="-fx-text-fill: rgba(255,255,255,0.7); -fx-font-size: 10;"/>
+            <VBox styleClass="chat-panel">
+
+                <!-- Chat header -->
+                <HBox fx:id="chatHeader" styleClass="chat-header" alignment="CENTER_LEFT" spacing="10">
+                    <Label fx:id="topicTitleLabel" text="Select a topic" styleClass="chat-title"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="syncStatusLabel" text="" styleClass="sync-badge"/>
+                    <!-- User dropdown trigger -->
+                    <HBox fx:id="userDropdownTrigger" styleClass="user-trigger" alignment="CENTER" spacing="8" onMouseClicked="#toggleUserMenu">
+                        <Label fx:id="navAvatarLabel" text="U" styleClass="nav-avatar"/>
+                        <Label fx:id="navNameLabel" text="" styleClass="nav-username"/>
+                        <Label text="▾" style="-fx-text-fill: rgba(255,255,255,0.7); -fx-font-size: 10;"/>
+                    </HBox>
                 </HBox>
-            </HBox>
 
-            <!-- User dropdown menu (hidden by default) -->
-            <VBox fx:id="userMenu" visible="false" managed="false" styleClass="user-menu">
+                <!-- Messages -->
+                <ScrollPane fx:id="scrollPane" VBox.vgrow="ALWAYS" fitToWidth="true"
+                            styleClass="messages-scroll" hbarPolicy="NEVER">
+                    <VBox fx:id="messagesBox" styleClass="messages-box" spacing="6">
+                        <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
+                    </VBox>
+                </ScrollPane>
+
+                <!-- Offline banner -->
+                <Label fx:id="offlineBanner" text="" styleClass="offline-banner" managed="false" visible="false"
+                       maxWidth="Infinity" alignment="CENTER"/>
+
+                <!-- Composer -->
+                <HBox styleClass="composer" alignment="CENTER" spacing="8">
+                    <padding><Insets top="8" right="12" bottom="8" left="12"/></padding>
+                    <TextArea fx:id="messageInput" promptText="Type a message…"
+                              styleClass="message-input" wrapText="true"
+                              prefRowCount="1" maxHeight="80" HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="sendButton" text="➤" styleClass="send-btn"
+                            onAction="#onSend" defaultButton="true"/>
+                </HBox>
+
+            </VBox>
+
+            <!-- User dropdown menu — floats over content, top-right aligned -->
+            <VBox fx:id="userMenu" visible="false" managed="false"
+                  styleClass="user-menu" maxWidth="220"
+                  StackPane.alignment="TOP_RIGHT">
+                <StackPane.margin><Insets top="52" right="8"/></StackPane.margin>
                 <VBox styleClass="user-menu-header">
                     <Label fx:id="menuNameLabel" text="" styleClass="menu-name"/>
                     <Label fx:id="menuEmailLabel" text="" styleClass="menu-email"/>
@@ -48,29 +74,7 @@
                 <Button text="⏻  Logout" onAction="#handleLogout" maxWidth="Infinity" styleClass="menu-logout-btn"/>
             </VBox>
 
-            <!-- Messages -->
-            <ScrollPane fx:id="scrollPane" VBox.vgrow="ALWAYS" fitToWidth="true"
-                        styleClass="messages-scroll" hbarPolicy="NEVER">
-                <VBox fx:id="messagesBox" styleClass="messages-box" spacing="6">
-                    <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
-                </VBox>
-            </ScrollPane>
-
-            <!-- Offline banner -->
-            <Label fx:id="offlineBanner" text="" styleClass="offline-banner" managed="false" visible="false"
-                   maxWidth="Infinity" alignment="CENTER"/>
-
-            <!-- Composer -->
-            <HBox styleClass="composer" alignment="CENTER" spacing="8">
-                <padding><Insets top="8" right="12" bottom="8" left="12"/></padding>
-                <TextArea fx:id="messageInput" promptText="Type a message…"
-                          styleClass="message-input" wrapText="true"
-                          prefRowCount="1" maxHeight="80" HBox.hgrow="ALWAYS"/>
-                <Button fx:id="sendButton" text="➤" styleClass="send-btn"
-                        onAction="#onSend" defaultButton="true"/>
-            </HBox>
-
-        </VBox>
+        </StackPane>
     </center>
 
 </BorderPane>
