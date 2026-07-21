@@ -9,7 +9,6 @@ import com.smartforum.model.ForumUser;
 import com.smartforum.model.GroupAdminSummaryRow;
 import com.smartforum.model.QuizResult;
 import com.smartforum.service.AppSession;
-import com.smartforum.service.SyncStatusService;
 import com.smartforum.util.ApiSupport;
 import com.smartforum.util.GroupAdminDashboardSupport;
 import javafx.application.Platform;
@@ -65,11 +64,6 @@ public class StudentDashboardController {
     @FXML private TableColumn<QuizResult, String> quizPercentageColumn;
     @FXML private TableColumn<QuizResult, String> quizSubmittedColumn;
 
-    @FXML private Label syncStatusCardLabel;
-    @FXML private Label pendingCountCardLabel;
-    @FXML private Label lastSyncCardLabel;
-    @FXML private Button syncNowCardBtn;
-
     private ShellNavigator navigator;
     private final QuizResultDAO quizResultDAO = new QuizResultDAO();
     private static final DateTimeFormatter DISPLAY_DATE =
@@ -122,11 +116,6 @@ public class StudentDashboardController {
                     }
                 }
         );
-
-        SyncStatusService sync = SyncStatusService.getInstance();
-        if (syncStatusCardLabel != null) syncStatusCardLabel.textProperty().bind(sync.statusTextProperty());
-        if (pendingCountCardLabel != null) pendingCountCardLabel.textProperty().bind(sync.pendingCountProperty().asString());
-        if (lastSyncCardLabel != null) lastSyncCardLabel.textProperty().bind(sync.lastSyncTextProperty());
 
         if (ApiSupport.useApi()) {
             loadFromApi();
@@ -283,20 +272,6 @@ public class StudentDashboardController {
                 }
             }
         }
-    }
-
-    @FXML
-    private void onSyncNow() {
-        if (syncNowCardBtn != null) {
-            syncNowCardBtn.setDisable(true);
-            syncNowCardBtn.setText("Syncing…");
-        }
-        SyncStatusService.getInstance().syncNow(() -> {
-            if (syncNowCardBtn != null) {
-                syncNowCardBtn.setDisable(false);
-                syncNowCardBtn.setText("🔄  Sync Now");
-            }
-        });
     }
 
     private void loadFromApi() {

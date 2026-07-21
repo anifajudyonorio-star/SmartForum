@@ -27,6 +27,7 @@ public class SyncStatusService {
     private BiConsumer<String, String> bannerCallback;
     private Boolean lastKnownOnline = null;
     private ScheduledExecutorService scheduler;
+    private volatile boolean flushing = false;
 
     private SyncStatusService() {}
 
@@ -59,23 +60,12 @@ public class SyncStatusService {
     }
 
     public void refreshNow() {
-        Platform.runLater(this::refresh);
-    }
-
-    public void syncNow(Runnable onDone) {
-        new Thread(() -> OfflineQueue.flush(
-            () -> Platform.runLater(() -> {
-                updateLastSync();
-                refresh();
-                showBanner("Back online — offline actions synced!", "success");
-                if (onDone != null) onDone.run();
-            }),
-            () -> Platform.runLater(() -> {
-                refresh();
-                showBanner("Sync failed. Will retry when connection is stable.", "danger");
-                if (onDone != null) onDone.run();
-            })
-        )).start();
+        Platform.runLater(() -> {
+            refresh();
+            if (NetworkMonitor.isOnline() && OfflineQueue.size() > 0) {
+                autoSync(false, false);
+            }
+        });
     }
 
     private void tick() {
@@ -83,31 +73,22 @@ public class SyncStatusService {
         int pending = OfflineQueue.size();
 
         if (lastKnownOnline == null) {
-            // First tick — just show banner based on current state
             if (!online) {
                 showBanner("You're offline. Actions will be saved and synced when you reconnect.", "warning");
+            } else if (pending > 0) {
+                autoSync(false, false);
             }
         } else if (!lastKnownOnline && online) {
-            // Came back online
             if (pending > 0) {
                 showBanner("Reconnected. Syncing…", "info");
-                OfflineQueue.flush(
-                    () -> Platform.runLater(() -> {
-                        updateLastSync();
-                        refresh();
-                        showBanner("Back online — offline actions synced!", "success");
-                    }),
-                    () -> Platform.runLater(() -> {
-                        refresh();
-                        showBanner("Sync failed. Will retry when connection is stable.", "danger");
-                    })
-                );
+                autoSync(true, true);
             } else {
                 showBanner("Back online!", "success");
             }
         } else if (lastKnownOnline && !online) {
-            // Just went offline
             showBanner("You're offline. Actions will be saved and synced when you reconnect.", "warning");
+        } else if (online && pending > 0) {
+            autoSync(false, false);
         }
 
         lastKnownOnline = online;
@@ -122,6 +103,31 @@ public class SyncStatusService {
                 statusText.set("● Online");
             }
         });
+    }
+
+    private void autoSync(boolean fromReconnect, boolean announceResult) {
+        if (flushing || !NetworkMonitor.isOnline() || OfflineQueue.size() == 0) {
+            return;
+        }
+
+        flushing = true;
+        OfflineQueue.flush(
+            () -> Platform.runLater(() -> {
+                flushing = false;
+                updateLastSync();
+                refresh();
+                if (announceResult) {
+                    showBanner("Back online — offline actions synced!", "success");
+                }
+            }),
+            () -> Platform.runLater(() -> {
+                flushing = false;
+                refresh();
+                if (announceResult) {
+                    showBanner("Sync failed. Will retry when connection is stable.", "danger");
+                }
+            })
+        );
     }
 
     private void refresh() {

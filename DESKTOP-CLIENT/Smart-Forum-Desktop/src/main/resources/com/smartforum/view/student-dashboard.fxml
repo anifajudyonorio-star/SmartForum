@@ -99,27 +99,6 @@
                </VBox>
             </HBox>
 
-            <VBox spacing="0.0" styleClass="dashboard-card">
-               <HBox styleClass="dashboard-card-header">
-                  <Label styleClass="dashboard-card-title" text="🔄 Offline Synchronization" />
-               </HBox>
-               <VBox spacing="8.0" styleClass="dashboard-card-body">
-                  <HBox spacing="8.0" alignment="CENTER_LEFT">
-                     <Label styleClass="form-label" text="Status:" />
-                     <Label fx:id="syncStatusCardLabel" styleClass="badge-primary" text="● Online" />
-                  </HBox>
-                  <HBox spacing="8.0" alignment="CENTER_LEFT">
-                     <Label styleClass="form-label" text="Pending Actions:" />
-                     <Label fx:id="pendingCountCardLabel" styleClass="stat-number" text="0" />
-                  </HBox>
-                  <HBox spacing="8.0" alignment="CENTER_LEFT">
-                     <Label styleClass="form-label" text="Last Sync:" />
-                     <Label fx:id="lastSyncCardLabel" styleClass="list-item-meta" text="Never" />
-                  </HBox>
-                  <Button fx:id="syncNowCardBtn" mnemonicParsing="false" onAction="#onSyncNow" styleClass="btn-primary" text="🔄  Sync Now" />
-               </VBox>
-            </VBox>
-
             <VBox spacing="10.0">
                <VBox spacing="3.0">
                   <Label styleClass="dashboard-title" text="Quiz Progress" />
