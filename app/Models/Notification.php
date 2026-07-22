@@ -7,6 +7,8 @@ use Illuminate\Support\Str;
 
 class Notification extends Model
 {
+    public const READ_EXPIRY_HOURS = 24;
+
     protected $fillable = [
         'user_ID',
         'Notification_Type',
@@ -109,6 +111,10 @@ class Notification extends Model
             return route('quizzes.review', $this->quiz);
         }
 
+        if ($this->Notification_Type === 'post_report' && $this->group_id) {
+            return route('groups.show', $this->group_id).'#reported-posts';
+        }
+
         $this->loadMissing('post.topic');
 
         if ($this->post?->topic) {
@@ -121,9 +127,16 @@ class Notification extends Model
     public function scopeVisible($query)
     {
         return $query->where(function ($query) {
-            $query->whereNull('quiz_id')
-                ->orWhereNull('expires_at')
+            $query->whereNull('expires_at')
                 ->orWhere('expires_at', '>', now());
         });
+    }
+
+    public function markAsRead(): void
+    {
+        $this->update([
+            'Is_Read' => true,
+            'expires_at' => now()->addHours(self::READ_EXPIRY_HOURS),
+        ]);
     }
 }

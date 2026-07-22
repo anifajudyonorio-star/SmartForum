@@ -10,6 +10,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ParticipationController;
 use App\Http\Controllers\PerformanceReportController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\QuizAnnouncementController;
@@ -78,6 +79,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
     Route::put('/posts/{post}', [PostController::class, 'update'])->name('posts.update');
     Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
+    Route::post('/posts/{post}/report', [ReportController::class, 'store'])->name('posts.report');
+
+    Route::post('/groups/{group}/post-reports/{report}/restore', [ReportController::class, 'restore'])
+        ->name('groups.post-reports.restore');
+    Route::delete('/groups/{group}/post-reports/{report}', [ReportController::class, 'destroy'])
+        ->name('groups.post-reports.destroy');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');

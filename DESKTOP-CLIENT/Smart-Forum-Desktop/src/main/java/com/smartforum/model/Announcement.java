@@ -8,6 +8,8 @@ public class Announcement {
     private String message;
     private String createdBy;
     private String createdAt;
+    private String messagePreview;
+    private boolean canDelete;
 
     public Announcement() {}
 
@@ -31,6 +33,12 @@ public class Announcement {
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+
+    public String getMessagePreview() { return messagePreview; }
+    public void setMessagePreview(String messagePreview) { this.messagePreview = messagePreview; }
+
+    public boolean isCanDelete() { return canDelete; }
+    public void setCanDelete(boolean canDelete) { this.canDelete = canDelete; }
 
     @Override
     public String toString() { return title; }

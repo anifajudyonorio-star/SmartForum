@@ -12,6 +12,10 @@ public class Question {
     private String optionD;
     private String correctAnswer;
     private int marks = 1;
+    private int optionAId;
+    private int optionBId;
+    private int optionCId;
+    private int optionDId;
 
     public Question() {}
 
@@ -58,4 +62,26 @@ public class Question {
 
     public int getMarks() { return marks; }
     public void setMarks(int marks) { this.marks = marks; }
+
+    public int getOptionAId() { return optionAId; }
+    public void setOptionAId(int optionAId) { this.optionAId = optionAId; }
+
+    public int getOptionBId() { return optionBId; }
+    public void setOptionBId(int optionBId) { this.optionBId = optionBId; }
+
+    public int getOptionCId() { return optionCId; }
+    public void setOptionCId(int optionCId) { this.optionCId = optionCId; }
+
+    public int getOptionDId() { return optionDId; }
+    public void setOptionDId(int optionDId) { this.optionDId = optionDId; }
+
+    public int optionIdForLetter(String letter) {
+        return switch (letter) {
+            case "A" -> optionAId;
+            case "B" -> optionBId;
+            case "C" -> optionCId;
+            case "D" -> optionDId;
+            default -> 0;
+        };
+    }
 }

@@ -1,370 +1,241 @@
 package com.smartforum.controller;
 
-import com.smartforum.dao.QuizCategoryDAO;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.smartforum.api.ApiClient;
 import com.smartforum.dao.QuizDAO;
 import com.smartforum.model.Quiz;
-import com.smartforum.model.QuizCategory;
+import com.smartforum.util.ApiSupport;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.HBox;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class QuizController {
 
-    @FXML
-    private ComboBox<QuizCategory> cmbCategory;
+    @FXML private Label quizCountLabel;
+    @FXML private TableView<Quiz> tblQuizzes;
+    @FXML private TableColumn<Quiz, String> colTitle;
+    @FXML private TableColumn<Quiz, String> colCategory;
+    @FXML private TableColumn<Quiz, String> colGroup;
+    @FXML private TableColumn<Quiz, Integer> colQuestions;
+    @FXML private TableColumn<Quiz, Integer> colMaximumMarks;
+    @FXML private TableColumn<Quiz, Integer> colDuration;
+    @FXML private TableColumn<Quiz, String> colStatus;
+    @FXML private TableColumn<Quiz, Void> colActions;
 
-    @FXML
-    private TextField txtTitle;
-
-    @FXML
-    private TextArea txtDescription;
-
-    @FXML
-    private Spinner<Integer> spDuration;
-
-    @FXML
-    private Spinner<Integer> spMarks;
-    @FXML
-    private Spinner<Integer> spParticipation;
-
-    @FXML
-    private DatePicker dpStart;
-
-    @FXML
-    private DatePicker dpEnd;
-
-    @FXML
-    private TableView<Quiz> tblQuizzes;
-
-    @FXML
-    private TableColumn<Quiz, Integer> colId;
-
-    @FXML
-    private TableColumn<Quiz, String> colCategory;
-
-    @FXML
-    private TableColumn<Quiz, String> colTitle;
-
-    @FXML
-    private TableColumn<Quiz, Integer> colDuration;
-
-    @FXML
-    private TableColumn<Quiz, Integer> colMarks;
-
-    @FXML
-    private TableColumn<Quiz, String> colStart;
-
-    @FXML
-    private TableColumn<Quiz, String> colEnd;
-
-    @FXML
-    private Button btnSave;
-
-    @FXML
-    private Button btnUpdate;
-
-    @FXML
-    private Button btnDelete;
-
-    @FXML
-    private Button btnClear;
-
-    private Quiz selectedQuiz;
+    private final QuizDAO quizDAO = new QuizDAO();
 
     @FXML
     public void initialize() {
-
-        spDuration.setValueFactory(
-            new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 300, 30));
-
-        spMarks.setValueFactory(
-            new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1000, 100));
-        spParticipation.setValueFactory(
-            new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 1000, 0));
-
-        loadCategories();
-
-        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
-        colCategory.setCellValueFactory(new PropertyValueFactory<>("categoryName"));
         colTitle.setCellValueFactory(new PropertyValueFactory<>("title"));
+        colCategory.setCellValueFactory(new PropertyValueFactory<>("categoryName"));
+        colGroup.setCellValueFactory(new PropertyValueFactory<>("groupName"));
+        colQuestions.setCellValueFactory(new PropertyValueFactory<>("questionsCount"));
+        colMaximumMarks.setCellValueFactory(new PropertyValueFactory<>("maximumMarks"));
         colDuration.setCellValueFactory(new PropertyValueFactory<>("duration"));
-        colMarks.setCellValueFactory(new PropertyValueFactory<>("totalMarks"));
-        colStart.setCellValueFactory(new PropertyValueFactory<>("startDate"));
-        colEnd.setCellValueFactory(new PropertyValueFactory<>("endDate"));
-
+        colStatus.setCellValueFactory(new PropertyValueFactory<>("lifecycleStatus"));
+        colActions.setCellValueFactory(param -> null);
+        colActions.setCellFactory(column -> actionsCell());
+        tblQuizzes.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         loadQuizzes();
-
-        tblQuizzes.getSelectionModel().selectedItemProperty().addListener(
-            (observable, oldValue, newValue) -> {
-
-                if (newValue != null) {
-
-                    selectedQuiz = newValue;
-
-                    txtTitle.setText(newValue.getTitle());
-                    txtDescription.setText(newValue.getDescription());
-
-                    spDuration.getValueFactory().setValue(newValue.getDuration());
-                    spMarks.getValueFactory().setValue(newValue.getTotalMarks());
-                    spParticipation.getValueFactory().setValue(Math.max(0, newValue.getParticipationMarks()));
-
-                    try {
-                        dpStart.setValue(newValue.getStartDate() == null ? null :
-                            com.smartforum.util.QuizSchedule.parseStart(newValue.getStartDate()).toLocalDate());
-                        dpEnd.setValue(newValue.getEndDate() == null ? null :
-                            com.smartforum.util.QuizSchedule.parseEnd(newValue.getEndDate()).toLocalDate());
-                    } catch (RuntimeException invalidHistoricSchedule) {
-                        dpStart.setValue(null);
-                        dpEnd.setValue(null);
-                    }
-
-                    for (QuizCategory category : cmbCategory.getItems()) {
-
-                        if (category.getId() == newValue.getCategoryId()) {
-
-                            cmbCategory.setValue(category);
-
-                            break;
-                        }
-                    }
-
-                }
-
-            });
-
-    }
-
-    @FXML
-    private void saveQuiz() {
-
-        QuizCategory category = cmbCategory.getValue();
-
-        if (category == null) {
-
-            showAlert("Validation", "Please select a category.");
-
-            return;
-
-        }
-        if (!validateQuiz()) return;
-
-        Quiz quiz = new Quiz();
-
-        quiz.setCategoryId(category.getId());
-        quiz.setTitle(txtTitle.getText());
-        quiz.setDescription(txtDescription.getText());
-        quiz.setDuration(spDuration.getValue());
-        quiz.setTotalMarks(spMarks.getValue());
-        quiz.setParticipationMarks(spParticipation.getValue());
-
-        if (dpStart.getValue() != null)
-            quiz.setStartDate(dpStart.getValue().toString());
-
-        if (dpEnd.getValue() != null)
-            quiz.setEndDate(dpEnd.getValue().toString());
-
-        QuizDAO dao = new QuizDAO();
-
-        if (dao.saveQuiz(quiz)) {
-
-            showAlert("Success", "Quiz saved successfully.");
-
-            loadQuizzes();
-
-            clearFields();
-
-        } else {
-
-            showAlert("Error", "Failed to save quiz.");
-
-        }
-
-    }
-
-    @FXML
-    private void updateQuiz() {
-
-        if (selectedQuiz == null) {
-
-            showAlert("Update", "Please select a quiz.");
-
-            return;
-
-        }
-
-        QuizCategory category = cmbCategory.getValue();
-        if (category == null) { showAlert("Validation", "Please select a category."); return; }
-        if (!validateQuiz()) return;
-
-        selectedQuiz.setCategoryId(category.getId());
-        selectedQuiz.setTitle(txtTitle.getText());
-        selectedQuiz.setDescription(txtDescription.getText());
-        selectedQuiz.setDuration(spDuration.getValue());
-        selectedQuiz.setTotalMarks(spMarks.getValue());
-        selectedQuiz.setParticipationMarks(spParticipation.getValue());
-
-        if (dpStart.getValue() != null)
-            selectedQuiz.setStartDate(dpStart.getValue().toString());
-
-        if (dpEnd.getValue() != null)
-            selectedQuiz.setEndDate(dpEnd.getValue().toString());
-
-        QuizDAO dao = new QuizDAO();
-
-        if (dao.updateQuiz(selectedQuiz)) {
-
-            showAlert("Success", "Quiz updated successfully.");
-
-            loadQuizzes();
-
-            clearFields();
-
-            selectedQuiz = null;
-
-        } else {
-
-            showAlert("Error", "Update failed.");
-
-        }
-
-    }
-    @FXML
-    private void deleteQuiz() {
-
-        if (selectedQuiz == null) {
-
-            showAlert("Delete", "Please select a quiz.");
-
-            return;
-
-        }
-
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-
-        alert.setTitle("Delete Quiz");
-
-        alert.setHeaderText(null);
-
-        alert.setContentText("Are you sure you want to delete this quiz?");
-
-        if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
-
-            QuizDAO dao = new QuizDAO();
-
-            if (dao.deleteQuiz(selectedQuiz.getId())) {
-
-                showAlert("Success", "Quiz deleted successfully.");
-
-                loadQuizzes();
-
-                clearFields();
-
-                selectedQuiz = null;
-
-            } else {
-
-                showAlert("Error", "Failed to delete quiz.");
-
-            }
-
-        }
-
-    }
-
-    @FXML
-    private void clearFields() {
-
-        cmbCategory.getSelectionModel().clearSelection();
-
-        txtTitle.clear();
-
-        txtDescription.clear();
-
-        spDuration.getValueFactory().setValue(30);
-
-        spMarks.getValueFactory().setValue(100);
-        spParticipation.getValueFactory().setValue(0);
-
-        dpStart.setValue(null);
-
-        dpEnd.setValue(null);
-
-        selectedQuiz = null;
-
-        tblQuizzes.getSelectionModel().clearSelection();
-
-    }
-
-    private boolean validateQuiz() {
-        if (txtTitle.getText() == null || txtTitle.getText().isBlank()) {
-            showAlert("Validation", "Quiz title is required.");
-            return false;
-        }
-        if (txtDescription.getText() == null || txtDescription.getText().isBlank()) {
-            showAlert("Validation", "Quiz description is required.");
-            return false;
-        }
-        if (spDuration.getValue() == null || spDuration.getValue() <= 0) {
-            showAlert("Validation", "Duration must be positive.");
-            return false;
-        }
-        if (spMarks.getValue() == null || spMarks.getValue() <= 0) {
-            showAlert("Validation", "Planned total marks must be positive.");
-            return false;
-        }
-        if (spParticipation.getValue() == null || spParticipation.getValue() < 0) {
-            showAlert("Validation", "Participation marks cannot be negative.");
-            return false;
-        }
-        if (dpStart.getValue() == null || dpEnd.getValue() == null) {
-            showAlert("Validation", "Start and end dates are required.");
-            return false;
-        }
-        if (dpEnd.getValue().isBefore(dpStart.getValue())) {
-            showAlert("Validation", "End date must not be before the start date.");
-            return false;
-        }
-        return true;
-    }
-
-    private void showAlert(String title, String message) {
-
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-
-        alert.setTitle(title);
-
-        alert.setHeaderText(null);
-
-        alert.setContentText(message);
-
-        alert.showAndWait();
-
-    }
-
-    private void loadCategories() {
-
-        QuizCategoryDAO dao = new QuizCategoryDAO();
-
-        cmbCategory.setItems(
-            FXCollections.observableArrayList(
-                dao.getAllCategories()
-            )
-        );
-
     }
 
     private void loadQuizzes() {
+        if (ApiSupport.useApi()) {
+            new Thread(() -> ApiClient.getManagedQuizzes().ifPresentOrElse(json -> Platform.runLater(() -> {
+                List<Quiz> quizzes = parseQuizzes(json.getAsJsonArray("quizzes"));
+                tblQuizzes.setItems(FXCollections.observableArrayList(quizzes));
+                quizCountLabel.setText(String.valueOf(json.get("count").getAsInt()));
+            }), () -> Platform.runLater(this::loadOfflineQuizzes))).start();
+            return;
+        }
 
-        QuizDAO dao = new QuizDAO();
-
-        tblQuizzes.setItems(
-            FXCollections.observableArrayList(
-                dao.getAllQuizzes()
-            )
-        );
-
+        loadOfflineQuizzes();
     }
 
+    private void loadOfflineQuizzes() {
+        List<Quiz> quizzes = quizDAO.getAllQuizzes().stream().map(quiz -> {
+            quiz.setQuestionsCount(0);
+            quiz.setMaximumMarks(quiz.getTotalMarks() + Math.max(0, quiz.getParticipationMarks()));
+            quiz.setGroupName("Local");
+            quiz.setLifecycleStatus("Draft");
+            return quiz;
+        }).toList();
+        tblQuizzes.setItems(FXCollections.observableArrayList(quizzes));
+        quizCountLabel.setText(String.valueOf(quizzes.size()));
+    }
+
+    private List<Quiz> parseQuizzes(JsonArray array) {
+        List<Quiz> quizzes = new ArrayList<>();
+        for (JsonElement element : array) {
+            JsonObject item = element.getAsJsonObject();
+            Quiz quiz = new Quiz();
+            quiz.setId(item.get("id").getAsInt());
+            quiz.setTitle(item.get("title").getAsString());
+            if (item.has("category_name") && !item.get("category_name").isJsonNull()) {
+                quiz.setCategoryName(item.get("category_name").getAsString());
+            }
+            if (item.has("group_name") && !item.get("group_name").isJsonNull()) {
+                quiz.setGroupName(item.get("group_name").getAsString());
+            }
+            quiz.setQuestionsCount(item.get("questions_count").getAsInt());
+            quiz.setMaximumMarks(item.get("maximum_marks").getAsInt());
+            quiz.setDuration(item.get("duration").getAsInt());
+            quiz.setLifecycleStatus(item.get("lifecycle_status").getAsString());
+            quiz.setPublished(item.get("is_published").getAsBoolean());
+            quiz.setCanPublish(item.get("can_publish").getAsBoolean());
+            quiz.setCanDelete(item.get("can_delete").getAsBoolean());
+            if (item.has("description") && !item.get("description").isJsonNull()) {
+                quiz.setDescription(item.get("description").getAsString());
+            }
+            quizzes.add(quiz);
+        }
+        return quizzes;
+    }
+
+    private TableCell<Quiz, Void> actionsCell() {
+        return new TableCell<>() {
+            private final HBox box = new HBox(6);
+            private final Button reviewButton = new Button("Review");
+            private final Button publishButton = new Button("Publish");
+            private final Button deleteButton = new Button("Delete");
+            private final Label disabledPublish = new Label("Add questions first");
+
+            {
+                reviewButton.getStyleClass().addAll("btn-outline", "btn-sm");
+                publishButton.getStyleClass().addAll("btn-primary", "btn-sm");
+                deleteButton.getStyleClass().addAll("btn-danger", "btn-sm");
+                disabledPublish.getStyleClass().add("dashboard-subtitle");
+                box.setAlignment(Pos.CENTER_LEFT);
+
+                reviewButton.setOnAction(event -> {
+                    Quiz quiz = getTableView().getItems().get(getIndex());
+                    if (quiz != null) {
+                        showReview(quiz);
+                    }
+                });
+                publishButton.setOnAction(event -> {
+                    Quiz quiz = getTableView().getItems().get(getIndex());
+                    if (quiz != null) {
+                        publishQuiz(quiz);
+                    }
+                });
+                deleteButton.setOnAction(event -> {
+                    Quiz quiz = getTableView().getItems().get(getIndex());
+                    if (quiz != null) {
+                        deleteQuiz(quiz);
+                    }
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                box.getChildren().clear();
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+
+                Quiz quiz = getTableView().getItems().get(getIndex());
+                box.getChildren().add(reviewButton);
+                if (!quiz.isPublished()) {
+                    if (quiz.isCanPublish()) {
+                        box.getChildren().add(publishButton);
+                    } else if (quiz.getQuestionsCount() <= 0) {
+                        box.getChildren().add(disabledPublish);
+                    }
+                }
+                if (quiz.isCanDelete()) {
+                    box.getChildren().add(deleteButton);
+                }
+                setGraphic(box);
+            }
+        };
+    }
+
+    private void showReview(Quiz quiz) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Quiz Review");
+        alert.setHeaderText(quiz.getTitle());
+        alert.setContentText((quiz.getDescription() == null ? "" : quiz.getDescription() + "\n\n")
+                + "Category: " + safe(quiz.getCategoryName()) + "\n"
+                + "Group: " + safe(quiz.getGroupName()) + "\n"
+                + "Questions: " + quiz.getQuestionsCount() + "\n"
+                + "Maximum marks: " + quiz.getMaximumMarks() + "\n"
+                + "Duration: " + quiz.getDuration() + " min\n"
+                + "Status: " + safe(quiz.getLifecycleStatus()));
+        alert.showAndWait();
+    }
+
+    private void publishQuiz(Quiz quiz) {
+        if (ApiSupport.useApi()) {
+            new Thread(() -> {
+                ApiClient.MutationResult result = ApiClient.publishQuiz(quiz.getId());
+                Platform.runLater(() -> {
+                    if (result.success()) {
+                        alert("Published", result.message());
+                        loadQuizzes();
+                    } else {
+                        alert("Publish Failed", result.message().isBlank()
+                                ? "Could not publish this quiz."
+                                : result.message());
+                    }
+                });
+            }).start();
+            return;
+        }
+
+        alert("Offline Mode", "Publishing is available when connected to the SmartForum server.");
+    }
+
+    private void deleteQuiz(Quiz quiz) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                "Delete this draft quiz?", ButtonType.YES, ButtonType.NO);
+        confirm.setHeaderText(null);
+        if (confirm.showAndWait().orElse(ButtonType.NO) != ButtonType.YES) {
+            return;
+        }
+
+        if (ApiSupport.useApi()) {
+            new Thread(() -> {
+                ApiClient.MutationResult result = ApiClient.deleteQuiz(quiz.getId());
+                Platform.runLater(() -> {
+                    if (result.success()) {
+                        loadQuizzes();
+                    } else {
+                        alert("Delete Failed", result.message().isBlank()
+                                ? "Could not delete this quiz."
+                                : result.message());
+                    }
+                });
+            }).start();
+            return;
+        }
+
+        if (quizDAO.deleteQuiz(quiz.getId())) {
+            loadOfflineQuizzes();
+        }
+    }
+
+    private static String safe(String value) {
+        return value == null || value.isBlank() ? "—" : value;
+    }
+
+    private void alert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
 }

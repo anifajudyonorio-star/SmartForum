@@ -12,6 +12,16 @@ public class Quiz {
     private int participationMarks;
     private String startDate;
     private String endDate;
+    private int questionsCount;
+    private int maximumMarks;
+    private String groupName;
+    private String lifecycleStatus;
+    private String statusLabel;
+    private boolean completed;
+    private boolean canStart;
+    private boolean canPublish;
+    private boolean canDelete;
+    private boolean published;
 
     public Quiz() {}
 
@@ -58,6 +68,36 @@ public class Quiz {
 
     public String getEndDate() { return endDate; }
     public void setEndDate(String endDate) { this.endDate = endDate; }
+
+    public int getQuestionsCount() { return questionsCount; }
+    public void setQuestionsCount(int questionsCount) { this.questionsCount = questionsCount; }
+
+    public int getMaximumMarks() { return maximumMarks; }
+    public void setMaximumMarks(int maximumMarks) { this.maximumMarks = maximumMarks; }
+
+    public String getGroupName() { return groupName; }
+    public void setGroupName(String groupName) { this.groupName = groupName; }
+
+    public String getLifecycleStatus() { return lifecycleStatus; }
+    public void setLifecycleStatus(String lifecycleStatus) { this.lifecycleStatus = lifecycleStatus; }
+
+    public String getStatusLabel() { return statusLabel; }
+    public void setStatusLabel(String statusLabel) { this.statusLabel = statusLabel; }
+
+    public boolean isCompleted() { return completed; }
+    public void setCompleted(boolean completed) { this.completed = completed; }
+
+    public boolean isCanStart() { return canStart; }
+    public void setCanStart(boolean canStart) { this.canStart = canStart; }
+
+    public boolean isCanPublish() { return canPublish; }
+    public void setCanPublish(boolean canPublish) { this.canPublish = canPublish; }
+
+    public boolean isCanDelete() { return canDelete; }
+    public void setCanDelete(boolean canDelete) { this.canDelete = canDelete; }
+
+    public boolean isPublished() { return published; }
+    public void setPublished(boolean published) { this.published = published; }
 
     @Override
     public String toString() { return title; }

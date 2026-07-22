@@ -42,7 +42,9 @@ export function buildMessageHtml(post) {
                <input type="hidden" name="_method" value="DELETE">
                <button type="submit" class="wa-action-btn" title="Delete"><i class="bi bi-trash-fill"></i></button>
            </form>`
-        : '';
+        : `<button type="button" class="wa-action-btn report-btn" data-post="${post.id}" title="Report as irrelevant">
+               <i class="bi bi-flag-fill"></i>
+           </button>`;
     const hiddenBadge = post.is_mine && post.hidden_count > 0
         ? `<span class="wa-hidden-badge" title="Hidden from ${post.hidden_count} member(s)"><i class="bi bi-eye-slash"></i> ${post.hidden_count}</span>`
         : '';
@@ -195,6 +197,70 @@ export function buildMessageHtml(post) {
         });
     }
 
+    async function reportPost(postId) {
+        const reportBaseUrl = chat.dataset.reportUrl;
+        if (!reportBaseUrl || !postId) return;
+
+        const reason = window.prompt(
+            'Why is this message irrelevant? (optional)',
+            ''
+        );
+        if (reason === null) return;
+
+        try {
+            const response = await fetch(`${reportBaseUrl}/${postId}/report`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({ reason }),
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                const message = data.message
+                    || data.errors?.post?.[0]
+                    || 'Could not report this message.';
+                window.alert(message);
+                return;
+            }
+
+            const messageRow = document.getElementById(`msg-${postId}`);
+            messageRow?.remove();
+
+            const exportArea = document.getElementById('chatExportArea');
+            if (exportArea && !exportArea.querySelector('.wa-msg')) {
+                exportArea.innerHTML = `
+                    <div class="wa-empty" id="chatEmpty">
+                        <i class="bi bi-chat-dots"></i>
+                        <p class="mb-0">No messages yet. Start the conversation below.</p>
+                    </div>`;
+            }
+
+            window.alert(data.message || 'Message reported. A group admin will review it shortly.');
+        } catch {
+            window.alert('Could not report this message. Check your connection and try again.');
+        }
+    }
+
+    function bindReportButtons() {
+        const area = document.getElementById('chatExportArea');
+        if (!area || area.dataset.reportBound) return;
+        area.dataset.reportBound = '1';
+
+        area.addEventListener('click', (event) => {
+            const btn = event.target.closest('.report-btn');
+            if (!btn) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            reportPost(btn.dataset.post);
+        });
+    }
+
     function bindQuoteScroll(scope) {
         (scope || document).querySelectorAll('.reply-quote').forEach((quote) => {
             if (quote.dataset.bound) return;
@@ -232,6 +298,7 @@ export function buildMessageHtml(post) {
     }
 
     bindReplyButtons();
+    bindReportButtons();
     bindCopyButtons();
     bindQuoteScroll();
     scrollToBottom();

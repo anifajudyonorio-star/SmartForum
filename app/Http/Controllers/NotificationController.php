@@ -64,9 +64,7 @@ class NotificationController extends Controller
             ->with(['post.topic', 'quiz', 'user'])
             ->findOrFail($id);
 
-        $notification->update([
-            'Is_Read' => true,
-        ]);
+        $notification->markAsRead();
 
         $url = $this->notificationUrl($notification);
 

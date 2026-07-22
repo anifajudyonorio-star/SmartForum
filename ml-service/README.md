@@ -20,7 +20,19 @@ python -m venv .venv
 
 ```bash
 pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 5000
+uvicorn app.main:app --host 127.0.0.1 --port 5001
+```
+
+On Windows, port 5000 is often blocked by the system. Use **5001** and set this in your Laravel `.env`:
+
+```
+ML_SERVICE_URL=http://localhost:5001
+```
+
+Or run the helper script from the project root:
+
+```powershell
+.\ml-service\start-ml.ps1
 ```
 
 ## Endpoints

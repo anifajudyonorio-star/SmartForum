@@ -33,6 +33,9 @@
                   <Button fx:id="topicSearchNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showTopicSearch" styleClass="sidebar-nav-btn" text="Search Topics" />
                   <Button fx:id="notificationsNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showNotifications" styleClass="sidebar-nav-btn" text="Notifications" />
                   <Button fx:id="quizzesNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showQuizzesFromNav" styleClass="sidebar-nav-btn" text="Quizzes" />
+                  <Button fx:id="announcementsNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showAnnouncementsFromNav" styleClass="sidebar-nav-btn" text="Announcements" />
+                  <Button fx:id="quizProgressNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showQuizProgressFromNav" styleClass="sidebar-nav-btn" text="Quiz Progress" />
+                  <Button fx:id="quizReportsNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showQuizReportsFromNav" styleClass="sidebar-nav-btn" text="Quiz Reports" />
 
                   <VBox fx:id="groupAdminSection" managed="false" spacing="2.0" visible="false">
                      <Label styleClass="sidebar-section-label" text="GROUP ADMIN" />

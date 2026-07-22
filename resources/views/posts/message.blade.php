@@ -17,6 +17,13 @@
                         title="Reply">
                     <i class="bi bi-reply-fill"></i>
                 </button>
+                @if(!$mine)
+                    <button type="button" class="wa-action-btn report-btn"
+                            data-post="{{ $post->id }}"
+                            title="Report as irrelevant">
+                        <i class="bi bi-flag-fill"></i>
+                    </button>
+                @endif
                 @if($mine)
                     <a href="{{ route('posts.edit', $post) }}" class="wa-action-btn" title="Edit">
                         <i class="bi bi-pencil-fill"></i>

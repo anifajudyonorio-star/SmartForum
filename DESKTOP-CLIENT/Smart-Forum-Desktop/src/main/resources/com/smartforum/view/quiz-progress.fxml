@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.QuizProgressController">
+   <content>
+      <VBox spacing="12.0" styleClass="dashboard-content">
+         <VBox spacing="4.0" styleClass="dashboard-header">
+            <Label styleClass="dashboard-title" text="Quiz Progress" />
+            <Label styleClass="dashboard-subtitle" text="Review your submitted quizzes and follow your performance over time." />
+         </VBox>
+
+         <GridPane hgap="10.0" maxWidth="1.7976931348623157E308" vgap="10.0">
+            <columnConstraints>
+               <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="110.0" percentWidth="25.0" />
+               <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="110.0" percentWidth="25.0" />
+               <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="110.0" percentWidth="25.0" />
+               <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="110.0" percentWidth="25.0" />
+            </columnConstraints>
+            <VBox maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="stat-card" GridPane.columnIndex="0">
+               <Label styleClass="stat-label" text="Quizzes Attempted" />
+               <Label fx:id="quizzesAttemptedLabel" styleClass="stat-number" text="0" />
+            </VBox>
+            <VBox maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="stat-card" GridPane.columnIndex="1">
+               <Label styleClass="stat-label" text="Average Percentage" />
+               <Label fx:id="averagePercentageLabel" styleClass="stat-number" text="N/A" />
+            </VBox>
+            <VBox maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="stat-card" GridPane.columnIndex="2">
+               <Label styleClass="stat-label" text="Best Percentage" />
+               <Label fx:id="bestPercentageLabel" styleClass="stat-number" text="N/A" />
+            </VBox>
+            <VBox maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="stat-card" GridPane.columnIndex="3">
+               <Label styleClass="stat-label" text="Latest Percentage" />
+               <Label fx:id="latestPercentageLabel" styleClass="stat-number" text="N/A" />
+            </VBox>
+         </GridPane>
+
+         <VBox maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="dashboard-card">
+            <HBox styleClass="dashboard-card-header">
+               <Label styleClass="dashboard-card-title" text="Progress Across Attempts" />
+            </HBox>
+            <VBox spacing="6.0" styleClass="dashboard-card-body">
+               <Label fx:id="quizProgressMessage" styleClass="empty-label" text="Loading quiz progress..." wrapText="true" />
+               <LineChart fx:id="quizProgressChart" animated="false" createSymbols="true" legendVisible="false" minHeight="230.0" prefHeight="260.0" styleClass="quiz-progress-chart">
+                  <xAxis>
+                     <CategoryAxis label="Attempts" tickLabelRotation="-18.0" />
+                  </xAxis>
+                  <yAxis>
+                     <NumberAxis autoRanging="false" label="Percentage" lowerBound="0.0" tickUnit="20.0" upperBound="100.0" />
+                  </yAxis>
+               </LineChart>
+            </VBox>
+         </VBox>
+
+         <VBox maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="dashboard-card quiz-attempt-history-card">
+            <HBox styleClass="dashboard-card-header quiz-attempt-history-header">
+               <Label styleClass="quiz-attempt-history-title" text="Attempt history" />
+            </HBox>
+            <VBox spacing="0.0" styleClass="dashboard-card-body-flush">
+               <TableView fx:id="quizAttemptTable" maxWidth="1.7976931348623157E308" minHeight="220.0" prefHeight="280.0" styleClass="quiz-attempt-history-table">
+                  <placeholder>
+                     <Label styleClass="quiz-history-empty" text="No quiz history yet." wrapText="true" />
+                  </placeholder>
+                  <columns>
+                     <TableColumn fx:id="quizTitleColumn" minWidth="120.0" text="Quiz" />
+                     <TableColumn fx:id="quizSubmittedColumn" minWidth="100.0" text="Submitted" />
+                     <TableColumn fx:id="quizStatusColumn" minWidth="72.0" text="Status" />
+                     <TableColumn fx:id="quizQuestionScoreColumn" minWidth="88.0" text="Question Score" />
+                     <TableColumn fx:id="quizParticipationColumn" minWidth="72.0" text="Participation" />
+                     <TableColumn fx:id="quizFinalScoreColumn" minWidth="80.0" text="Final Score" />
+                     <TableColumn fx:id="quizPercentageColumn" minWidth="72.0" text="Percentage" />
+                     <TableColumn fx:id="quizReportColumn" minWidth="72.0" text="Report" />
+                  </columns>
+               </TableView>
+            </VBox>
+         </VBox>
+      </VBox>
+   </content>
+</ScrollPane>

@@ -8,16 +8,18 @@ import com.smartforum.model.ParticipationCard;
 import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.layout.GridPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import org.kordamp.ikonli.bootstrapicons.BootstrapIcons;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +29,7 @@ public class ParticipationViewController {
     @FXML private Label headerSubtitleLabel;
     @FXML private Label topParticipantLabel;
     @FXML private ComboBox<String> groupFilterCombo;
-    @FXML private VBox participantsBox;
+    @FXML private FlowPane participantsBox;
 
     private final List<Integer> groupIds = new ArrayList<>();
 
@@ -60,15 +62,17 @@ public class ParticipationViewController {
             participantsBox.getChildren().clear();
             JsonArray participants = json.getAsJsonArray("participants");
             if (participants.isEmpty()) {
-                Label empty = new Label("No participation data available.");
-                empty.getStyleClass().add("dashboard-subtitle");
-                participantsBox.getChildren().add(empty);
+                participantsBox.getChildren().add(buildEmptyState());
+                topParticipantLabel.setGraphic(null);
                 topParticipantLabel.setText("");
                 return;
             }
 
             JsonObject first = participants.get(0).getAsJsonObject();
-            topParticipantLabel.setText("⭐ Top: " + first.get("name").getAsString());
+            topParticipantLabel.setGraphic(createHeaderStarIcon());
+            topParticipantLabel.setContentDisplay(ContentDisplay.LEFT);
+            topParticipantLabel.setGraphicTextGap(4);
+            topParticipantLabel.setText("Top: " + first.get("name").getAsString());
 
             int highestScore = json.get("highest_score").getAsInt();
             for (JsonElement element : participants) {
@@ -117,12 +121,15 @@ public class ParticipationViewController {
     }
 
     private VBox buildCard(ParticipationCard card) {
-        VBox cardBox = new VBox(10);
+        VBox cardBox = new VBox(0);
         cardBox.getStyleClass().add("participant-card");
-        cardBox.setPadding(new Insets(14));
+        cardBox.setMinWidth(280);
+        cardBox.setPrefWidth(280);
+        cardBox.setMaxWidth(340);
 
         HBox top = new HBox(12);
         top.setAlignment(Pos.CENTER_LEFT);
+        top.getStyleClass().add("participant-card-top");
 
         Label avatar = new Label(card.getInitials());
         avatar.getStyleClass().add("participant-avatar");
@@ -130,29 +137,48 @@ public class ParticipationViewController {
         VBox nameBox = new VBox(4);
         Label name = new Label(card.getName());
         name.getStyleClass().add("participant-name");
+        name.setMaxWidth(Double.MAX_VALUE);
+
         Label rank = new Label(card.getRank());
-        rank.getStyleClass().add("badge-primary");
+        rank.getStyleClass().add(rankBadgeStyle(card.getRank()));
         nameBox.getChildren().addAll(name, rank);
         HBox.setHgrow(nameBox, Priority.ALWAYS);
 
-        top.getChildren().addAll(avatar, nameBox);
+        FontIcon trendIcon = FontIcon.of(BootstrapIcons.GRAPH_UP);
+        trendIcon.getStyleClass().add("participant-trend-icon");
 
-        GridPane stats = new GridPane();
-        stats.setHgap(16);
+        top.getChildren().addAll(avatar, nameBox, trendIcon);
+
+        HBox stats = new HBox();
+        stats.setAlignment(Pos.CENTER);
         stats.getStyleClass().add("participant-stats");
-        stats.add(createStatBlock(String.valueOf(card.getTopics()), "Topics"), 0, 0);
-        stats.add(createStatBlock(String.valueOf(card.getPosts()), "Posts"), 1, 0);
-        stats.add(createStatBlock(String.valueOf(card.getReplies()), "Replies"), 2, 0);
+        HBox.setHgrow(stats, Priority.ALWAYS);
 
-        HBox scoreRow = new HBox(8);
+        VBox topicsStat = createStatBlock(String.valueOf(card.getTopics()), BootstrapIcons.BOOK, "Topics");
+        VBox postsStat = createStatBlock(String.valueOf(card.getPosts()), BootstrapIcons.CHAT_LEFT_TEXT, "Posts");
+        VBox repliesStat = createStatBlock(String.valueOf(card.getReplies()), BootstrapIcons.REPLY, "Replies");
+        HBox.setHgrow(topicsStat, Priority.ALWAYS);
+        HBox.setHgrow(postsStat, Priority.ALWAYS);
+        HBox.setHgrow(repliesStat, Priority.ALWAYS);
+        stats.getChildren().addAll(topicsStat, postsStat, repliesStat);
+
+        HBox scoreRow = new HBox(4);
         scoreRow.setAlignment(Pos.CENTER_LEFT);
-        Label scoreLabel = new Label("Score: " + card.getScore());
-        scoreLabel.getStyleClass().add("list-item-meta");
-        Label percentLabel = new Label(card.getProgress() + "%");
-        percentLabel.getStyleClass().add("list-item-meta");
+        scoreRow.getStyleClass().add("participant-score-row");
+
+        Label scorePrefix = new Label("Score:");
+        scorePrefix.getStyleClass().add("participant-score-muted");
+
+        Label scoreValue = new Label(String.valueOf(card.getScore()));
+        scoreValue.getStyleClass().add("participant-score-value");
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        scoreRow.getChildren().addAll(scoreLabel, spacer, percentLabel);
+
+        Label percentLabel = new Label(card.getProgress() + "%");
+        percentLabel.getStyleClass().add("participant-score-muted");
+
+        scoreRow.getChildren().addAll(scorePrefix, scoreValue, spacer, percentLabel);
 
         ProgressBar progressBar = new ProgressBar(card.getProgress() / 100.0);
         progressBar.setMaxWidth(Double.MAX_VALUE);
@@ -162,22 +188,69 @@ public class ParticipationViewController {
         return cardBox;
     }
 
-    private VBox createStatBlock(String value, String label) {
+    private VBox createStatBlock(String value, BootstrapIcons icon, String label) {
+        VBox block = new VBox(2);
+        block.setAlignment(Pos.CENTER);
+        block.setMaxWidth(Double.MAX_VALUE);
+
         Label valueLabel = new Label(value);
         valueLabel.getStyleClass().add("participant-stat-value");
+        valueLabel.setMaxWidth(Double.MAX_VALUE);
+        valueLabel.setAlignment(Pos.CENTER);
+
+        FontIcon statIcon = FontIcon.of(icon);
+        statIcon.getStyleClass().add("participant-stat-icon");
+
         Label textLabel = new Label(label);
         textLabel.getStyleClass().add("participant-stat-label");
-        return new VBox(2, valueLabel, textLabel);
+
+        HBox labelRow = new HBox(4, statIcon, textLabel);
+        labelRow.setAlignment(Pos.CENTER);
+
+        block.getChildren().addAll(valueLabel, labelRow);
+        return block;
+    }
+
+    private String rankBadgeStyle(String rank) {
+        if (rank.contains("Gold")) {
+            return "badge-rank-gold";
+        }
+        if (rank.contains("Silver")) {
+            return "badge-rank-silver";
+        }
+        if (rank.contains("Bronze")) {
+            return "badge-rank-bronze";
+        }
+        return "badge-primary";
+    }
+
+    private FontIcon createHeaderStarIcon() {
+        FontIcon star = FontIcon.of(BootstrapIcons.STAR_FILL);
+        star.getStyleClass().add("participant-header-star");
+        return star;
+    }
+
+    private VBox buildEmptyState() {
+        FontIcon usersIcon = FontIcon.of(BootstrapIcons.PEOPLE);
+        usersIcon.getStyleClass().add("participant-empty-icon");
+
+        Label empty = new Label("No participation data available.");
+        empty.getStyleClass().add("participant-empty-text");
+
+        VBox box = new VBox(8, usersIcon, empty);
+        box.setAlignment(Pos.CENTER);
+        box.getStyleClass().add("participant-empty-card");
+        box.setMaxWidth(Double.MAX_VALUE);
+        return box;
     }
 
     private void loadEmptyState() {
         headerSubtitleLabel.setText("Track student engagement across topics, posts, and replies.");
+        topParticipantLabel.setGraphic(null);
         topParticipantLabel.setText("");
         groupFilterCombo.setVisible(false);
         groupFilterCombo.setManaged(false);
         participantsBox.getChildren().clear();
-        Label empty = new Label("No participation data available.");
-        empty.getStyleClass().add("dashboard-subtitle");
-        participantsBox.getChildren().add(empty);
+        participantsBox.getChildren().add(buildEmptyState());
     }
 }

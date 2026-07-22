@@ -1099,6 +1099,7 @@ body.chat-page {
     @media (max-width: 767.98px) {
         opacity: 1;
         visibility: visible;
+        pointer-events: auto;
     }
 }
 
