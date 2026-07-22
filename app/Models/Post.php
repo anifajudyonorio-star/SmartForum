@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Post extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'Topic_ID',
         'Parent_Post_ID',
@@ -39,6 +42,11 @@ class Post extends Model
     {
         return $this->belongsToMany(User::class, 'post_hidden_from', 'post_id', 'user_id')
             ->withTimestamps();
+    }
+
+    public function reports()
+    {
+        return $this->hasMany(Report::class, 'post_id');
     }
 
     public function isVisibleTo(User $user): bool

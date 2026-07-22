@@ -11,6 +11,7 @@
 <div class="wa-chat" id="waChat"
      data-topic-id="{{ $topic->id }}"
      data-store-url="{{ route('posts.store', $topic) }}"
+     data-report-url="{{ url('/posts') }}"
      data-topic-api-url="{{ url('/api/topics/' . $topic->id) }}">
 
     <header class="wa-chat-header">

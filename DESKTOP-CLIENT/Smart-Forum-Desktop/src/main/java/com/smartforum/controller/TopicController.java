@@ -1,5 +1,6 @@
 package com.smartforum.controller;
 
+import com.smartforum.api.ApiClient;
 import com.smartforum.model.Group;
 import com.smartforum.model.GroupMember;
 import com.smartforum.model.Post;
@@ -21,6 +22,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
@@ -399,6 +401,31 @@ public class TopicController {
         }
     }
 
+    private void reportPost(Post post) {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Report Message");
+        dialog.setHeaderText("Report as irrelevant");
+        dialog.setContentText("Optional reason:");
+
+        Optional<String> reason = dialog.showAndWait();
+        if (reason.isEmpty()) {
+            return;
+        }
+
+        ApiClient.MutationResult result = ApiClient.reportPost(post.getId(), reason.orElse(""));
+        if (!result.success()) {
+            showAlert(Alert.AlertType.WARNING, "Report failed", result.message());
+            return;
+        }
+
+        HBox row = messageNodesById.remove(post.getId());
+        if (row != null) {
+            messagesBox.getChildren().remove(row);
+        }
+
+        showAlert(Alert.AlertType.INFORMATION, "Reported", result.message());
+    }
+
     private void populateExcludeList(VBox container, Map<Integer, CheckBox> target, Set<Integer> preselected) {
         container.getChildren().clear();
         target.clear();
@@ -504,6 +531,8 @@ public class TopicController {
         if (mine) {
             actions.getChildren().add(actionButton("✎", "Edit", event -> openEditPost(post.getId())));
             actions.getChildren().add(actionButton("🗑", "Delete", event -> confirmDeletePost(post.getId())));
+        } else if (postController.canParticipate(topicId)) {
+            actions.getChildren().add(actionButton("⚑", "Report", event -> reportPost(post)));
         }
 
         if (!mine) {

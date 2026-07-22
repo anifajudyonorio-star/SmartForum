@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\GroupApiController;
 use App\Http\Controllers\Api\NotificationApiController;
 use App\Http\Controllers\Api\ParticipationApiController;
 use App\Http\Controllers\Api\PostApiController;
+use App\Http\Controllers\Api\ReportApiController;
 use App\Http\Controllers\Api\ProfileApiController;
 use App\Http\Controllers\Api\StatisticsApiController;
 use App\Http\Controllers\Api\TopicApiController;
@@ -75,6 +76,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/topics/{topic}/posts', [PostApiController::class, 'store']);
     Route::put('/posts/{post}', [PostApiController::class, 'update']);
     Route::delete('/posts/{post}', [PostApiController::class, 'destroy']);
+    Route::post('/posts/{post}/report', [ReportApiController::class, 'store']);
+
+    Route::get('/groups/{group}/post-reports', [ReportApiController::class, 'index']);
+    Route::post('/groups/{group}/post-reports/{report}/restore', [ReportApiController::class, 'restore']);
+    Route::delete('/groups/{group}/post-reports/{report}', [ReportApiController::class, 'destroy']);
 
     Route::get('/notifications', [NotificationApiController::class, 'index']);
     Route::get('/notifications/poll', [NotificationApiController::class, 'poll']);

@@ -7,6 +7,7 @@ use App\Models\GroupMember;
 use App\Models\User;
 use App\Services\GroupJoinService;
 use App\Services\GroupStatisticsService;
+use App\Services\ReportService;
 use App\Services\QuizNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,10 @@ use Illuminate\Validation\Rule;
 
 class GroupController extends Controller
 {
-    public function __construct(private readonly QuizNotificationService $quizNotifications) {}
+    public function __construct(
+        private readonly QuizNotificationService $quizNotifications,
+        private readonly ReportService $reports,
+    ) {}
 
     public function index()
     {
@@ -145,6 +149,7 @@ class GroupController extends Controller
         }
 
         $groupStats = GroupStatisticsService::overviewStats($members, $topics);
+        $pendingReports = $canManage ? $this->reports->pendingForGroup($group) : collect();
 
         return view('groups.show', compact(
             'group',
@@ -155,7 +160,8 @@ class GroupController extends Controller
             'members',
             'availableUsers',
             'groupStats',
-            'pendingJoinRequests'
+            'pendingJoinRequests',
+            'pendingReports',
         ));
     }
 

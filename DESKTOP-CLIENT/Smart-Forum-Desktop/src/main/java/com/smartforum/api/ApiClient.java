@@ -352,6 +352,26 @@ public class ApiClient {
         return sendJson("DELETE", "/api/posts/" + postId, null);
     }
 
+    public static MutationResult reportPost(int postId, String reason) {
+        JsonObject body = new JsonObject();
+        if (reason != null && !reason.isBlank()) {
+            body.addProperty("reason", reason);
+        }
+        return mutateJson("POST", "/api/posts/" + postId + "/report", body);
+    }
+
+    public static Optional<JsonObject> fetchPostReports(int groupId) {
+        return getJson("/api/groups/" + groupId + "/post-reports");
+    }
+
+    public static MutationResult restoreReportedPost(int groupId, int reportId) {
+        return mutateJson("POST", "/api/groups/" + groupId + "/post-reports/" + reportId + "/restore", new JsonObject());
+    }
+
+    public static MutationResult deleteReportedPost(int groupId, int reportId) {
+        return mutateJson("DELETE", "/api/groups/" + groupId + "/post-reports/" + reportId, null);
+    }
+
     // ΓöÇΓöÇ Notifications ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
     public static Optional<JsonObject> getNotifications() {

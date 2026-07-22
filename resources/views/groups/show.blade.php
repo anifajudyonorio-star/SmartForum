@@ -251,6 +251,8 @@
         </div>
     @endif
 
+    @include('groups.partials.post-reports')
+
     <div class="card mb-3 fly-in">
         <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-semibold">
