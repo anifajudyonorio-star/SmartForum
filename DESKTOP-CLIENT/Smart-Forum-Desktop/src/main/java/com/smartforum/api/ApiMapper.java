@@ -40,7 +40,7 @@ public final class ApiMapper {
                 text(json, "member_role", "member"),
                 text(json, "member_status", "Active"),
                 json.has("warnings") ? json.get("warnings").getAsInt() : 0,
-                false
+                json.has("is_creator") && json.get("is_creator").getAsBoolean()
         );
     }
 

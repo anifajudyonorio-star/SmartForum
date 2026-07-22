@@ -483,6 +483,111 @@
     -fx-text-fill: #15803d;
 }
 
+.stat-card-compact {
+    -fx-padding: 9 11 9 11;
+    -fx-min-height: 88;
+    -fx-pref-height: 88;
+    -fx-max-height: 88;
+    -fx-spacing: 2;
+}
+
+.stat-card-compact .stat-card-icon {
+    -fx-min-width: 24;
+    -fx-min-height: 24;
+    -fx-max-width: 24;
+    -fx-max-height: 24;
+    -fx-font-size: 11px;
+}
+
+.stat-card-compact .stat-number {
+    -fx-font-size: 17px;
+}
+
+.stat-card-compact .stat-label {
+    -fx-font-size: 10px;
+    -fx-wrap-text: true;
+    -fx-max-height: 26;
+}
+
+.dashboard-action-btn {
+    -fx-font-size: 11px;
+    -fx-padding: 4 10 4 10;
+}
+
+.dashboard-table-light .column-header-background {
+    -fx-background-color: #f8f9fa;
+}
+
+.dashboard-table-light .column-header,
+.dashboard-table-light .column-header .label {
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #e5e7eb;
+    -fx-text-fill: #000000;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.lecturer-dashboard-table .column-header .label {
+    -fx-text-fill: #000000;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.dashboard-table.lecturer-dashboard-table .column-header .label {
+    -fx-text-fill: #000000;
+}
+
+.dashboard-table-light .table-row-cell {
+    -fx-border-color: #f3f4f6;
+    -fx-border-width: 0 0 1 0;
+}
+
+.lecturer-chart-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 12;
+}
+
+.lecturer-chart-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111827;
+}
+
+.alert-info-small {
+    -fx-background-color: #dbeafe;
+    -fx-text-fill: #1e40af;
+    -fx-border-color: #bfdbfe;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-background-radius: 8;
+    -fx-padding: 8 10 8 10;
+    -fx-font-size: 11px;
+}
+
+.lecturer-quiz-filter {
+    -fx-font-size: 11px;
+}
+
+.lecturer-distribution-chart .default-color0.chart-pie {
+    -fx-pie-color: #16a34a;
+}
+
+.lecturer-distribution-chart .default-color1.chart-pie {
+    -fx-pie-color: #4ade80;
+}
+
+.lecturer-distribution-chart .default-color2.chart-pie {
+    -fx-pie-color: #fbbf24;
+}
+
+.lecturer-distribution-chart .default-color3.chart-pie {
+    -fx-pie-color: #f87171;
+}
+
 .stat-name {
     -fx-font-size: 12px;
     -fx-font-weight: bold;
@@ -775,12 +880,13 @@
     -fx-background-radius: 8 8 0 0;
 }
 
-.dashboard-table .column-header {
+.dashboard-table .column-header,
+.dashboard-table .column-header .label {
     -fx-background-color: #f0fdf4;
     -fx-font-family: "Nunito", sans-serif;
     -fx-font-size: 12px;
     -fx-font-weight: 700;
-    -fx-text-fill: #374151;
+    -fx-text-fill: #000000;
     -fx-border-color: #d1fae5;
     -fx-border-width: 0 0 1 0;
     -fx-padding: 8 10 8 10;
@@ -1391,6 +1497,271 @@
     -fx-border-color: #d1fae5;
     -fx-border-radius: 8;
     -fx-border-width: 1;
+}
+
+.wa-exclude-list {
+    -fx-padding: 0;
+}
+
+.wa-exclude-option {
+    -fx-background-color: #f3f4f6;
+    -fx-background-radius: 999;
+    -fx-padding: 4 9 4 9;
+    -fx-font-size: 11px;
+    -fx-text-fill: #374151;
+}
+
+.wa-exclude-option:selected {
+    -fx-background-color: #dcfce7;
+    -fx-text-fill: #15803d;
+    -fx-font-weight: bold;
+}
+
+.wa-exclude-list-edit {
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 8;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 8;
+}
+
+.group-members-card {
+    -fx-background-color: white;
+}
+
+.group-members-card-header {
+    -fx-background-color: white;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 0 0 1 0;
+}
+
+.group-members-count {
+    -fx-font-size: 13px;
+    -fx-font-weight: normal;
+    -fx-text-fill: #6b7280;
+}
+
+.group-members-form {
+    -fx-padding: 12 14 12 14;
+    -fx-background-color: white;
+}
+
+.group-members-combo {
+    -fx-font-size: 12px;
+}
+
+.group-members-add-btn {
+    -fx-min-width: 120;
+}
+
+.group-members-table {
+    -fx-padding: 0;
+    -fx-border-width: 0;
+    -fx-background-radius: 0 0 8 8;
+}
+
+.group-members-table .column-header-background {
+    -fx-background-color: white;
+}
+
+.group-members-table .column-header {
+    -fx-padding: 8 10 8 10;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #374151;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 0 0 1 0;
+}
+
+.group-members-table .table-row-cell {
+    -fx-cell-size: 40;
+    -fx-border-color: #f3f4f6;
+    -fx-border-width: 0 0 1 0;
+}
+
+.group-members-table .table-row-cell.member-row-blocked {
+    -fx-background-color: #fef2f2;
+}
+
+.group-members-table .table-row-cell.member-row-suspended {
+    -fx-background-color: #fffbeb;
+}
+
+.group-members-table .table-cell {
+    -fx-padding: 6 10 6 10;
+    -fx-font-size: 12px;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.member-creator-badge {
+    -fx-background-color: #f9fafb;
+    -fx-text-fill: #6b7280;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+    -fx-background-radius: 4;
+    -fx-font-size: 10px;
+    -fx-font-weight: normal;
+    -fx-padding: 1 6 1 6;
+}
+
+.member-you-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #9ca3af;
+}
+
+.member-status-badge {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 8 2 8;
+    -fx-background-radius: 10;
+}
+
+.member-status-active {
+    -fx-background-color: #16a34a;
+    -fx-text-fill: white;
+}
+
+.member-status-suspended {
+    -fx-background-color: #fbbf24;
+    -fx-text-fill: #1f2937;
+}
+
+.member-status-blocked {
+    -fx-background-color: #ef4444;
+    -fx-text-fill: white;
+}
+
+.member-role-badge {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 8 2 8;
+    -fx-background-radius: 10;
+}
+
+.member-role-admin {
+    -fx-background-color: #ef4444;
+    -fx-text-fill: white;
+}
+
+.member-role-lecturer {
+    -fx-background-color: #38bdf8;
+    -fx-text-fill: #1f2937;
+}
+
+.member-role-member {
+    -fx-background-color: #6b7280;
+    -fx-text-fill: white;
+}
+
+.member-warnings-badge {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 8 2 8;
+    -fx-background-radius: 10;
+}
+
+.member-warnings-none {
+    -fx-background-color: #f3f4f6;
+    -fx-text-fill: #374151;
+}
+
+.member-warnings-warn {
+    -fx-background-color: #fbbf24;
+    -fx-text-fill: #1f2937;
+}
+
+.member-warnings-danger {
+    -fx-background-color: #ef4444;
+    -fx-text-fill: white;
+}
+
+.member-email-cell {
+    -fx-font-size: 11px;
+    -fx-text-fill: #6b7280;
+}
+
+.member-actions-muted {
+    -fx-font-size: 11px;
+    -fx-text-fill: #9ca3af;
+}
+
+.member-role-combo {
+    -fx-font-size: 11px;
+    -fx-max-width: 120;
+}
+
+.btn-warning {
+    -fx-background-color: #f59e0b;
+    -fx-background-insets: 0;
+    -fx-text-fill: #1f2937;
+    -fx-border-width: 0;
+    -fx-background-radius: 6;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-padding: 4 10 4 10;
+    -fx-cursor: hand;
+}
+
+.btn-warning:hover {
+    -fx-background-color: #d97706;
+}
+
+.btn-outline-warning {
+    -fx-background-color: white;
+    -fx-text-fill: #d97706;
+    -fx-border-color: #f59e0b;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-padding: 4 10 4 10;
+    -fx-cursor: hand;
+}
+
+.btn-outline-warning:hover {
+    -fx-background-color: #fffbeb;
+}
+
+.btn-outline-secondary {
+    -fx-background-color: white;
+    -fx-text-fill: #6b7280;
+    -fx-border-color: #d1d5db;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-padding: 4 10 4 10;
+    -fx-cursor: hand;
+}
+
+.btn-outline-secondary:hover {
+    -fx-background-color: #374151;
+    -fx-text-fill: white;
+    -fx-border-color: #374151;
+}
+
+.btn-success {
+    -fx-background-color: #16a34a;
+    -fx-text-fill: white;
+    -fx-border-width: 0;
+    -fx-background-radius: 6;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-padding: 4 10 4 10;
+    -fx-cursor: hand;
+}
+
+.btn-success:hover {
+    -fx-background-color: #15803d;
+}
+
+.btn-outline-danger {
+    -fx-font-size: 11px;
+    -fx-padding: 4 10 4 10;
 }
 
 .wa-exclude-title {

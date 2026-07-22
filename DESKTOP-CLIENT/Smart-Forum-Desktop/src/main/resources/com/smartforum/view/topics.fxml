@@ -5,6 +5,7 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.StackPane?>
@@ -70,7 +71,7 @@
                   </HBox>
                   <VBox fx:id="excludePanel" managed="false" spacing="6.0" styleClass="wa-exclude-panel" visible="false">
                      <Label styleClass="wa-exclude-title" text="Hide this message from:" />
-                     <VBox fx:id="excludeList" spacing="4.0" />
+                     <FlowPane fx:id="excludeList" hgap="6.0" maxWidth="1.7976931348623157E308" styleClass="wa-exclude-list" vgap="6.0" />
                   </VBox>
                   <HBox alignment="BOTTOM_CENTER" maxWidth="1.7976931348623157E308" spacing="8.0">
                      <Button fx:id="excludeToggleBtn" managed="false" mnemonicParsing="false" onAction="#onToggleExclude" styleClass="wa-exclude-toggle" text="👁" visible="false" />
@@ -95,7 +96,7 @@
                      <VBox fx:id="editExcludeSection" spacing="6.0">
                         <Label styleClass="form-label" text="Hide from members" />
                         <Label styleClass="dashboard-subtitle" text="Selected members will not see this message." wrapText="true" />
-                        <VBox fx:id="editExcludeList" spacing="4.0" />
+                        <FlowPane fx:id="editExcludeList" hgap="6.0" maxWidth="1.7976931348623157E308" styleClass="wa-exclude-list wa-exclude-list-edit" vgap="6.0" />
                      </VBox>
                      <HBox spacing="8.0">
                         <Button mnemonicParsing="false" onAction="#onUpdatePost" styleClass="btn-primary" text="Save Changes" />

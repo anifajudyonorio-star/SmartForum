@@ -29,6 +29,7 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -77,7 +78,7 @@ public class TopicController {
     @FXML private Label replyUserLabel;
     @FXML private Label replyTextLabel;
     @FXML private VBox excludePanel;
-    @FXML private VBox excludeList;
+    @FXML private FlowPane excludeList;
     @FXML private TextArea messageInput;
     @FXML private Button excludeToggleBtn;
     @FXML private Label readOnlyLabel;
@@ -87,7 +88,7 @@ public class TopicController {
     @FXML private Label editTopicSubtitleLabel;
     @FXML private TextArea editContentField;
     @FXML private VBox editExcludeSection;
-    @FXML private VBox editExcludeList;
+    @FXML private FlowPane editExcludeList;
 
     private int groupId;
     private int topicId;
@@ -427,7 +428,7 @@ public class TopicController {
         showAlert(Alert.AlertType.INFORMATION, "Reported", result.message());
     }
 
-    private void populateExcludeList(VBox container, Map<Integer, CheckBox> target, Set<Integer> preselected) {
+    private void populateExcludeList(FlowPane container, Map<Integer, CheckBox> target, Set<Integer> preselected) {
         container.getChildren().clear();
         target.clear();
 

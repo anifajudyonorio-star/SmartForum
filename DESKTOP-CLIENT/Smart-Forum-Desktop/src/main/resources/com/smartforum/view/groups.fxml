@@ -174,30 +174,33 @@
                      </VBox>
                   </VBox>
                </VBox>
-               <VBox maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="dashboard-card">
-                  <HBox maxWidth="1.7976931348623157E308" styleClass="dashboard-card-header">
+               <VBox maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="dashboard-card group-members-card">
+                  <HBox alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" spacing="6.0" styleClass="dashboard-card-header group-members-card-header">
                      <Label styleClass="dashboard-card-title" text="👥  Group Members" />
+                     <Label fx:id="membersCountLabel" styleClass="group-members-count" text="(0)" />
                   </HBox>
-                  <VBox spacing="10.0" styleClass="dashboard-card-body">
-                     <HBox fx:id="addMemberBox" alignment="BOTTOM_LEFT" managed="false" spacing="8.0" visible="false">
-                        <VBox spacing="4.0" HBox.hgrow="ALWAYS">
-                           <Label text="Add member" />
-                           <ComboBox fx:id="userCombo" maxWidth="1.7976931348623157E308" promptText="Select a user to add..." />
-                        </VBox>
-                        <VBox spacing="4.0">
-                           <Label text="Role" />
-                           <ComboBox fx:id="roleCombo" prefWidth="120.0" />
-                        </VBox>
-                        <Button mnemonicParsing="false" onAction="#onAddMember" styleClass="btn-primary" text="+ Add Member" />
-                     </HBox>
-                     <TableView fx:id="membersTable" maxHeight="200.0" minHeight="120.0" prefHeight="180.0" styleClass="dashboard-table">
+                  <VBox spacing="0.0">
+                     <VBox fx:id="addMemberBox" managed="false" spacing="10.0" styleClass="group-members-form" visible="false">
+                        <HBox alignment="BOTTOM_LEFT" maxWidth="1.7976931348623157E308" spacing="10.0">
+                           <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                              <Label styleClass="form-label" text="Add member" />
+                              <ComboBox fx:id="userCombo" maxWidth="1.7976931348623157E308" promptText="Select a user to add..." styleClass="group-members-combo" />
+                           </VBox>
+                           <VBox spacing="4.0" prefWidth="140.0">
+                              <Label styleClass="form-label" text="Role" />
+                              <ComboBox fx:id="roleCombo" maxWidth="1.7976931348623157E308" prefWidth="140.0" styleClass="group-members-combo" />
+                           </VBox>
+                           <Button mnemonicParsing="false" onAction="#onAddMember" styleClass="btn-primary btn-sm group-members-add-btn" text="+  Add Member" />
+                        </HBox>
+                     </VBox>
+                     <TableView fx:id="membersTable" maxWidth="1.7976931348623157E308" minHeight="120.0" styleClass="dashboard-table group-members-table">
                         <columns>
-                           <TableColumn fx:id="nameColumn" minWidth="100.0" prefWidth="160.0" text="Name" />
-                           <TableColumn fx:id="roleColumn" minWidth="80.0" prefWidth="110.0" text="Group Role" />
-                           <TableColumn fx:id="statusColumn" minWidth="70.0" prefWidth="90.0" text="Status" />
-                           <TableColumn fx:id="warningsColumn" minWidth="60.0" prefWidth="70.0" text="Warnings" />
-                           <TableColumn fx:id="emailColumn" minWidth="120.0" prefWidth="180.0" text="Email" />
-                           <TableColumn fx:id="actionsColumn" minWidth="160.0" prefWidth="220.0" text="Actions" />
+                           <TableColumn fx:id="nameColumn" minWidth="120.0" text="Name" />
+                           <TableColumn fx:id="roleColumn" minWidth="100.0" text="Group Role" />
+                           <TableColumn fx:id="statusColumn" minWidth="80.0" text="Status" />
+                           <TableColumn fx:id="warningsColumn" minWidth="70.0" text="Warnings" />
+                           <TableColumn fx:id="emailColumn" minWidth="140.0" text="Email" />
+                           <TableColumn fx:id="actionsColumn" minWidth="220.0" text="Actions" />
                         </columns>
                      </TableView>
                   </VBox>
