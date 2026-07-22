@@ -120,12 +120,19 @@ def recommend_topics(topics: List[Dict[str, Any]], history: List[Dict[str, Any]]
     for item in history:
         h_id = int(item.get("topic_id")or 0)
         engagement_counts[h_id] = engagement_counts.get(h_id, 0) + 1
+        ENGAGEMENT_THRESHOLD =2
+
     for index, topic in enumerate(topics):
         topic_id = int(topic.get("id") or topic.get("topic_id") or topic.get("Topic_ID"))
         #if topic_id in engaged_ids:
         #    continue
 
         engagement_frequency  = engagement_counts.get(topic_id, 0)
+        
+        if engagement_frequency >= ENGAGEMENT_THRESHOLD:
+            continue
+        else :
+            frequency_boost = engagement_frequency * 0.5
 
         topic_text = topic_texts[index]
         title = str(topic.get("title") or topic.get("Title") or "")
@@ -139,7 +146,7 @@ def recommend_topics(topics: List[Dict[str, Any]], history: List[Dict[str, Any]]
 
         frequency_boost = engagement_frequency * 0.5
 
-        score = (similarity_score * 0.4) + (lexical * 0.1) + engagement_bonus
+        score = (similarity_score * 0.4) + (lexical * 0.1) +frequency_boost + engagement_bonus
 
         scored.append({
             "id": topic_id,
