@@ -31,10 +31,32 @@
                                     <h5 class="fw-semibold mb-0">{{ $topic->Title }}</h5>
                                     <span class="badge bg-warning text-dark">{{ number_format($topic->recommendation_score, 2) }}</span>
                                 </div>
-                                <p class="text-muted small mb-3">{{ Str::limit($topic->Topic_Description, 120) }}</p>
-                                <a href="{{ route('topics.show', $topic) }}" class="btn btn-outline-success btn-sm">
-                                    View recommendation
-                                </a>
+                                <p class="text-muted small mb-2">{{ Str::limit($topic->Topic_Description, 120) }}</p>
+                                @if($topic->group)
+                                    <p class="small text-muted mb-3">
+                                        <i class="bi bi-people me-1"></i>{{ $topic->group->Group_Name }}
+                                    </p>
+                                @endif
+                                @if($topic->group && $topic->can_view)
+                                    <a href="{{ route('topics.show', $topic) }}" class="btn btn-outline-success btn-sm">
+                                        View recommendation
+                                    </a>
+                                @elseif($topic->group)
+                                    @if($topic->join_status === 'pending')
+                                        <span class="badge bg-warning text-dark">Pending approval</span>
+                                    @elseif($topic->join_status === 'blocked')
+                                        <span class="badge bg-secondary">Cannot join</span>
+                                    @else
+                                        <form action="{{ route('groups.join', $topic->group) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-person-plus me-1"></i> Request to join group
+                                            </button>
+                                        </form>
+                                    @endif
+                                @else
+                                    <span class="text-muted small">Group details unavailable</span>
+                                @endif
                             </div>
                         </div>
                     @endforeach
