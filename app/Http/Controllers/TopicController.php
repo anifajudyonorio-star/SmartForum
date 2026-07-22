@@ -196,25 +196,31 @@ class TopicController extends Controller
 
     private function loadRecommendedTopics(MachineLearningService $mlService, $user)
     {
-        $groupIds = $user->viewableGroupIds();
-
         $recommendations = collect($mlService->getRecommendations($user->id))
             ->filter(fn ($item) => isset($item['id']))
             ->values();
 
         $recommendedTopicIds = $recommendations->pluck('id')->map(fn ($id) => (int) $id)->all();
 
-        if ($recommendedTopicIds === [] || $groupIds->isEmpty()) {
+        if ($recommendedTopicIds === []) {
             return collect();
         }
 
         return Topic::with(['user', 'group'])
             ->whereIn('id', $recommendedTopicIds)
-            ->whereIn('Group_ID', $groupIds)
+            ->whereHas('group')
             ->get()
-            ->map(function ($topic) use ($recommendations) {
+            ->map(function ($topic) use ($recommendations, $user) {
                 $match = $recommendations->firstWhere('id', (int) $topic->id);
                 $topic->recommendation_score = $match['score'] ?? 0;
+
+                if ($topic->group) {
+                    $topic->can_view = $user->canViewGroup($topic->group);
+                    $topic->join_status = $user->joinRequestStatus($topic->group);
+                } else {
+                    $topic->can_view = false;
+                    $topic->join_status = 'none';
+                }
 
                 return $topic;
             })
