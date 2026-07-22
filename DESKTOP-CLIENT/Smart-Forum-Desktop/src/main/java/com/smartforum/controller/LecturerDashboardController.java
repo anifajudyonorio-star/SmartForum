@@ -13,19 +13,31 @@ import com.smartforum.util.GroupAdminDashboardSupport;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.PieChart;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 public class LecturerDashboardController {
@@ -53,15 +65,27 @@ public class LecturerDashboardController {
     @FXML private Label quizStudentsLabel;
     @FXML private Label quizAverageLabel;
     @FXML private Label quizPassRateLabel;
+    @FXML private Label legacyResultsAlert;
+    @FXML private BarChart<String, Number> quizAverageChart;
+    @FXML private PieChart scoreDistributionChart;
+    @FXML private Label quizAverageEmptyLabel;
+    @FXML private Label scoreDistributionEmptyLabel;
+    @FXML private ComboBox<QuizFilterOption> quizFilter;
     @FXML private TableView<QuizResult> quizResultsTable;
     @FXML private TableColumn<QuizResult, String> quizStudentColumn;
     @FXML private TableColumn<QuizResult, String> quizTitleColumn;
+    @FXML private TableColumn<QuizResult, String> quizStatusColumn;
     @FXML private TableColumn<QuizResult, String> quizScoreColumn;
     @FXML private TableColumn<QuizResult, String> quizPercentageColumn;
-    @FXML private TableColumn<QuizResult, String> quizDateColumn;
 
     private ShellNavigator navigator;
     private final QuizResultDAO quizResultDAO = new QuizResultDAO();
+    private List<QuizResult> allQuizResults = List.of();
+    private static final QuizFilterOption ALL_QUIZZES = new QuizFilterOption(null, "All quizzes");
+    private static final int MAX_RECENT_RESULTS = 25;
+    private static final double TABLE_ROW_HEIGHT = 34;
+    private static final double TABLE_HEADER_HEIGHT = 30;
+    private static final double TABLE_EMPTY_HEIGHT = 88;
 
     public void setNavigator(ShellNavigator navigator) {
         this.navigator = navigator;
@@ -89,40 +113,10 @@ public class LecturerDashboardController {
     }
 
     @FXML
-    private void onManageQuizzes() {
-        if (navigator != null) {
-            navigator.showQuizzes();
-        }
-    }
-
-    @FXML
-    private void onAnnouncements() {
-        if (navigator != null) {
-            navigator.showAnnouncements();
-        }
-    }
-
-    @FXML
     private void initialize() {
-        nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
-        topicsColumn.setCellValueFactory(new PropertyValueFactory<>("topics"));
-        postsColumn.setCellValueFactory(new PropertyValueFactory<>("posts"));
-        repliesColumn.setCellValueFactory(new PropertyValueFactory<>("replies"));
-        scoreColumn.setCellValueFactory(new PropertyValueFactory<>("score"));
-        participantsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-
-        quizStudentColumn.setCellValueFactory(cell ->
-                new SimpleStringProperty(cell.getValue().getStudentName()));
-        quizTitleColumn.setCellValueFactory(cell ->
-                new SimpleStringProperty(cell.getValue().getQuizTitle()));
-        quizScoreColumn.setCellValueFactory(cell -> {
-            QuizResult result = cell.getValue();
-            return new SimpleStringProperty(result.getTotalScore() + " / " + result.getFinalPossibleMarks());
-        });
-        quizPercentageColumn.setCellValueFactory(cell ->
-                new SimpleStringProperty(formatPercentage(scorePercentage(cell.getValue()))));
-        quizDateColumn.setCellValueFactory(cell ->
-                new SimpleStringProperty(cell.getValue().getSubmittedAt() == null ? "—" : cell.getValue().getSubmittedAt()));
+        configureParticipantsTable();
+        configureQuizResultsTable();
+        configureQuizFilter();
 
         GroupAdminDashboardSupport.configureHeader(groupAdminTitleBox);
         GroupAdminDashboardSupport.configureViewStatisticsButton(viewStatisticsBtn);
@@ -140,6 +134,9 @@ public class LecturerDashboardController {
                 }
         );
 
+        quizAverageChart.setAnimated(false);
+        scoreDistributionChart.setAnimated(false);
+
         loadQuizProgress();
 
         if (ApiSupport.useApi()) {
@@ -147,6 +144,173 @@ public class LecturerDashboardController {
         } else {
             loadEmptyState();
         }
+    }
+
+    private void configureParticipantsTable() {
+        nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+        topicsColumn.setCellValueFactory(new PropertyValueFactory<>("topics"));
+        postsColumn.setCellValueFactory(new PropertyValueFactory<>("posts"));
+        repliesColumn.setCellValueFactory(new PropertyValueFactory<>("replies"));
+        scoreColumn.setCellValueFactory(new PropertyValueFactory<>("score"));
+        scoreColumn.setCellFactory(column -> badgeCell());
+        participantsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        configureAutoHeightTable(participantsTable);
+    }
+
+    private void configureQuizResultsTable() {
+        quizStudentColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue().getStudentName()));
+        quizTitleColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue().getQuizTitle()));
+        quizStatusColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty("Submitted"));
+        quizScoreColumn.setCellValueFactory(param -> null);
+        quizScoreColumn.setCellFactory(column -> finalScoreCell());
+        quizPercentageColumn.setCellValueFactory(param -> null);
+        quizPercentageColumn.setCellFactory(column -> percentageCell());
+        quizResultsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        configureAutoHeightTable(quizResultsTable);
+    }
+
+    private void configureAutoHeightTable(TableView<?> table) {
+        table.setFixedCellSize(TABLE_ROW_HEIGHT);
+        VBox.setVgrow(table, Priority.NEVER);
+        table.getStyleClass().add("lecturer-dashboard-table");
+
+        table.skinProperty().addListener((obs, oldSkin, newSkin) -> {
+            if (newSkin != null) {
+                Platform.runLater(() -> styleTableHeaderLabels(table));
+            }
+        });
+
+        ListChangeListener<Object> rowListener = change -> {
+            resizeTableToRows(table);
+            Platform.runLater(() -> styleTableHeaderLabels(table));
+        };
+        table.itemsProperty().addListener((obs, oldItems, newItems) -> {
+            if (oldItems != null) {
+                oldItems.removeListener(rowListener);
+            }
+            if (newItems != null) {
+                newItems.addListener(rowListener);
+            }
+            resizeTableToRows(table);
+            Platform.runLater(() -> styleTableHeaderLabels(table));
+        });
+        resizeTableToRows(table);
+    }
+
+    private void styleTableHeaderLabels(TableView<?> table) {
+        if (table == null) {
+            return;
+        }
+        table.applyCss();
+        table.layout();
+        for (Node node : table.lookupAll(".column-header .label")) {
+            node.setStyle("-fx-text-fill: #000000; -fx-font-weight: bold; -fx-font-size: 12px;");
+        }
+    }
+
+    private void resizeTableToRows(TableView<?> table) {
+        if (table == null) {
+            return;
+        }
+        int rows = table.getItems() == null ? 0 : table.getItems().size();
+        double height = rows == 0
+                ? TABLE_EMPTY_HEIGHT
+                : TABLE_HEADER_HEIGHT + (TABLE_ROW_HEIGHT * rows) + 2;
+        table.setPrefHeight(height);
+        table.setMinHeight(height);
+        table.setMaxHeight(height);
+    }
+
+    private void configureQuizFilter() {
+        quizFilter.setCellFactory(listView -> new ListCell<>() {
+            @Override
+            protected void updateItem(QuizFilterOption item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.label());
+            }
+        });
+        quizFilter.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(QuizFilterOption item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.label());
+            }
+        });
+        quizFilter.getSelectionModel().selectedItemProperty().addListener(
+                (obs, oldVal, newVal) -> applyQuizFilter());
+    }
+
+    private TableCell<ParticipantRow, Number> badgeCell() {
+        return new TableCell<>() {
+            @Override
+            protected void updateItem(Number item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+                Label badge = new Label(String.valueOf(item.intValue()));
+                badge.getStyleClass().add("badge-primary");
+                setGraphic(badge);
+                setText(null);
+            }
+        };
+    }
+
+    private TableCell<QuizResult, String> finalScoreCell() {
+        return new TableCell<>() {
+            private final Label label = new Label();
+
+            {
+                label.getStyleClass().add("dashboard-subtitle");
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+                QuizResult result = getTableRow().getItem();
+                int possible = result.getFinalPossibleMarks();
+                label.setText(possible > 0
+                        ? result.getTotalScore() + " / " + possible
+                        : result.getTotalScore() + " / snapshot unavailable");
+                setGraphic(label);
+                setText(null);
+            }
+        };
+    }
+
+    private TableCell<QuizResult, String> percentageCell() {
+        return new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+                Double percentage = scorePercentage(getTableRow().getItem());
+                if (percentage == null) {
+                    Label muted = new Label("Not comparable");
+                    muted.getStyleClass().add("dashboard-subtitle");
+                    setGraphic(muted);
+                } else {
+                    Label badge = new Label(formatPercentage(percentage));
+                    badge.getStyleClass().add("badge-primary");
+                    setGraphic(badge);
+                }
+                setText(null);
+            }
+        };
     }
 
     private void loadQuizProgress() {
@@ -163,7 +327,44 @@ public class LecturerDashboardController {
     }
 
     private void showQuizProgress(List<QuizResult> results) {
-        quizResultsTable.getItems().setAll(results.size() > 8 ? results.subList(0, 8) : results);
+        allQuizResults = new ArrayList<>(results);
+        populateQuizFilter();
+        applyQuizFilter();
+    }
+
+    private void populateQuizFilter() {
+        Map<Integer, String> quizzes = new LinkedHashMap<>();
+        for (QuizResult result : allQuizResults) {
+            quizzes.putIfAbsent(result.getQuizId(), result.getQuizTitle());
+        }
+
+        quizFilter.getItems().setAll(ALL_QUIZZES);
+        quizzes.forEach((id, title) -> quizFilter.getItems().add(new QuizFilterOption(id, title)));
+        quizFilter.getSelectionModel().select(ALL_QUIZZES);
+    }
+
+    private void applyQuizFilter() {
+        QuizFilterOption selected = quizFilter.getSelectionModel().getSelectedItem();
+        Integer selectedQuizId = selected == null ? null : selected.quizId();
+
+        List<QuizResult> scoped = new ArrayList<>();
+        for (QuizResult result : allQuizResults) {
+            if (selectedQuizId == null || selectedQuizId.equals(result.getQuizId())) {
+                scoped.add(result);
+            }
+        }
+
+        List<QuizResult> recent = scoped.size() > MAX_RECENT_RESULTS
+                ? scoped.subList(0, MAX_RECENT_RESULTS)
+                : scoped;
+        quizResultsTable.setItems(FXCollections.observableArrayList(recent));
+
+        updateQuizSummary(scoped);
+        updateQuizAverageChart(scoped);
+        updateScoreDistributionChart(scoped);
+    }
+
+    private void updateQuizSummary(List<QuizResult> results) {
         quizSubmissionsLabel.setText(String.valueOf(results.size()));
 
         Set<String> students = new LinkedHashSet<>();
@@ -190,6 +391,98 @@ public class LecturerDashboardController {
                 String.format(Locale.ENGLISH, "%.1f%%", percentageTotal / comparable));
         quizPassRateLabel.setText(comparable == 0 ? "—" :
                 String.format(Locale.ENGLISH, "%.0f%%", passed * 100.0 / comparable));
+
+        int excluded = results.size() - comparable;
+        if (excluded > 0) {
+            legacyResultsAlert.setText(
+                    "Percentage charts use only results with a saved final denominator. "
+                            + excluded + " legacy result" + (excluded == 1 ? " is" : "s are")
+                            + " excluded from averages and charts.");
+            legacyResultsAlert.setVisible(true);
+            legacyResultsAlert.setManaged(true);
+        } else {
+            legacyResultsAlert.setVisible(false);
+            legacyResultsAlert.setManaged(false);
+        }
+    }
+
+    private void updateQuizAverageChart(List<QuizResult> results) {
+        Map<Integer, double[]> quizStats = new LinkedHashMap<>();
+        Map<Integer, String> quizLabels = new LinkedHashMap<>();
+        for (QuizResult result : results) {
+            Double percentage = scorePercentage(result);
+            if (percentage == null) {
+                continue;
+            }
+            double[] stats = quizStats.computeIfAbsent(result.getQuizId(), key -> new double[2]);
+            quizLabels.put(result.getQuizId(), result.getQuizTitle());
+            stats[0] += percentage;
+            stats[1]++;
+        }
+
+        if (quizStats.isEmpty()) {
+            quizAverageChart.getData().clear();
+            quizAverageChart.setVisible(false);
+            quizAverageChart.setManaged(false);
+            quizAverageEmptyLabel.setVisible(true);
+            quizAverageEmptyLabel.setManaged(true);
+            return;
+        }
+
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        for (Map.Entry<Integer, double[]> entry : quizStats.entrySet()) {
+            double[] stats = entry.getValue();
+            series.getData().add(new XYChart.Data<>(
+                    quizLabels.get(entry.getKey()),
+                    stats[0] / stats[1]));
+        }
+
+        quizAverageChart.getData().setAll(series);
+        quizAverageChart.setVisible(true);
+        quizAverageChart.setManaged(true);
+        quizAverageEmptyLabel.setVisible(false);
+        quizAverageEmptyLabel.setManaged(false);
+    }
+
+    private void updateScoreDistributionChart(List<QuizResult> results) {
+        int excellent = 0;
+        int good = 0;
+        int pass = 0;
+        int needsSupport = 0;
+
+        for (QuizResult result : results) {
+            Double percentage = scorePercentage(result);
+            if (percentage == null) {
+                continue;
+            }
+            if (percentage >= 80) {
+                excellent++;
+            } else if (percentage >= 60) {
+                good++;
+            } else if (percentage >= 50) {
+                pass++;
+            } else {
+                needsSupport++;
+            }
+        }
+
+        scoreDistributionChart.getData().clear();
+        addDistributionSlice("Excellent (80%+)", excellent);
+        addDistributionSlice("Good (60–79%)", good);
+        addDistributionSlice("Pass (50–59%)", pass);
+        addDistributionSlice("Needs support (<50%)", needsSupport);
+
+        boolean hasData = excellent + good + pass + needsSupport > 0;
+        scoreDistributionChart.setVisible(hasData);
+        scoreDistributionChart.setManaged(hasData);
+        scoreDistributionEmptyLabel.setVisible(!hasData);
+        scoreDistributionEmptyLabel.setManaged(!hasData);
+    }
+
+    private void addDistributionSlice(String label, int count) {
+        if (count > 0) {
+            scoreDistributionChart.getData().add(new PieChart.Data(label, count));
+        }
     }
 
     private Double scorePercentage(QuizResult result) {
@@ -200,8 +493,8 @@ public class LecturerDashboardController {
         return result.getTotalScore() * 100.0 / possible;
     }
 
-    private String formatPercentage(Double percentage) {
-        return percentage == null ? "—" : String.format(Locale.ENGLISH, "%.1f%%", percentage);
+    private String formatPercentage(double percentage) {
+        return String.format(Locale.ENGLISH, "%.1f%%", percentage);
     }
 
     private void loadFromApi() {
@@ -246,5 +539,8 @@ public class LecturerDashboardController {
 
     private void populateGroupAdminCard(ObservableList<GroupAdminSummaryRow> rows) {
         GroupAdminDashboardSupport.populateTable(groupAdminTable, groupAdminCard, rows);
+    }
+
+    private record QuizFilterOption(Integer quizId, String label) {
     }
 }

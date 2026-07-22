@@ -5,8 +5,10 @@ import com.smartforum.model.GroupHighlight;
 import com.smartforum.model.GroupMember;
 import com.smartforum.model.GroupStats;
 import com.smartforum.model.Topic;
+import com.smartforum.model.ForumUser;
 import com.smartforum.service.AppSession;
 import com.smartforum.service.GroupService;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -16,9 +18,11 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -69,8 +73,9 @@ public class GroupController {
     @FXML private Label mostActiveTopicMetaLabel;
     @FXML private Label avgPostsLabel;
     @FXML private Label membersWithWarningsLabel;
+    @FXML private Label membersCountLabel;
     @FXML private Label adminCountLabel;
-    @FXML private HBox addMemberBox;
+    @FXML private VBox addMemberBox;
     @FXML private ComboBox<String> userCombo;
     @FXML private ComboBox<String> roleCombo;
     @FXML private TableView<GroupMember> membersTable;
@@ -132,6 +137,9 @@ public class GroupController {
 
     private boolean membersTableReady;
 
+    private static final double[] MEMBER_COLUMN_WEIGHTS_MANAGE = {2.0, 1.1, 0.9, 0.7, 1.8, 2.5};
+    private static final double[] MEMBER_COLUMN_WEIGHTS_VIEW = {2.2, 1.2, 1.0, 0.0, 2.6, 0.0};
+
     @FXML
     private void initialize() {
         sectionTitleLabel.setText("My Groups");
@@ -144,6 +152,8 @@ public class GroupController {
         }
 
         roleCombo.setItems(FXCollections.observableArrayList("member", "lecturer", "admin"));
+        configureRoleCombo(roleCombo);
+        roleCombo.getSelectionModel().select("member");
 
         nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
         emailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
@@ -154,12 +164,68 @@ public class GroupController {
         actionsColumn.setCellValueFactory(param -> null);
 
         membersTable.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
-        membersTable.setFixedCellSize(32);
+        membersTable.setFixedCellSize(40);
+        membersTable.widthProperty().addListener((obs, oldWidth, newWidth) ->
+                balanceMembersColumnWidths(newWidth.doubleValue()));
         VBox.setVgrow(membersTable, Priority.NEVER);
+        setupMembersRowStyles();
+        setupNameColumn();
         setupRoleColumn();
+        setupStatusColumn();
+        setupWarningsColumn();
+        setupEmailColumn();
         setupActionsColumn();
 
         membersTableReady = true;
+    }
+
+    private void balanceMembersColumnWidths(double tableWidth) {
+        if (tableWidth <= 0) {
+            return;
+        }
+
+        boolean canManage = warningsColumn.isVisible();
+        double[] weights = canManage ? MEMBER_COLUMN_WEIGHTS_MANAGE : MEMBER_COLUMN_WEIGHTS_VIEW;
+        @SuppressWarnings("unchecked")
+        TableColumn<GroupMember, ?>[] columns = new TableColumn[] {
+                nameColumn, roleColumn, statusColumn, warningsColumn, emailColumn, actionsColumn
+        };
+
+        double weightTotal = 0;
+        for (int i = 0; i < columns.length; i++) {
+            if ((i == 3 || i == 5) && !canManage) {
+                continue;
+            }
+            weightTotal += weights[i];
+        }
+        if (weightTotal <= 0) {
+            return;
+        }
+
+        double usableWidth = Math.max(tableWidth - 2, 0);
+        for (int i = 0; i < columns.length; i++) {
+            if ((i == 3 || i == 5) && !canManage) {
+                columns[i].setPrefWidth(0);
+                columns[i].setMinWidth(0);
+                columns[i].setMaxWidth(0);
+                continue;
+            }
+            double width = usableWidth * (weights[i] / weightTotal);
+            columns[i].setMaxWidth(Double.MAX_VALUE);
+            columns[i].setPrefWidth(width);
+            columns[i].setMinWidth(Math.max(columns[i].getMinWidth(), width * 0.45));
+        }
+    }
+
+    private void refreshMembersTableLayout() {
+        if (membersTable == null) {
+            return;
+        }
+        Platform.runLater(() -> {
+            balanceMembersColumnWidths(membersTable.getWidth());
+            membersTable.refresh();
+            membersTable.layout();
+        });
     }
 
     /** Web: index() */
@@ -230,7 +296,15 @@ public class GroupController {
         if (selected == null || selected.isBlank()) {
             return;
         }
-        int userId = Integer.parseInt(selected.split(" — ")[0].replace("ID ", ""));
+        int userId = groupService.getAvailableUsers(groupId).stream()
+                .filter(user -> selected.equals(user.getName() + " — " + user.getEmail()))
+                .map(ForumUser::getId)
+                .findFirst()
+                .orElse(-1);
+        if (userId < 0) {
+            showAlert(Alert.AlertType.WARNING, "Invalid selection", "Could not find the selected user.");
+            return;
+        }
         String role = roleCombo.getSelectionModel().getSelectedItem();
         groupService.addMember(groupId, userId, role);
         loadGroup();
@@ -418,6 +492,12 @@ public class GroupController {
         adminCountLabel.setText(String.valueOf(stats.adminCount()));
 
         membersTable.setItems(FXCollections.observableArrayList(groupService.getMembers(groupId)));
+        int memberCount = membersTable.getItems().size();
+        if (membersCountLabel != null) {
+            membersCountLabel.setText("(" + memberCount + ")");
+        }
+        membersTable.setPrefHeight(Math.min(400, Math.max(120, 42 + memberCount * 40)));
+        refreshMembersTableLayout();
         boolean canView = groupService.canViewGroup(groupId);
         loadTopics(groupService.getTopics(groupId), canView, canParticipate);
 
@@ -438,8 +518,99 @@ public class GroupController {
     private void setupAddMemberForm() {
         userCombo.getItems().clear();
         groupService.getAvailableUsers(groupId).forEach(user ->
-                userCombo.getItems().add("ID " + user.getId() + " — " + user.getName() + " — " + user.getEmail())
+                userCombo.getItems().add(user.getName() + " — " + user.getEmail())
         );
+        if (roleCombo.getSelectionModel().getSelectedItem() == null) {
+            roleCombo.getSelectionModel().select("member");
+        }
+    }
+
+    private void setupMembersRowStyles() {
+        membersTable.setRowFactory(tableView -> {
+            TableRow<GroupMember> row = new TableRow<>();
+            row.itemProperty().addListener((obs, oldMember, member) -> {
+                row.getStyleClass().removeAll("member-row-blocked", "member-row-suspended");
+                if (member != null) {
+                    if ("Blocked".equalsIgnoreCase(member.getMemberStatus())) {
+                        row.getStyleClass().add("member-row-blocked");
+                    } else if ("Suspended".equalsIgnoreCase(member.getMemberStatus())) {
+                        row.getStyleClass().add("member-row-suspended");
+                    }
+                }
+            });
+            return row;
+        });
+    }
+
+    private void setupNameColumn() {
+        nameColumn.setCellFactory(column -> new TableCell<>() {
+            private final HBox content = new HBox(6);
+            private final Label nameLabel = new Label();
+            private final Label creatorBadge = new Label("Creator");
+            private final Label youLabel = new Label("(You)");
+
+            {
+                content.setAlignment(Pos.CENTER_LEFT);
+                creatorBadge.getStyleClass().add("member-creator-badge");
+                youLabel.getStyleClass().add("member-you-label");
+                creatorBadge.setManaged(false);
+                creatorBadge.setVisible(false);
+                youLabel.setManaged(false);
+                youLabel.setVisible(false);
+                content.getChildren().addAll(nameLabel, creatorBadge, youLabel);
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+
+                GroupMember member = getTableRow().getItem();
+                nameLabel.setText(member.getName());
+                creatorBadge.setVisible(member.isCreator());
+                creatorBadge.setManaged(member.isCreator());
+
+                ForumUser currentUser = AppSession.getInstance().getCurrentUser();
+                boolean isSelf = currentUser != null && member.getUserId() == currentUser.getId();
+                youLabel.setVisible(isSelf);
+                youLabel.setManaged(isSelf);
+
+                setGraphic(content);
+                setText(null);
+            }
+        });
+    }
+
+    private void configureRoleCombo(ComboBox<String> combo) {
+        combo.setCellFactory(listView -> roleComboCell());
+        combo.setButtonCell(roleComboCell());
+    }
+
+    private ListCell<String> roleComboCell() {
+        return new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : capitalize(item));
+            }
+        };
+    }
+
+    private Label roleBadge(String role) {
+        Label badge = new Label(capitalize(role));
+        badge.getStyleClass().add("member-role-badge");
+        if ("admin".equalsIgnoreCase(role)) {
+            badge.getStyleClass().add("member-role-admin");
+        } else if ("lecturer".equalsIgnoreCase(role)) {
+            badge.getStyleClass().add("member-role-lecturer");
+        } else {
+            badge.getStyleClass().add("member-role-member");
+        }
+        return badge;
     }
 
     private void setupRoleColumn() {
@@ -448,6 +619,8 @@ public class GroupController {
                     FXCollections.observableArrayList("member", "lecturer", "admin"));
 
             {
+                roleSelect.getStyleClass().add("member-role-combo");
+                configureRoleCombo(roleSelect);
                 roleSelect.setOnAction(event -> {
                     GroupMember member = getTableView().getItems().get(getIndex());
                     try {
@@ -475,17 +648,98 @@ public class GroupController {
                     setGraphic(roleSelect);
                     setText(null);
                 } else {
-                    setGraphic(null);
-                    setText(capitalize(member.getMemberRole()));
+                    setGraphic(roleBadge(member.getMemberRole()));
+                    setText(null);
                 }
             }
         });
     }
 
+    private void setupStatusColumn() {
+        statusColumn.setCellFactory(column -> new TableCell<GroupMember, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+
+                Label badge = new Label(item);
+                badge.getStyleClass().add("member-status-badge");
+                if ("Active".equalsIgnoreCase(item)) {
+                    badge.getStyleClass().add("member-status-active");
+                } else if ("Suspended".equalsIgnoreCase(item)) {
+                    badge.getStyleClass().add("member-status-suspended");
+                } else {
+                    badge.getStyleClass().add("member-status-blocked");
+                }
+                setGraphic(badge);
+                setText(null);
+            }
+        });
+    }
+
+    private void setupWarningsColumn() {
+        warningsColumn.setCellFactory(column -> new TableCell<GroupMember, Number>() {
+            @Override
+            protected void updateItem(Number item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+
+                int warnings = item.intValue();
+                Label badge = new Label(warnings + "/2");
+                badge.getStyleClass().add("member-warnings-badge");
+                if (warnings >= 2) {
+                    badge.getStyleClass().add("member-warnings-danger");
+                } else if (warnings == 1) {
+                    badge.getStyleClass().add("member-warnings-warn");
+                } else {
+                    badge.getStyleClass().add("member-warnings-none");
+                }
+                setGraphic(badge);
+                setText(null);
+            }
+        });
+    }
+
+    private void setupEmailColumn() {
+        emailColumn.setCellFactory(column -> new TableCell<GroupMember, String>() {
+            private final Label emailLabel = new Label();
+
+            {
+                emailLabel.getStyleClass().add("member-email-cell");
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+                emailLabel.setText(item);
+                setGraphic(emailLabel);
+                setText(null);
+            }
+        });
+    }
+
     private void setupActionsColumn() {
-        int currentUserId = AppSession.getInstance().getCurrentUser().getId();
         actionsColumn.setCellFactory(column -> new TableCell<GroupMember, Void>() {
             private final HBox actions = new HBox(4);
+            private final Label mutedLabel = new Label();
+
+            {
+                actions.setAlignment(Pos.CENTER_LEFT);
+                mutedLabel.getStyleClass().add("member-actions-muted");
+            }
 
             @Override
             protected void updateItem(Void item, boolean empty) {
@@ -496,38 +750,42 @@ public class GroupController {
                     return;
                 }
 
+                ForumUser currentUser = AppSession.getInstance().getCurrentUser();
+                int currentUserId = currentUser == null ? -1 : currentUser.getId();
                 GroupMember member = getTableRow().getItem();
                 if (member.getUserId() == currentUserId) {
-                    setGraphic(new Label("You"));
+                    mutedLabel.setText("You");
+                    setGraphic(mutedLabel);
                     return;
                 }
                 if ("admin".equalsIgnoreCase(member.getMemberRole())
                         && !AppSession.getInstance().isSystemAdmin()) {
-                    setGraphic(new Label("Protected"));
+                    mutedLabel.setText("Protected");
+                    setGraphic(mutedLabel);
                     return;
                 }
 
                 if ("Active".equalsIgnoreCase(member.getMemberStatus())) {
-                    actions.getChildren().add(actionButton("Warn", () -> {
+                    actions.getChildren().add(memberActionButton("Warn", "btn-warning", () -> {
                         groupService.warnMember(groupId, member.getUserId());
                         loadGroup();
                     }));
-                    actions.getChildren().add(actionButton("Suspend", () -> {
+                    actions.getChildren().add(memberActionButton("Suspend", "btn-outline-warning", () -> {
                         groupService.suspendMember(groupId, member.getUserId());
                         loadGroup();
                     }));
-                    actions.getChildren().add(actionButton("Block", () -> {
+                    actions.getChildren().add(memberActionButton("Block", "btn-outline-danger", () -> {
                         groupService.blockMember(groupId, member.getUserId());
                         loadGroup();
                     }));
                 } else {
-                    actions.getChildren().add(actionButton("Reinstate", () -> {
+                    actions.getChildren().add(memberActionButton("Reinstate", "btn-success", () -> {
                         groupService.reinstateMember(groupId, member.getUserId());
                         loadGroup();
                     }));
                 }
 
-                actions.getChildren().add(actionButton("Remove", () -> {
+                actions.getChildren().add(memberActionButton("Remove", "btn-outline-secondary", () -> {
                     try {
                         groupService.removeMember(groupId, member.getUserId());
                         loadGroup();
@@ -540,9 +798,9 @@ public class GroupController {
         });
     }
 
-    private Button actionButton(String text, Runnable action) {
+    private Button memberActionButton(String text, String styleClass, Runnable action) {
         Button button = new Button(text);
-        button.getStyleClass().add("btn-outline");
+        button.getStyleClass().addAll("btn-sm", styleClass);
         button.setOnAction(event -> action.run());
         return button;
     }

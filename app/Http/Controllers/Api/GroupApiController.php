@@ -127,7 +127,7 @@ class GroupApiController extends Controller
 
         return response()->json([
             'group' => $this->formatGroup($group, $user),
-            'members' => $members->map(fn (User $member) => $this->formatMember($member))->values(),
+            'members' => $members->map(fn (User $member) => $this->formatMember($member, $group->Created_By))->values(),
             'topics' => $topics->map(fn ($topic) => app(TopicApiController::class)->formatTopic($topic))->values(),
             'stats' => GroupStatisticsService::overviewStats($members, $topics),
             'available_users' => $availableUsers->map(fn (User $available) => [
@@ -227,7 +227,7 @@ class GroupApiController extends Controller
         ];
     }
 
-    private function formatMember(User $member): array
+    private function formatMember(User $member, int $createdBy): array
     {
         return [
             'user_id' => $member->id,
@@ -236,6 +236,7 @@ class GroupApiController extends Controller
             'member_role' => $member->pivot->Member_Role ?? GroupMember::ROLE_MEMBER,
             'member_status' => $member->pivot->Member_Status ?? GroupMember::STATUS_ACTIVE,
             'warnings' => (int) ($member->pivot->warnings ?? 0),
+            'is_creator' => (int) $member->id === (int) $createdBy,
         ];
     }
 }
