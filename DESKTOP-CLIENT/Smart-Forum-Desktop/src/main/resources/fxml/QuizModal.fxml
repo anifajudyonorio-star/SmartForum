@@ -4,11 +4,12 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane xmlns="http://javafx.com/javafx/24.0.1"
+<BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.smartforum.controller.QuizModalController"
             prefWidth="760" prefHeight="580"
-            styleClass="quiz-page">
+            styleClass="quiz-page"
+            stylesheets="@/com/smartforum/css/app.css">
 
     <!-- HEADER — matches Laravel show.blade.php page-header with timer -->
     <top>
@@ -33,8 +34,7 @@
     </top>
 
     <center>
-        <StackPane>
-            <padding><Insets top="20" right="24" bottom="16" left="24"/></padding>
+        <StackPane style="-fx-padding: 20 24 16 24;">
 
             <!-- QUIZ PANE — matches Laravel question cards -->
             <VBox fx:id="quizPane" spacing="16">

@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\GroupApiController;
 use App\Http\Controllers\Api\NotificationApiController;
 use App\Http\Controllers\Api\ParticipationApiController;
 use App\Http\Controllers\Api\PostApiController;
+use App\Http\Controllers\Api\QuizAnnouncementApiController;
+use App\Http\Controllers\Api\QuizApiController;
+use App\Http\Controllers\Api\StudentQuizApiController;
 use App\Http\Controllers\Api\ReportApiController;
 use App\Http\Controllers\Api\ProfileApiController;
 use App\Http\Controllers\Api\StatisticsApiController;
@@ -51,6 +54,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/statistics', [StatisticsApiController::class, 'index']);
     Route::get('/statistics/groups/{group}', [StatisticsApiController::class, 'show']);
     Route::get('/participation', [ParticipationApiController::class, 'index']);
+
+    Route::get('/quiz-announcements', [QuizAnnouncementApiController::class, 'index']);
+    Route::post('/quiz-announcements', [QuizAnnouncementApiController::class, 'store']);
+    Route::delete('/quiz-announcements/{quizAnnouncement}', [QuizAnnouncementApiController::class, 'destroy']);
+    Route::get('/student/announcements', [QuizAnnouncementApiController::class, 'studentFeed']);
+
+    Route::get('/quizzes', [QuizApiController::class, 'index']);
+    Route::patch('/quizzes/{quiz}/publish', [QuizApiController::class, 'publish']);
+    Route::delete('/quizzes/{quiz}', [QuizApiController::class, 'destroy']);
+
+    Route::get('/student/quizzes', [StudentQuizApiController::class, 'index']);
+    Route::post('/student/quizzes/enroll', [StudentQuizApiController::class, 'enroll']);
+    Route::post('/student/quizzes/unenroll', [StudentQuizApiController::class, 'unenroll']);
+    Route::get('/student/quizzes/{quiz}', [StudentQuizApiController::class, 'show']);
+    Route::post('/student/quizzes/{quiz}/submit', [StudentQuizApiController::class, 'submit']);
 
     Route::get('/groups/explore', [GroupApiController::class, 'explore']);
     Route::post('/groups/{group}/join', [GroupApiController::class, 'requestJoin']);

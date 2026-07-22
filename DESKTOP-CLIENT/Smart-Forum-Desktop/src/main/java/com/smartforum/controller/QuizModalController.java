@@ -48,6 +48,7 @@ public class QuizModalController {
     private Timeline timer;
     private long secondsLeft;
     private boolean submitting;
+    private boolean apiMode;
 
     @FXML
     public void initialize() {
@@ -59,10 +60,22 @@ public class QuizModalController {
     }
 
     public void setup(Quiz quiz, List<Question> questions, ForumUser student, QuizAttempt attempt) {
+        setup(quiz, questions, student, attempt, false);
+    }
+
+    public void setup(Quiz quiz, List<Question> questions, ForumUser student, QuizAttempt attempt, boolean apiMode) {
+        if (quiz == null || questions == null || questions.isEmpty() || student == null || attempt == null) {
+            throw new IllegalStateException("Quiz session data is incomplete.");
+        }
+        if (attempt.getDeadlineAt() == null) {
+            throw new IllegalStateException("Quiz attempt deadline is missing.");
+        }
+
         this.quiz = quiz;
         this.questions = questions;
         this.student = student;
         this.attempt = attempt;
+        this.apiMode = apiMode;
         restoreAnswers(attempt.getAnswers());
 
         lblQuizTitle.setText(quiz.getTitle());
@@ -88,13 +101,14 @@ public class QuizModalController {
             }
         }));
         timer.setCycleCount(Timeline.INDEFINITE);
+
+        loadQuestion();
+
         if (secondsLeft <= 0) {
             submit(true);
         } else {
             timer.play();
         }
-
-        loadQuestion();
     }
 
     private void updateTimerLabel() {
@@ -173,6 +187,12 @@ public class QuizModalController {
             showError("Your student session changed. Answers were preserved; sign in again before submitting.");
             return;
         }
+
+        if (apiMode) {
+            submitViaApi(timedOut);
+            return;
+        }
+
         QuizSubmissionService.Submission submission;
         try {
             submission = new QuizSubmissionService().submitForCurrentStudent(attempt.getId());
@@ -190,16 +210,58 @@ public class QuizModalController {
         int finalPossibleMarks = result.getFinalPossibleMarks();
         double pct = finalPossibleMarks <= 0 ? 0 : finalScore * 100.0 / finalPossibleMarks;
 
-        // Populate result pane — matches Laravel result.blade.php table rows
+        showResultPane(score, authoredTotal, participationMarks, finalScore, finalPossibleMarks, pct, submission.isTimedOut());
+    }
+
+    private void submitViaApi(boolean timedOut) {
+        com.google.gson.JsonObject answerPayload = new com.google.gson.JsonObject();
+        answers.forEach((questionId, letter) -> {
+            Question question = questions.stream()
+                    .filter(item -> item.getId() == questionId)
+                    .findFirst()
+                    .orElse(null);
+            if (question != null) {
+                int optionId = question.optionIdForLetter(letter);
+                if (optionId > 0) {
+                    answerPayload.addProperty(String.valueOf(questionId), optionId);
+                }
+            }
+        });
+
+        com.smartforum.api.ApiClient.MutationResult result = com.smartforum.api.ApiClient.submitStudentQuiz(
+                quiz.getId(), attempt.getId(), answerPayload);
+
+        if (!result.success() || result.body() == null || !result.body().has("result")) {
+            submitting = false;
+            showError("Submission was not saved.\n" + (result.message().isBlank()
+                    ? "Please try again."
+                    : result.message()));
+            if (secondsLeft > 0) timer.play();
+            return;
+        }
+
+        com.google.gson.JsonObject resultJson = result.body().getAsJsonObject("result");
+        int score = resultJson.get("score").getAsInt();
+        int authoredTotal = resultJson.get("total_marks").getAsInt();
+        int participationMarks = resultJson.get("participation_marks").getAsInt();
+        int finalScore = resultJson.get("total_score").getAsInt();
+        int finalPossibleMarks = resultJson.get("final_possible_marks").getAsInt();
+        double pct = resultJson.get("percentage").getAsDouble();
+
+        showResultPane(score, authoredTotal, participationMarks, finalScore, finalPossibleMarks, pct, timedOut);
+    }
+
+    private void showResultPane(int score, int authoredTotal, int participationMarks, int finalScore,
+                                int finalPossibleMarks, double pct, boolean timedOut) {
         lblResultQuizTitle.setText(quiz.getTitle());
         lblStudentResult.setText(student.getName());
         lblScoreResult.setText(score + " / " + authoredTotal);
         lblParticipationResult.setText(String.valueOf(participationMarks));
         lblFinalScore.setText(String.valueOf(finalScore));
         lblPercentResult.setText(String.format("%.1f%%", pct));
-        lblFeedback.setText(submission.isTimedOut()
+        lblFeedback.setText(timedOut
             ? "Time expired — your last saved answers were submitted."
-            : pct >= 75 ? "🎉 Excellent!" : pct >= 50 ? "👍 Good effort!" : "📚 Keep studying!");
+            : pct >= 75 ? "Excellent!" : pct >= 50 ? "Good effort!" : "Keep studying!");
 
         quizPane.setVisible(false);  quizPane.setManaged(false);
         resultPane.setVisible(true); resultPane.setManaged(true);
@@ -208,7 +270,9 @@ public class QuizModalController {
     @FXML
     private void closeModal() {
         if (timer != null) timer.stop();
-        ((Stage) resultPane.getScene().getWindow()).close();
+        if (resultPane.getScene() != null && resultPane.getScene().getWindow() instanceof Stage stage) {
+            stage.close();
+        }
     }
 
     private void saveCurrentAnswer() {
@@ -220,7 +284,7 @@ public class QuizModalController {
     }
 
     private void persistAnswers() {
-        if (attempt == null) return;
+        if (attempt == null || apiMode) return;
         StringBuilder encoded = new StringBuilder();
         answers.forEach((id, answer) -> encoded.append(id).append('=').append(answer).append(';'));
         attempt.setAnswers(encoded.toString());

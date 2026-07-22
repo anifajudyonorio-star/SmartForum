@@ -330,6 +330,8 @@ public class MainShellController implements ShellNavigator {
                 FXMLLoader loader = new FXMLLoader(resource);
                 Node view = loader.load();
                 TakeQuizController ctrl = loader.getController();
+                ctrl.setOpenAnnouncementsHandler(this::showAnnouncementsInternal);
+                ctrl.setOpenQuizProgressHandler(this::showQuizProgressInternal);
                 ctrl.loadForCurrentStudent();
                 fillContentArea(view);
                 contentArea.getChildren().setAll(view);
@@ -351,6 +353,7 @@ public class MainShellController implements ShellNavigator {
             FXMLLoader loader = new FXMLLoader(resource);
             Node view = loader.load();
             AnnouncementsController ctrl = loader.getController();
+            ctrl.setOpenQuizzesHandler(this::showQuizzesInternal);
             ctrl.configureForCurrentUser();
             fillContentArea(view);
             contentArea.getChildren().setAll(view);
@@ -363,10 +366,7 @@ public class MainShellController implements ShellNavigator {
     }
 
     private void showQuizProgressInternal() {
-        // Student quiz progress lives on the student dashboard (Laravel also exposes it from main nav).
-        showDashboardInternal();
-        setActiveNav(quizProgressNavBtn);
-        activeContentKey = "quiz-progress";
+        loadView("quiz-progress.fxml", quizProgressNavBtn, null);
     }
 
     private void showQuizReportsInternal() {
@@ -623,7 +623,7 @@ public class MainShellController implements ShellNavigator {
         if ("TakeQuiz.fxml".equals(activeContentKey)
                 || "Announcements.fxml".equals(activeContentKey)
                 || "Results.fxml".equals(activeContentKey)
-                || "quiz-progress".equals(activeContentKey)) {
+                || "quiz-progress.fxml".equals(activeContentKey)) {
             return this::showDashboardInternal;
         }
 

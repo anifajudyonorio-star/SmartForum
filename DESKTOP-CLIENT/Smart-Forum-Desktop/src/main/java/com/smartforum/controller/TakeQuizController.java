@@ -1,315 +1,556 @@
 package com.smartforum.controller;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.smartforum.api.ApiClient;
 import com.smartforum.dao.CategoryStudentDAO;
 import com.smartforum.dao.QuestionDAO;
-import com.smartforum.dao.QuizAttemptDAO;
 import com.smartforum.dao.QuizCategoryDAO;
 import com.smartforum.dao.QuizDAO;
-import com.smartforum.dao.QuizResultDAO;
+import com.smartforum.dao.QuizAttemptDAO;
 import com.smartforum.model.ForumUser;
 import com.smartforum.model.Question;
 import com.smartforum.model.Quiz;
 import com.smartforum.model.QuizAttempt;
 import com.smartforum.model.QuizCategory;
-import com.smartforum.model.QuizPerformanceRow;
 import com.smartforum.service.AppSession;
 import com.smartforum.service.QuizSubmissionService;
+import com.smartforum.util.ApiSupport;
 import com.smartforum.util.QuizSchedule;
 
-import javafx.beans.property.SimpleIntegerProperty;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 
-import java.util.List;
+import java.net.URL;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TakeQuizController {
 
-    @FXML private TextField txtStudentName;
-    @FXML private Label lblCategoryInfo;
-    @FXML private ComboBox<QuizCategory> cmbSelfCategory;
-    @FXML private Button btnSelfEnroll;
+    @FXML private Button btnAnnouncements;
+    @FXML private Button btnQuizProgress;
+    @FXML private Label lblFeedback;
+    @FXML private VBox enrolledPane;
+    @FXML private VBox enrollPane;
+    @FXML private Label lblEnrolledInfo;
+    @FXML private Button btnUnenroll;
+    @FXML private ComboBox<QuizCategory> cmbEnrollCategory;
+    @FXML private Button btnEnroll;
     @FXML private TableView<Quiz> tblAvailableQuizzes;
-    @FXML private TableColumn<Quiz, String> colQTitle, colQCategory, colQStart, colQEnd, colQStatus;
-    @FXML private TableColumn<Quiz, Integer> colQQuestions, colQDuration;
-    @FXML private Label lblAttemptNotice, lblReportTitle, lblReportEmpty;
-    @FXML private VBox performanceReport;
-    @FXML private TableView<QuizPerformanceRow> tblPerformance;
-    @FXML private TableColumn<QuizPerformanceRow, String> colStudentName, colStudentScore,
-        colStudentPercentage, colStudentSubmission;
+    @FXML private TableColumn<Quiz, String> colQuiz;
+    @FXML private TableColumn<Quiz, Integer> colQuestions;
+    @FXML private TableColumn<Quiz, Integer> colMaximumMarks;
+    @FXML private TableColumn<Quiz, String> colScheduled;
+    @FXML private TableColumn<Quiz, String> colDuration;
+    @FXML private TableColumn<Quiz, String> colEndsAt;
+    @FXML private TableColumn<Quiz, String> colStatus;
+    @FXML private TableColumn<Quiz, Void> colAction;
+    @FXML private Label tblEmptyLabel;
 
-    private int studentCategoryId = -1;
+    private Runnable openAnnouncementsHandler;
+    private Runnable openQuizProgressHandler;
 
     @FXML
     public void initialize() {
-        colQTitle.setCellValueFactory(new PropertyValueFactory<>("title"));
-        colQCategory.setCellValueFactory(new PropertyValueFactory<>("categoryName"));
-        colQDuration.setCellValueFactory(new PropertyValueFactory<>("duration"));
-        colQStart.setCellValueFactory(new PropertyValueFactory<>("startDate"));
-        colQEnd.setCellValueFactory(new PropertyValueFactory<>("endDate"));
-
-        colQStatus.setCellValueFactory(cd -> {
-            return new SimpleStringProperty(QuizSchedule.availability(cd.getValue(), LocalDateTime.now()));
-        });
-
-        colQQuestions.setCellValueFactory(cd ->
-            new SimpleIntegerProperty(
-                new QuestionDAO().getQuestionsByQuizId(cd.getValue().getId()).size()
-            ).asObject()
-        );
-        colStudentName.setCellValueFactory(new PropertyValueFactory<>("studentName"));
-        colStudentScore.setCellValueFactory(new PropertyValueFactory<>("scoreDisplay"));
-        colStudentPercentage.setCellValueFactory(new PropertyValueFactory<>("percentage"));
-        colStudentSubmission.setCellValueFactory(new PropertyValueFactory<>("status"));
-        txtStudentName.setEditable(false);
-        cmbSelfCategory.setItems(FXCollections.observableArrayList(
-            new QuizCategoryDAO().getAllCategories()
-        ));
+        colQuiz.setCellValueFactory(data -> new SimpleStringProperty(formatQuizCell(data.getValue())));
+        colQuestions.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("questionsCount"));
+        colMaximumMarks.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("maximumMarks"));
+        colScheduled.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("startDate"));
+        colDuration.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue() == null ? "" : data.getValue().getDuration() + " min"));
+        colEndsAt.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("endDate"));
+        colStatus.setCellFactory(column -> statusCell());
+        colStatus.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue() == null ? "" : data.getValue().getStatusLabel()));
+        colAction.setCellValueFactory(param -> null);
+        colAction.setCellFactory(column -> actionCell());
+        tblAvailableQuizzes.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         loadForCurrentStudent();
     }
 
-    /** Kept for callers compiled against the former API; the supplied name is intentionally ignored. */
-    public void loadForStudent(String name) {
+    public void setOpenAnnouncementsHandler(Runnable handler) {
+        this.openAnnouncementsHandler = handler;
+    }
+
+    public void setOpenQuizProgressHandler(Runnable handler) {
+        this.openQuizProgressHandler = handler;
+    }
+
+    public void loadForStudent(String ignored) {
         loadForCurrentStudent();
     }
 
     public void loadForCurrentStudent() {
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        if (user == null || !AppSession.getInstance().isStudent()) {
-            txtStudentName.clear();
-            lblCategoryInfo.setText("Student access is required.");
-            tblAvailableQuizzes.setItems(FXCollections.observableArrayList());
+        if (ApiSupport.useApi()) {
+            new Thread(() -> ApiClient.getStudentQuizzes().ifPresentOrElse(json -> Platform.runLater(() -> {
+                populateEnrollment(json);
+                List<Quiz> quizzes = parseQuizzes(json.getAsJsonArray("quizzes"));
+                tblAvailableQuizzes.setItems(FXCollections.observableArrayList(quizzes));
+                tblEmptyLabel.setText(json.has("enrolled_category") && !json.get("enrolled_category").isJsonNull()
+                        ? "No quizzes are available right now."
+                        : "Enroll in a quiz title to see available quizzes.");
+            }), () -> Platform.runLater(this::loadOffline))).start();
             return;
         }
-        txtStudentName.setText(user.getName());
 
-        QuizSubmissionService.FinalizationSummary finalization =
-            new QuizSubmissionService().finalizeExpiredForCurrentStudent();
-        showFinalizationNotice(finalization);
-        studentCategoryId = new CategoryStudentDAO().getCategoryForStudent(user.getId(), user.getName());
-        List<Quiz> quizzes;
-
-        if (studentCategoryId == -1) {
-            lblCategoryInfo.setText("⚠ You are not enrolled in a quiz category.");
-            cmbSelfCategory.setDisable(false);
-            btnSelfEnroll.setDisable(false);
-            cmbSelfCategory.getSelectionModel().clearSelection();
-            quizzes = List.of();
-        } else {
-            quizzes = new QuizDAO().getQuizzesByCategory(studentCategoryId);
-            cmbSelfCategory.getItems().stream()
-                .filter(category -> category.getId() == studentCategoryId)
-                .findFirst()
-                .ifPresent(cmbSelfCategory::setValue);
-            cmbSelfCategory.setDisable(true);
-            btnSelfEnroll.setDisable(true);
-            lblCategoryInfo.setText("✔ Showing quizzes for your enrolled category (" + quizzes.size() + " available).");
-        }
-
-        tblAvailableQuizzes.setItems(FXCollections.observableArrayList(quizzes));
-        performanceReport.setVisible(false);
-        performanceReport.setManaged(false);
+        loadOffline();
     }
 
     @FXML
-    private void refreshPage() {
-        loadForCurrentStudent();
+    private void openAnnouncements() {
+        if (openAnnouncementsHandler != null) {
+            openAnnouncementsHandler.run();
+        }
     }
 
     @FXML
-    private void selfEnroll() {
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        if (user == null || !AppSession.getInstance().isStudent()) {
-            alert("Access Denied", "Only signed-in students can enroll in a quiz category.");
-            return;
+    private void openQuizProgress() {
+        if (openQuizProgressHandler != null) {
+            openQuizProgressHandler.run();
         }
-        if (new CategoryStudentDAO().getCategoryForStudent(user.getId(), user.getName()) >= 0) {
-            alert("Already Enrolled", "You are already enrolled in a quiz category.");
-            loadForCurrentStudent();
-            return;
-        }
+    }
 
-        QuizCategory category = cmbSelfCategory.getValue();
+    @FXML
+    private void enroll() {
+        QuizCategory category = cmbEnrollCategory.getValue();
         if (category == null) {
-            alert("Select Category", "Choose the quiz category you want to join.");
+            alert("Validation", "Choose a quiz title to enroll.");
             return;
         }
 
-        Alert confirm = new Alert(
-            Alert.AlertType.CONFIRMATION,
-            "Enroll in \"" + category.getCategoryName() + "\"? You can belong to one quiz category.",
-            ButtonType.YES,
-            ButtonType.NO
-        );
-        confirm.setHeaderText("Confirm quiz category");
+        if (ApiSupport.useApi()) {
+            new Thread(() -> {
+                ApiClient.MutationResult result = ApiClient.enrollInQuizCategory(category.getId());
+                Platform.runLater(() -> {
+                    if (result.success()) {
+                        showFeedback(result.message(), false);
+                        loadForCurrentStudent();
+                    } else {
+                        alert("Enrollment Failed", result.message().isBlank()
+                                ? "Could not enroll in the selected quiz title."
+                                : result.message());
+                    }
+                });
+            }).start();
+            return;
+        }
+
+        ForumUser user = AppSession.getInstance().getCurrentUser();
+        if (user == null) {
+            alert("Access Denied", "Sign in as a student to enroll.");
+            return;
+        }
+        if (new CategoryStudentDAO().enroll(category.getId(), user.getId(), user.getName())) {
+            showFeedback("You are now enrolled in " + category.getCategoryName() + ".", false);
+            loadForCurrentStudent();
+        } else {
+            alert("Enrollment Failed", "You could not be enrolled. You may already belong to another quiz title.");
+        }
+    }
+
+    @FXML
+    private void unenroll() {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                "Unenroll from this quiz title?", ButtonType.YES, ButtonType.NO);
+        confirm.setHeaderText(null);
         if (confirm.showAndWait().orElse(ButtonType.NO) != ButtonType.YES) {
             return;
         }
 
-        CategoryStudentDAO enrollmentDAO = new CategoryStudentDAO();
-        if (!enrollmentDAO.enroll(category.getId(), user.getId(), user.getName())) {
-            alert("Enrollment Failed", "You could not be enrolled. You may already belong to another category.");
-            loadForCurrentStudent();
+        if (ApiSupport.useApi()) {
+            new Thread(() -> {
+                ApiClient.MutationResult result = ApiClient.unenrollFromQuizCategory();
+                Platform.runLater(() -> {
+                    if (result.success()) {
+                        showFeedback(result.message(), false);
+                        loadForCurrentStudent();
+                    } else {
+                        alert("Unenroll Failed", result.message().isBlank()
+                                ? "Could not unenroll from the quiz title."
+                                : result.message());
+                    }
+                });
+            }).start();
             return;
         }
-
-        alert("Enrollment Complete", "You are now enrolled in " + category.getCategoryName() + ".");
-        loadForCurrentStudent();
-    }
-
-    @FXML
-    private void startQuiz() {
-        Quiz selectedQuiz  = tblAvailableQuizzes.getSelectionModel().getSelectedItem();
-        if (selectedQuiz == null)  { alert("Validation", "Select a quiz from the table."); return; }
 
         ForumUser user = AppSession.getInstance().getCurrentUser();
+        if (user != null) {
+            int categoryId = new CategoryStudentDAO().getCategoryForStudent(user.getId(), user.getName());
+            if (categoryId >= 0 && new CategoryStudentDAO().unenroll(categoryId, user.getName())) {
+                showFeedback("You have been unenrolled from the quiz title.", false);
+                loadForCurrentStudent();
+            }
+        }
+    }
+
+    private void startQuiz(Quiz quiz) {
+        if (quiz == null) {
+            return;
+        }
+
+        if (ApiSupport.useApi()) {
+            new Thread(() -> ApiClient.getStudentQuizSession(quiz.getId(), false).ifPresentOrElse(preview -> {
+                Platform.runLater(() -> {
+                    if (!confirmPreview(preview)) {
+                        return;
+                    }
+                    new Thread(() -> ApiClient.getStudentQuizSession(quiz.getId(), true).ifPresentOrElse(session ->
+                            Platform.runLater(() -> openApiQuizWindow(session)),
+                            () -> Platform.runLater(() -> alert("Unable to Start",
+                                    "Could not start this quiz session.")))).start();
+                });
+            }, () -> Platform.runLater(() -> alert("Quiz Unavailable",
+                    "This quiz is not currently available.")))).start();
+            return;
+        }
+
+        startOfflineQuiz(quiz);
+    }
+
+    private void loadOffline() {
+        ForumUser user = AppSession.getInstance().getCurrentUser();
         if (user == null || !AppSession.getInstance().isStudent()) {
-            alert("Access Denied", "Your session is no longer a student session.");
+            tblAvailableQuizzes.setItems(FXCollections.observableArrayList());
             return;
         }
-        int currentCategory = new CategoryStudentDAO().getCategoryForStudent(user.getId(), user.getName());
-        Quiz freshQuiz = new QuizDAO().getById(selectedQuiz.getId());
-        if (currentCategory < 0 || freshQuiz == null || freshQuiz.getCategoryId() != currentCategory) {
-            alert("Access Denied", "You are no longer enrolled for this quiz.");
-            loadForCurrentStudent();
+
+        QuizSubmissionService.FinalizationSummary finalization =
+                new QuizSubmissionService().finalizeExpiredForCurrentStudent();
+        if (finalization.getFinalized() > 0 || finalization.getFailed() > 0) {
+            showFeedback(finalization.getFinalized() + " expired quiz attempt(s) were submitted from saved answers.", false);
+        }
+
+        cmbEnrollCategory.setItems(FXCollections.observableArrayList(new QuizCategoryDAO().getAllCategories()));
+        int categoryId = new CategoryStudentDAO().getCategoryForStudent(user.getId(), user.getName());
+        if (categoryId == -1) {
+            enrolledPane.setVisible(false);
+            enrolledPane.setManaged(false);
+            enrollPane.setVisible(true);
+            enrollPane.setManaged(true);
+            tblAvailableQuizzes.setItems(FXCollections.observableArrayList());
+            tblEmptyLabel.setText("Enroll in a quiz title to see available quizzes.");
             return;
         }
-        String availability = QuizSchedule.availability(freshQuiz, LocalDateTime.now());
-        if (!"Available".equals(availability)) {
-            alert("Quiz Unavailable", "This quiz cannot be started: " + availability + ".");
-            loadForCurrentStudent();
-            return;
+
+        QuizCategory enrolled = cmbEnrollCategory.getItems().stream()
+                .filter(category -> category.getId() == categoryId)
+                .findFirst()
+                .orElse(null);
+        if (enrolled != null) {
+            lblEnrolledInfo.setText("You are enrolled in " + enrolled.getCategoryName()
+                    + ". Only quizzes under this title are shown below.");
         }
-        if (freshQuiz.getDuration() <= 0) {
-            alert("Quiz Unavailable", "This quiz has an invalid duration.");
-            return;
+        enrolledPane.setVisible(true);
+        enrolledPane.setManaged(true);
+        enrollPane.setVisible(false);
+        enrollPane.setManaged(false);
+
+        List<Quiz> quizzes = new QuizDAO().getQuizzesByCategory(categoryId).stream()
+                .map(this::decorateOfflineQuiz)
+                .toList();
+        tblAvailableQuizzes.setItems(FXCollections.observableArrayList(quizzes));
+        tblEmptyLabel.setText("No quizzes are available right now.");
+    }
+
+    private Quiz decorateOfflineQuiz(Quiz quiz) {
+        ForumUser user = AppSession.getInstance().getCurrentUser();
+        quiz.setQuestionsCount(new QuestionDAO().getQuestionsByQuizId(quiz.getId()).size());
+        quiz.setMaximumMarks(quiz.getTotalMarks() + Math.max(0, quiz.getParticipationMarks()));
+        boolean completed = user != null && new QuizAttemptDAO().hasCompletedResult(quiz.getId(), user.getId(), user.getName());
+        quiz.setCompleted(completed);
+        String availability = QuizSchedule.availability(quiz, LocalDateTime.now());
+        quiz.setStatusLabel(completed ? "Completed" : switch (availability) {
+            case "Available" -> "Available";
+            case "Upcoming" -> "Upcoming";
+            default -> availability;
+        });
+        quiz.setCanStart(!completed && "Available".equals(availability));
+        return quiz;
+    }
+
+    private void populateEnrollment(JsonObject json) {
+        cmbEnrollCategory.getItems().clear();
+        JsonArray categories = json.getAsJsonArray("available_categories");
+        for (JsonElement element : categories) {
+            JsonObject category = element.getAsJsonObject();
+            QuizCategory quizCategory = new QuizCategory();
+            quizCategory.setId(category.get("id").getAsInt());
+            quizCategory.setCategoryName(category.get("name").getAsString());
+            cmbEnrollCategory.getItems().add(quizCategory);
         }
-        List<Question> questions = new QuestionDAO().getQuestionsByQuizId(freshQuiz.getId());
-        if (questions.isEmpty()) { alert("No Questions", "This quiz has no questions yet."); return; }
-        boolean invalidQuestion = questions.stream().anyMatch(q ->
-            q.getQuestion() == null || q.getQuestion().isBlank()
-                || q.getOptionA() == null || q.getOptionA().isBlank()
-                || q.getOptionB() == null || q.getOptionB().isBlank()
-                || q.getOptionC() == null || q.getOptionC().isBlank()
-                || q.getOptionD() == null || q.getOptionD().isBlank()
-                || q.getCorrectAnswer() == null || !q.getCorrectAnswer().matches("[ABCD]")
-                || q.getMarks() <= 0);
-        if (invalidQuestion) {
-            alert("Quiz Unavailable", "This quiz contains an invalid question. Ask the lecturer to correct it.");
-            return;
+
+        if (json.has("enrolled_category") && !json.get("enrolled_category").isJsonNull()) {
+            JsonObject enrolled = json.getAsJsonObject("enrolled_category");
+            lblEnrolledInfo.setText("You are enrolled in " + enrolled.get("name").getAsString()
+                    + ". Only quizzes under this title are shown below.");
+            enrolledPane.setVisible(true);
+            enrolledPane.setManaged(true);
+            enrollPane.setVisible(false);
+            enrollPane.setManaged(false);
+        } else {
+            enrolledPane.setVisible(false);
+            enrolledPane.setManaged(false);
+            enrollPane.setVisible(true);
+            enrollPane.setManaged(true);
         }
-        QuizAttemptDAO attemptDAO = new QuizAttemptDAO();
-        if (attemptDAO.hasCompletedResult(freshQuiz.getId(), user.getId(), user.getName())) {
-            alert("Already Completed", "You have already submitted this quiz.");
-            return;
+    }
+
+    private List<Quiz> parseQuizzes(JsonArray array) {
+        List<Quiz> quizzes = new ArrayList<>();
+        for (JsonElement element : array) {
+            JsonObject item = element.getAsJsonObject();
+            Quiz quiz = new Quiz();
+            quiz.setId(item.get("id").getAsInt());
+            quiz.setTitle(item.get("title").getAsString());
+            quiz.setDescription(item.has("description") && !item.get("description").isJsonNull()
+                    ? item.get("description").getAsString() : "");
+            quiz.setQuestionsCount(item.get("questions_count").getAsInt());
+            quiz.setMaximumMarks(item.get("maximum_marks").getAsInt());
+            quiz.setStartDate(item.get("start_time").getAsString());
+            quiz.setEndDate(item.get("end_time").getAsString());
+            quiz.setDuration(item.get("duration").getAsInt());
+            quiz.setCompleted(item.get("completed").getAsBoolean());
+            quiz.setCanStart(item.get("can_start").getAsBoolean());
+            quiz.setStatusLabel(item.get("status_label").getAsString());
+            quizzes.add(quiz);
         }
+        return quizzes;
+    }
+
+    private boolean confirmPreview(JsonObject preview) {
+        JsonObject quiz = preview.getAsJsonObject("quiz");
+        String message = quiz.get("title").getAsString() + "\n\n"
+                + (quiz.has("description") ? quiz.get("description").getAsString() : "") + "\n\n"
+                + "Scheduled: " + quiz.get("start_time").getAsString() + "\n"
+                + "Ends: " + quiz.get("end_time").getAsString() + "\n"
+                + "Duration: " + quiz.get("duration").getAsInt() + " min\n"
+                + "Maximum score: " + quiz.get("question_marks").getAsInt()
+                + " question marks + " + quiz.get("participation_marks").getAsInt()
+                + " participation = " + quiz.get("maximum_marks").getAsInt();
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, message, ButtonType.CANCEL, ButtonType.OK);
+        confirm.setTitle("Start Quiz");
+        confirm.setHeaderText("Ready to begin?");
+        return confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
+    }
+
+    private void openApiQuizWindow(JsonObject session) {
         try {
-            QuizAttempt attempt = attemptDAO.startOrResume(
-                freshQuiz, user.getId(), user.getName(), currentCategory);
-            openLockedQuizWindow(freshQuiz, questions, user, attempt);
+            JsonObject quizJson = session.getAsJsonObject("quiz");
+            JsonObject attemptJson = session.getAsJsonObject("attempt");
+            Quiz quiz = new Quiz();
+            quiz.setId(quizJson.get("id").getAsInt());
+            quiz.setTitle(quizJson.get("title").getAsString());
+            quiz.setDuration(quizJson.get("duration").getAsInt());
+
+            List<Question> questions = new ArrayList<>();
+            for (JsonElement element : session.getAsJsonArray("questions")) {
+                JsonObject questionJson = element.getAsJsonObject();
+                Question question = new Question();
+                question.setId(questionJson.get("id").getAsInt());
+                question.setQuestion(questionJson.get("question").getAsString());
+                question.setMarks(questionJson.get("marks").getAsInt());
+
+                JsonArray options = questionJson.getAsJsonArray("options");
+                if (options.size() > 0) {
+                    question.setOptionA(options.get(0).getAsJsonObject().get("text").getAsString());
+                    question.setOptionAId(options.get(0).getAsJsonObject().get("id").getAsInt());
+                }
+                if (options.size() > 1) {
+                    question.setOptionB(options.get(1).getAsJsonObject().get("text").getAsString());
+                    question.setOptionBId(options.get(1).getAsJsonObject().get("id").getAsInt());
+                }
+                if (options.size() > 2) {
+                    question.setOptionC(options.get(2).getAsJsonObject().get("text").getAsString());
+                    question.setOptionCId(options.get(2).getAsJsonObject().get("id").getAsInt());
+                }
+                if (options.size() > 3) {
+                    question.setOptionD(options.get(3).getAsJsonObject().get("text").getAsString());
+                    question.setOptionDId(options.get(3).getAsJsonObject().get("id").getAsInt());
+                }
+                questions.add(question);
+            }
+
+            QuizAttempt attempt = new QuizAttempt();
+            attempt.setId(attemptJson.get("id").getAsInt());
+            attempt.setQuizId(quiz.getId());
+            attempt.setDeadlineAt(LocalDateTime.parse(attemptJson.get("deadline_at").getAsString()));
+
+            ForumUser user = AppSession.getInstance().getCurrentUser();
+            openQuizModal(quiz, questions, user, attempt, true);
+            loadForCurrentStudent();
+        } catch (Exception e) {
+            alert("Error", "Failed to open quiz window: " + e.getMessage());
+        }
+    }
+
+    private void startOfflineQuiz(Quiz selectedQuiz) {
+        ForumUser user = AppSession.getInstance().getCurrentUser();
+        if (user == null) {
+            return;
+        }
+
+        Quiz freshQuiz = new QuizDAO().getById(selectedQuiz.getId());
+        if (freshQuiz == null || !selectedQuiz.isCanStart()) {
+            alert("Quiz Unavailable", "This quiz cannot be started right now.");
+            loadForCurrentStudent();
+            return;
+        }
+
+        List<Question> questions = new QuestionDAO().getQuestionsByQuizId(freshQuiz.getId());
+        if (questions.isEmpty()) {
+            alert("No Questions", "This quiz has no questions yet.");
+            return;
+        }
+
+        int categoryId = new CategoryStudentDAO().getCategoryForStudent(user.getId(), user.getName());
+        try {
+            QuizAttempt attempt = new QuizAttemptDAO().startOrResume(freshQuiz, user.getId(), user.getName(), categoryId);
+            if (attempt == null) {
+                alert("Unable to Start", "Quiz attempt could not be created.");
+                return;
+            }
+            openQuizModal(freshQuiz, questions, user, attempt, false);
+            loadForCurrentStudent();
         } catch (Exception e) {
             alert("Unable to Start", e.getMessage());
         }
     }
 
-    @FXML
-    private void viewPerformanceReport() {
-        Quiz selectedQuiz = tblAvailableQuizzes.getSelectionModel().getSelectedItem();
-        if (selectedQuiz == null) {
-            alert("Select Quiz", "Select an expired quiz to view its performance report.");
-            return;
-        }
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        if (user == null || !AppSession.getInstance().isStudent()) {
-            alert("Access Denied", "A signed-in student session is required.");
-            return;
-        }
-
-        int currentCategory = new CategoryStudentDAO().getCategoryForStudent(user.getId(), user.getName());
-        Quiz freshQuiz = new QuizDAO().getById(selectedQuiz.getId());
-        if (currentCategory < 0 || freshQuiz == null || freshQuiz.getCategoryId() != currentCategory) {
-            alert("Access Denied", "This report is not available for your current enrollment.");
-            loadForCurrentStudent();
-            return;
-        }
+    private void openQuizModal(Quiz quiz, List<Question> questions, ForumUser user, QuizAttempt attempt, boolean apiMode) {
         try {
-            LocalDateTime globalEnd = QuizSchedule.parseEnd(freshQuiz.getEndDate());
-            if (globalEnd == null || LocalDateTime.now().isBefore(globalEnd)) {
-                alert("Report Unavailable", "Performance reports are available only after the quiz's global end time.");
-                return;
+            URL fxmlUrl = getClass().getResource("/fxml/QuizModal.fxml");
+            FXMLLoader loader = new FXMLLoader(fxmlUrl);
+            Parent root = loader.load();
+            Scene scene = new Scene(root, 760, 580);
+            URL cssUrl = getClass().getResource("/com/smartforum/css/app.css");
+            if (cssUrl != null) {
+                scene.getStylesheets().add(cssUrl.toExternalForm());
             }
-            List<QuizPerformanceRow> rows =
-                new QuizResultDAO().getCategoryPerformanceReport(freshQuiz.getId(), currentCategory);
-            lblReportTitle.setText("Category Performance — " + freshQuiz.getTitle());
-            tblPerformance.setItems(FXCollections.observableArrayList(rows));
-            lblReportEmpty.setText(rows.isEmpty()
-                ? "No students are currently enrolled in this category."
-                : rows.size() + " currently enrolled student(s). Correct answers are not shown.");
-            performanceReport.setManaged(true);
-            performanceReport.setVisible(true);
-        } catch (Exception e) {
-            alert("Report Unavailable", "The performance report could not be loaded: " + e.getMessage());
-        }
-    }
-
-    private void showFinalizationNotice(QuizSubmissionService.FinalizationSummary summary) {
-        int finalized = summary.getFinalized();
-        int failed = summary.getFailed();
-        if (finalized == 0 && failed == 0) {
-            lblAttemptNotice.setVisible(false);
-            lblAttemptNotice.setManaged(false);
-            return;
-        }
-        String text = finalized > 0
-            ? finalized + " expired quiz attempt(s) were submitted from saved answers."
-            : "";
-        if (failed > 0) {
-            text += (text.isEmpty() ? "" : " ") + failed + " attempt(s) could not be finalized.";
-        }
-        lblAttemptNotice.setText(text);
-        lblAttemptNotice.setManaged(true);
-        lblAttemptNotice.setVisible(true);
-    }
-
-    private void openLockedQuizWindow(Quiz quiz, List<Question> questions, ForumUser user, QuizAttempt attempt) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/QuizModal.fxml"));
-            Scene scene = new Scene(loader.load(), 760, 580);
-            scene.getStylesheets().add(
-                getClass().getResource("/com/smartforum/css/app.css").toExternalForm()
-            );
 
             QuizModalController modal = loader.getController();
-            modal.setup(quiz, questions, user, attempt);
+            modal.setup(quiz, questions, user, attempt, apiMode);
 
-            Stage stage = new Stage(StageStyle.UNDECORATED);
+            Stage stage = new Stage();
             stage.initModality(Modality.APPLICATION_MODAL);
-            stage.setAlwaysOnTop(true);
+            stage.setTitle(quiz.getTitle());
+            stage.setMinWidth(720);
+            stage.setMinHeight(560);
+            if (tblAvailableQuizzes.getScene() != null && tblAvailableQuizzes.getScene().getWindow() != null) {
+                stage.initOwner(tblAvailableQuizzes.getScene().getWindow());
+            }
             stage.setScene(scene);
-            stage.setOnCloseRequest(e -> e.consume());
+            stage.setOnCloseRequest(event -> {
+                event.consume();
+                alert("Quiz In Progress", "Use Submit Quiz to finish this attempt.");
+            });
             stage.showAndWait();
-
-            // Reset after quiz closes
-            loadForCurrentStudent();
-
         } catch (Exception e) {
-            e.printStackTrace();
             alert("Error", "Failed to open quiz window: " + e.getMessage());
         }
     }
 
+    private TableCell<Quiz, String> statusCell() {
+        return new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                    getStyleClass().removeAll("badge-primary", "badge-muted", "badge-rank-gold");
+                    return;
+                }
+                Label badge = new Label(item);
+                badge.getStyleClass().add(switch (item) {
+                    case "Completed" -> "badge-primary";
+                    case "Upcoming" -> "badge-rank-gold";
+                    default -> "badge-muted";
+                });
+                setGraphic(badge);
+                setText(null);
+                setAlignment(Pos.CENTER_LEFT);
+            }
+        };
+    }
+
+    private TableCell<Quiz, Void> actionCell() {
+        return new TableCell<>() {
+            private final Label takenLabel = new Label("Already taken");
+            private final Label upcomingLabel = new Label("Not open yet");
+            private final Button startButton = new Button("Start Quiz");
+
+            {
+                takenLabel.getStyleClass().add("dashboard-subtitle");
+                upcomingLabel.getStyleClass().add("dashboard-subtitle");
+                startButton.getStyleClass().addAll("btn-primary", "btn-sm");
+                startButton.setOnAction(event -> {
+                    Quiz quiz = getTableView().getItems().get(getIndex());
+                    startQuiz(quiz);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+                Quiz quiz = getTableView().getItems().get(getIndex());
+                if (quiz.isCompleted()) {
+                    setGraphic(takenLabel);
+                } else if (!quiz.isCanStart()) {
+                    setGraphic(upcomingLabel);
+                } else {
+                    setGraphic(startButton);
+                }
+                setAlignment(Pos.CENTER_LEFT);
+            }
+        };
+    }
+
+    private static String formatQuizCell(Quiz quiz) {
+        if (quiz == null) {
+            return "";
+        }
+        String description = quiz.getDescription();
+        if (description == null || description.isBlank()) {
+            return quiz.getTitle();
+        }
+        return quiz.getTitle() + "\n" + description;
+    }
+
+    private void showFeedback(String message, boolean error) {
+        lblFeedback.setText(message);
+        lblFeedback.getStyleClass().remove("quiz-recovery-notice");
+        if (error) {
+            lblFeedback.getStyleClass().add("announcement-alert-info");
+        } else {
+            lblFeedback.getStyleClass().add("quiz-recovery-notice");
+        }
+        lblFeedback.setManaged(true);
+        lblFeedback.setVisible(true);
+    }
+
     private void alert(String title, String msg) {
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
-        a.setTitle(title); a.setHeaderText(null); a.setContentText(msg);
-        a.showAndWait();
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(msg);
+        alert.showAndWait();
     }
 }

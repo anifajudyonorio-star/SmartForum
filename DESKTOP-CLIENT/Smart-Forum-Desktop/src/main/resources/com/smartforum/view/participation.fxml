@@ -3,6 +3,7 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
@@ -22,7 +23,7 @@
             <ComboBox fx:id="groupFilterCombo" prefWidth="220.0" />
          </HBox>
 
-         <VBox fx:id="participantsBox" spacing="10.0" />
+         <FlowPane fx:id="participantsBox" hgap="12.0" maxWidth="1.7976931348623157E308" styleClass="participation-grid" vgap="12.0" />
       </VBox>
    </content>
 </ScrollPane>
