@@ -18,6 +18,7 @@ use App\Http\Controllers\SyncController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\TopicController;
 use App\Http\Controllers\RecommendationController;
+use App\Http\Controllers\Api\AdminUserApiController;
 
 // Desktop client auth
 Route::post('/login', [AuthApiController::class, 'login']);
@@ -109,6 +110,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/profile', [ProfileApiController::class, 'update']);
     Route::put('/profile/password', [ProfileApiController::class, 'updatePassword']);
     Route::delete('/profile', [ProfileApiController::class, 'destroy']);
+
+    // Admin user management
+    Route::middleware('can:admin-only')->group(function () {
+        Route::get('/admin/users', [AdminUserApiController::class, 'index']);
+        Route::post('/admin/users', [AdminUserApiController::class, 'store']);
+        Route::post('/admin/users/{user}/warn', [AdminUserApiController::class, 'warn']);
+        Route::post('/admin/users/{user}/blacklist', [AdminUserApiController::class, 'blacklist']);
+        Route::post('/admin/users/{user}/unblacklist', [AdminUserApiController::class, 'unblacklist']);
+        Route::patch('/admin/users/{user}/role', [AdminUserApiController::class, 'promote']);
+    });
 });
 
 Route::prefix('push')->middleware(['auth:sanctum'])->group(function () {

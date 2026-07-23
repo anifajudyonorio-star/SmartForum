@@ -43,6 +43,11 @@
                      <Button fx:id="participationNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showParticipationFromNav" styleClass="sidebar-nav-btn" text="Participation" />
                      <Button fx:id="quizNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showQuizManagementFromNav" styleClass="sidebar-nav-btn" text="Quiz Management" />
                   </VBox>
+
+                  <VBox fx:id="superAdminSection" managed="false" spacing="2.0" visible="false">
+                     <Label styleClass="sidebar-section-label" text="SUPER ADMIN" />
+                     <Button fx:id="userMgmtNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showUserManagementFromNav" styleClass="sidebar-nav-btn" text="User Management" />
+                  </VBox>
                </VBox>
             </content>
          </ScrollPane>

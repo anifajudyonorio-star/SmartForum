@@ -37,6 +37,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(QuizCategory::class, QuizCategoryPolicy::class);
         Gate::policy(QuizAnnouncement::class, QuizAnnouncementPolicy::class);
 
+        Gate::define('admin-only', fn ($user) => $user->role === 'admin');
+
         Event::listen(SocialiteWasCalled::class, AppleExtendSocialite::class.'@handle');
 
         View::composer(['layouts.app', 'partials.sidebar', 'partials.mobile-nav'], function ($view) {

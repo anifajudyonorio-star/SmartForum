@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER"
+            style="-fx-background-color: transparent; -fx-background: transparent;"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.smartforum.controller.UserManagementController">
+    <content>
+        <VBox spacing="12.0" styleClass="dashboard-content">
+
+            <!-- Header -->
+            <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-header">
+                <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                    <Label styleClass="dashboard-title" text="👥 User Management" />
+                    <Label styleClass="dashboard-subtitle" text="Issue warnings and manage blacklisted users." />
+                </VBox>
+                <Button fx:id="addLecturerBtn" mnemonicParsing="false"
+                        onAction="#toggleAddLecturer"
+                        styleClass="btn-primary" text="＋ Add Lecturer" />
+            </HBox>
+
+            <!-- Status label -->
+            <Label fx:id="statusLabel" styleClass="um-status-label" text="" wrapText="true" />
+
+            <!-- Add Lecturer inline panel -->
+            <VBox fx:id="addLecturerPanel" spacing="10" styleClass="um-add-panel">
+                <Label styleClass="dashboard-card-title" text="Add Lecturer Account" />
+                <Label fx:id="addLecturerError" styleClass="profile-field-error" text="" wrapText="true" />
+                <HBox spacing="10">
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label styleClass="form-label" text="First Name" />
+                        <TextField fx:id="fnameField" promptText="First name" />
+                    </VBox>
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label styleClass="form-label" text="Last Name" />
+                        <TextField fx:id="lnameField" promptText="Last name" />
+                    </VBox>
+                </HBox>
+                <VBox spacing="4">
+                    <Label styleClass="form-label" text="Email" />
+                    <TextField fx:id="emailField" promptText="email@example.com" />
+                </VBox>
+                <HBox spacing="10">
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label styleClass="form-label" text="Password" />
+                        <PasswordField fx:id="passwordField" promptText="Password" />
+                    </VBox>
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label styleClass="form-label" text="Confirm Password" />
+                        <PasswordField fx:id="passwordConfirmField" promptText="Confirm password" />
+                    </VBox>
+                </HBox>
+                <HBox spacing="8" alignment="CENTER_RIGHT">
+                    <Button mnemonicParsing="false" onAction="#cancelAddLecturer"
+                            styleClass="btn-outline-secondary" text="Cancel" />
+                    <Button mnemonicParsing="false" onAction="#submitAddLecturer"
+                            styleClass="btn-primary" text="Create Lecturer" />
+                </HBox>
+            </VBox>
+
+            <!-- User list -->
+            <VBox fx:id="userListBox" spacing="8.0">
+                <padding><Insets bottom="16" /></padding>
+            </VBox>
+
+        </VBox>
+    </content>
+</ScrollPane>

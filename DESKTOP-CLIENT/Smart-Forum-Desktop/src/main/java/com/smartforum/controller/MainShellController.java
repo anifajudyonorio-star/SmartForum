@@ -54,6 +54,8 @@ public class MainShellController implements ShellNavigator {
     @FXML private Button statisticsNavBtn;
     @FXML private Button participationNavBtn;
     @FXML private Button quizNavBtn;
+    @FXML private VBox superAdminSection;
+    @FXML private Button userMgmtNavBtn;
     @FXML private Label topBarUserAvatar;
     @FXML private Label syncStatusLabel;
     @FXML private Label offlineBanner;
@@ -86,7 +88,7 @@ public class MainShellController implements ShellNavigator {
         navButtons.addAll(List.of(
                 dashboardNavBtn, groupsNavBtn, topicSearchNavBtn, notificationsNavBtn,
                 quizzesNavBtn, announcementsNavBtn, quizProgressNavBtn, quizReportsNavBtn,
-                statisticsNavBtn, participationNavBtn, quizNavBtn
+                statisticsNavBtn, participationNavBtn, quizNavBtn, userMgmtNavBtn
         ));
 
         var user = AppSession.getInstance().getCurrentUser();
@@ -332,6 +334,12 @@ public class MainShellController implements ShellNavigator {
         quizReportsNavBtn.setVisible(isLecturerTools);
         quizReportsNavBtn.setManaged(isLecturerTools);
 
+        boolean isAdmin = AppSession.getInstance().isSystemAdmin();
+        superAdminSection.setVisible(isAdmin);
+        superAdminSection.setManaged(isAdmin);
+        userMgmtNavBtn.setVisible(isAdmin);
+        userMgmtNavBtn.setManaged(isAdmin);
+
         quizNavBtn.setVisible(false);
         quizNavBtn.setManaged(false);
     }
@@ -347,6 +355,7 @@ public class MainShellController implements ShellNavigator {
         setNavIcon(statisticsNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(participationNavBtn, BootstrapIcons.BAR_CHART_FILL);
         setNavIcon(quizNavBtn, BootstrapIcons.PATCH_QUESTION);
+        setNavIcon(userMgmtNavBtn, BootstrapIcons.PEOPLE);
     }
 
     private void setNavIcon(Button button, BootstrapIcons icon) {
@@ -467,6 +476,16 @@ public class MainShellController implements ShellNavigator {
         } catch (Exception e) {
             showLoadError("Results.fxml", e);
         }
+    }
+
+    @FXML
+    private void showUserManagementFromNav() {
+        navigateWithBack(this::showUserManagementInternal);
+    }
+
+    private void showUserManagementInternal() {
+        loadView("user-management.fxml", userMgmtNavBtn, null);
+        pageTitleLabel.setText("User Management");
     }
 
     @FXML

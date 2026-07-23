@@ -456,4 +456,42 @@ public class ApiClient {
     public static List<Post> getPosts(int topicId) {
         return fetchPosts(topicId);
     }
+
+    // ── Admin user management ──────────────────────────────────────────────────
+
+    public static Optional<JsonObject> getAdminUsers() {
+        return getJson("/api/admin/users");
+    }
+
+    public static MutationResult adminWarnUser(int userId, String reason) {
+        JsonObject body = new JsonObject();
+        if (reason != null && !reason.isBlank()) body.addProperty("reason", reason);
+        return mutateJson("POST", "/api/admin/users/" + userId + "/warn", body);
+    }
+
+    public static MutationResult adminBlacklistUser(int userId, String reason) {
+        JsonObject body = new JsonObject();
+        if (reason != null && !reason.isBlank()) body.addProperty("reason", reason);
+        return mutateJson("POST", "/api/admin/users/" + userId + "/blacklist", body);
+    }
+
+    public static MutationResult adminUnblacklistUser(int userId) {
+        return mutateJson("POST", "/api/admin/users/" + userId + "/unblacklist", new JsonObject());
+    }
+
+    public static MutationResult adminChangeRole(int userId, String role) {
+        JsonObject body = new JsonObject();
+        body.addProperty("role", role);
+        return mutateJson("PATCH", "/api/admin/users/" + userId + "/role", body);
+    }
+
+    public static MutationResult adminCreateLecturer(String fname, String lname, String email, String password) {
+        JsonObject body = new JsonObject();
+        body.addProperty("Fname", fname);
+        body.addProperty("Lname", lname);
+        body.addProperty("email", email);
+        body.addProperty("password", password);
+        body.addProperty("password_confirmation", password);
+        return mutateJson("POST", "/api/admin/users", body);
+    }
 }
