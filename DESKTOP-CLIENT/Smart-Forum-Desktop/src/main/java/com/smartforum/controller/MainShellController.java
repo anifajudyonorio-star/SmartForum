@@ -49,11 +49,16 @@ public class MainShellController implements ShellNavigator {
     @FXML private Button quizzesNavBtn;
     @FXML private Button announcementsNavBtn;
     @FXML private Button quizProgressNavBtn;
+    @FXML private VBox studentNavSection;
+    @FXML private VBox lecturerSection;
+    @FXML private Button lecturerQuizzesNavBtn;
+    @FXML private Button lecturerAnnouncementsNavBtn;
     @FXML private Button quizReportsNavBtn;
+    @FXML private VBox superAdminSection;
+    @FXML private Button userManagementNavBtn;
     @FXML private VBox groupAdminSection;
     @FXML private Button statisticsNavBtn;
     @FXML private Button participationNavBtn;
-    @FXML private Button quizNavBtn;
     @FXML private Label topBarUserAvatar;
     @FXML private Label syncStatusLabel;
     @FXML private Label offlineBanner;
@@ -85,8 +90,9 @@ public class MainShellController implements ShellNavigator {
 
         navButtons.addAll(List.of(
                 dashboardNavBtn, groupsNavBtn, topicSearchNavBtn, notificationsNavBtn,
-                quizzesNavBtn, announcementsNavBtn, quizProgressNavBtn, quizReportsNavBtn,
-                statisticsNavBtn, participationNavBtn, quizNavBtn
+                quizzesNavBtn, announcementsNavBtn, quizProgressNavBtn,
+                lecturerQuizzesNavBtn, lecturerAnnouncementsNavBtn, quizReportsNavBtn,
+                statisticsNavBtn, participationNavBtn, userManagementNavBtn
         ));
 
         var user = AppSession.getInstance().getCurrentUser();
@@ -318,22 +324,24 @@ public class MainShellController implements ShellNavigator {
         boolean isStudent = AppSession.getInstance().isStudent();
         boolean isLecturerTools = AppSession.getInstance().isLecturer()
                 || AppSession.getInstance().isSystemAdmin();
+        boolean isSystemAdmin = AppSession.getInstance().isSystemAdmin();
 
-        quizzesNavBtn.setText(isStudent ? "Quizzes" : "Quizzes");
-        quizzesNavBtn.setVisible(isStudent || isLecturerTools);
-        quizzesNavBtn.setManaged(isStudent || isLecturerTools);
+        studentNavSection.setVisible(isStudent);
+        studentNavSection.setManaged(isStudent);
 
-        announcementsNavBtn.setVisible(isStudent || isLecturerTools);
-        announcementsNavBtn.setManaged(isStudent || isLecturerTools);
+        lecturerSection.setVisible(isLecturerTools);
+        lecturerSection.setManaged(isLecturerTools);
 
-        quizProgressNavBtn.setVisible(isStudent);
-        quizProgressNavBtn.setManaged(isStudent);
+        superAdminSection.setVisible(isSystemAdmin);
+        superAdminSection.setManaged(isSystemAdmin);
+    }
 
-        quizReportsNavBtn.setVisible(isLecturerTools);
-        quizReportsNavBtn.setManaged(isLecturerTools);
+    private Button activeQuizzesNavBtn() {
+        return AppSession.getInstance().isStudent() ? quizzesNavBtn : lecturerQuizzesNavBtn;
+    }
 
-        quizNavBtn.setVisible(false);
-        quizNavBtn.setManaged(false);
+    private Button activeAnnouncementsNavBtn() {
+        return AppSession.getInstance().isStudent() ? announcementsNavBtn : lecturerAnnouncementsNavBtn;
     }
 
     private void setupSidebarNavIcons() {
@@ -343,10 +351,12 @@ public class MainShellController implements ShellNavigator {
         setNavIcon(quizzesNavBtn, BootstrapIcons.PATCH_QUESTION_FILL);
         setNavIcon(announcementsNavBtn, BootstrapIcons.MEGAPHONE_FILL);
         setNavIcon(quizProgressNavBtn, BootstrapIcons.GRAPH_UP);
+        setNavIcon(lecturerQuizzesNavBtn, BootstrapIcons.PATCH_QUESTION_FILL);
+        setNavIcon(lecturerAnnouncementsNavBtn, BootstrapIcons.MEGAPHONE_FILL);
         setNavIcon(quizReportsNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(statisticsNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(participationNavBtn, BootstrapIcons.BAR_CHART_FILL);
-        setNavIcon(quizNavBtn, BootstrapIcons.PATCH_QUESTION);
+        setNavIcon(userManagementNavBtn, BootstrapIcons.PEOPLE);
     }
 
     private void setNavIcon(Button button, BootstrapIcons icon) {
@@ -421,12 +431,12 @@ public class MainShellController implements ShellNavigator {
                 contentArea.getChildren().setAll(view);
                 activeContentKey = "TakeQuiz.fxml";
                 pageTitleLabel.setText(APP_TITLE);
-                setActiveNav(quizzesNavBtn);
+                setActiveNav(activeQuizzesNavBtn());
             } catch (Exception e) {
                 showLoadError("TakeQuiz.fxml", e);
             }
         } else {
-            loadView("quiz-management.fxml", quizzesNavBtn, null);
+            loadView("quiz-management.fxml", activeQuizzesNavBtn(), null);
         }
     }
 
@@ -443,7 +453,7 @@ public class MainShellController implements ShellNavigator {
             contentArea.getChildren().setAll(view);
             activeContentKey = "Announcements.fxml";
             pageTitleLabel.setText(APP_TITLE);
-            setActiveNav(announcementsNavBtn);
+            setActiveNav(activeAnnouncementsNavBtn());
         } catch (Exception e) {
             showLoadError("Announcements.fxml", e);
         }
@@ -470,6 +480,15 @@ public class MainShellController implements ShellNavigator {
     }
 
     @FXML
+    private void showUserManagementFromNav() {
+        navigateWithBack(this::showUserManagementInternal);
+    }
+
+    private void showUserManagementInternal() {
+        loadView("user-management.fxml", userManagementNavBtn, null);
+    }
+
+    @FXML
     private void showStatisticsFromNav() {
         showStatisticsOverview();
     }
@@ -485,10 +504,8 @@ public class MainShellController implements ShellNavigator {
         navigateWithBack(this::showParticipationInternal);
     }
 
-    @FXML
-    private void showQuizManagementFromNav() {
-        resetBackStack();
-        showQuizManagementInternal();
+    private void showQuizManagementInternal() {
+        loadView("quiz-management.fxml", activeQuizzesNavBtn(), null);
     }
 
     @FXML
@@ -603,10 +620,6 @@ public class MainShellController implements ShellNavigator {
         loadView("participation.fxml", participationNavBtn, null);
     }
 
-    private void showQuizManagementInternal() {
-        loadView("quiz-management.fxml", quizNavBtn, null);
-    }
-
     private void showGroupsIndexInternal() {
         showGroupsView(GroupController::index);
         setActiveNav(groupsNavBtn);
@@ -712,7 +725,8 @@ public class MainShellController implements ShellNavigator {
             return this::showDashboardInternal;
         }
 
-        if ("quiz-management.fxml".equals(activeContentKey)) {
+        if ("quiz-management.fxml".equals(activeContentKey)
+                || "user-management.fxml".equals(activeContentKey)) {
             return this::showDashboardInternal;
         }
 

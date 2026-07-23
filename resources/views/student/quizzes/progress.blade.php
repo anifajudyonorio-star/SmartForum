@@ -200,9 +200,9 @@
                         datasets: [{
                             label: 'Final percentage',
                             data: progressData,
-                            borderColor: '#16a34a',
-                            backgroundColor: 'rgba(22, 163, 74, 0.12)',
-                            pointBackgroundColor: '#15803d',
+                            borderColor: themeColor('primary'),
+                            backgroundColor: themeColorAlpha('primary', 0.12),
+                            pointBackgroundColor: themeColor('primary-dark'),
                             tension: 0.25,
                             fill: true,
                         }],

@@ -1,11 +1,18 @@
-// ── Design tokens ──────────────────────────────────────────
+@use 'tokens' as t;
+
+// Colors are defined once in _tokens.scss — edit that file to change the palette.
 :root {
-    --primary: #16a34a;
-    --primary-dark: #15803d;
-    --primary-light: #4ade80;
-    --primary-soft: #bbf7d0;
-    --primary-muted: #dcfce7;
-    --sidebar-bg: #166534;
+    --primary: #{t.$primary};
+    --primary-dark: #{t.$primary-dark};
+    --primary-light: #{t.$primary-light};
+    --primary-lighter: #{t.$primary-lighter};
+    --primary-soft: #{t.$primary-soft};
+    --primary-muted: #{t.$primary-muted};
+    --primary-border: #{t.$primary-border};
+    --primary-surface: #{t.$primary-surface};
+    --sidebar-bg: #{t.$sidebar-bg};
+    --warning: #{t.$warning};
+    --danger-light: #{t.$danger-light};
     --sidebar-active: rgba(255, 255, 255, 0.18);
     --sidebar-width: 250px;
     --header-height: 58px;
@@ -59,7 +66,7 @@ h5 { font-size: 1rem; }
     z-index: 1030;
     height: var(--header-height);
     background: #fff !important;
-    border-bottom: 1px solid #d1fae5;
+    border-bottom: 1px solid var(--primary-border);
     box-shadow: 0 1px 2px rgba(22, 101, 52, 0.06);
 }
 
@@ -96,7 +103,7 @@ h5 { font-size: 1rem; }
     background: var(--primary-muted);
     padding: 0.5rem 0 0.65rem;
     margin-bottom: 0.65rem;
-    border-bottom: 1px solid #d1fae5;
+    border-bottom: 1px solid var(--primary-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -260,7 +267,7 @@ h5 { font-size: 1rem; }
     }
 
     &:hover {
-        background: rgba(255, 255, 255, 0.12);
+        background: rgba(238, 246, 4, 0.12);
         color: #fff;
     }
 
@@ -416,7 +423,7 @@ h5 { font-size: 1rem; }
 
 // ── Cards & stats ──────────────────────────────────────────
 .card {
-    border: 1px solid #d1fae5;
+    border: 1px solid var(--primary-border);
     border-radius: 0.5rem;
     box-shadow: 0 1px 4px rgba(22, 101, 52, 0.06);
     background: #fff;
@@ -426,7 +433,7 @@ h5 { font-size: 1rem; }
     background: #fff;
     border-radius: 0.45rem;
     padding: 0.65rem 0.8rem;
-    border: 1px solid #d1fae5;
+    border: 1px solid var(--primary-border);
     box-shadow: 0 1px 3px rgba(22, 101, 52, 0.05);
     height: 100%;
 }
@@ -530,7 +537,7 @@ h5 { font-size: 1rem; }
     width: min(100%, 340px);
     background: #fff;
     border-radius: 0.5rem;
-    border: 1px solid #bbf7d0;
+    border: 1px solid var(--primary-soft);
     box-shadow: 0 2px 10px rgba(22, 101, 52, 0.08);
     overflow: hidden;
 }
@@ -603,7 +610,7 @@ h5 { font-size: 1rem; }
 }
 
 .auth-role-option {
-    border: 1px solid #d1fae5;
+    border: 1px solid var(--primary-border);
     border-radius: 0.35rem;
     padding: 0.35rem 0.5rem;
     cursor: pointer;
@@ -649,7 +656,7 @@ h5 { font-size: 1rem; }
 .group-card-modern {
     background: #fff;
     border-radius: 0.5rem;
-    border: 1px solid #d1fae5;
+    border: 1px solid var(--primary-border);
     padding: 1rem;
     height: 100%;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -713,7 +720,7 @@ h5 { font-size: 1rem; }
     align-items: center;
     margin-top: 0.75rem;
     padding-top: 0.75rem;
-    border-top: 1px solid #ecfdf5;
+    border-top: 1px solid var(--primary-surface);
     font-size: 0.75rem;
     color: #9ca3af;
 }
@@ -729,7 +736,7 @@ h5 { font-size: 1rem; }
     padding: 2.5rem 1rem;
     background: #fff;
     border-radius: 0.5rem;
-    border: 1px dashed #bbf7d0;
+    border: 1px dashed var(--primary-soft);
 }
 
 .groups-empty-icon {
@@ -758,7 +765,7 @@ h5 { font-size: 1rem; }
 
 .participant-card {
     background: #fff;
-    border: 1px solid #d1fae5;
+    border: 1px solid var(--primary-border);
     border-radius: 0.5rem;
     padding: 1rem;
 }
@@ -797,8 +804,8 @@ h5 { font-size: 1rem; }
     text-align: center;
     margin-bottom: 0.75rem;
     padding: 0.5rem 0;
-    border-top: 1px solid #ecfdf5;
-    border-bottom: 1px solid #ecfdf5;
+    border-top: 1px solid var(--primary-surface);
+    border-bottom: 1px solid var(--primary-surface);
 }
 
 .participant-stat-value {
@@ -817,7 +824,7 @@ h5 { font-size: 1rem; }
 .participant-progress {
     height: 6px;
     border-radius: 3px;
-    background: #ecfdf5;
+    background: var(--primary-surface);
 }
 
 .participant-progress .progress-bar {
@@ -839,9 +846,12 @@ h5 { font-size: 1rem; }
 
 .stats-chart-card .card-body {
     min-height: 260px;
+    position: relative;
 }
 
 .stats-chart-card canvas {
+    width: 100% !important;
+    height: 240px !important;
     max-height: 240px;
 }
 
@@ -1304,7 +1314,7 @@ body.chat-page {
     justify-content: space-around;
     align-items: stretch;
     background: #fff;
-    border-top: 1px solid #d1fae5;
+    border-top: 1px solid var(--primary-border);
     box-shadow: 0 -2px 12px rgba(22, 101, 52, 0.08);
     padding-bottom: env(safe-area-inset-bottom);
     height: calc(3.5rem + env(safe-area-inset-bottom));
@@ -1361,7 +1371,7 @@ body.chat-page {
 // Threaded notification groups (replies, topic activity)
 .notif-thread {
     background: #fff;
-    border: 1px solid #d1fae5;
+    border: 1px solid var(--primary-border);
     border-radius: 0.85rem;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(22, 101, 52, 0.05);
@@ -1377,7 +1387,7 @@ body.chat-page {
     gap: 0.75rem;
     padding: 0.9rem 1rem;
     background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%);
-    border-bottom: 1px solid #ecfdf5;
+    border-bottom: 1px solid var(--primary-surface);
 }
 
 .notif-thread-header-icon {
@@ -1489,7 +1499,7 @@ body.chat-page {
 
     &.unread .notif-thread-card {
         background: #f0fdf4;
-        border-color: #bbf7d0;
+        border-color: var(--primary-soft);
     }
 }
 
@@ -1569,7 +1579,7 @@ body.chat-page {
     padding: 0.85rem 1rem;
     background: #fff;
     border-radius: 0.65rem;
-    border: 1px solid #d1fae5;
+    border: 1px solid var(--primary-border);
     text-decoration: none;
     color: inherit;
     transition: box-shadow 0.15s ease, border-color 0.15s ease;
@@ -1602,6 +1612,31 @@ body.chat-page {
 .notif-body {
     flex: 1;
     min-width: 0;
+}
+
+.notif-item-top {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.2rem;
+}
+
+.notif-unread-dot {
+    color: var(--primary);
+    font-size: 0.65rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.notif-item-top .notif-title {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+}
+
+.notif-item-top .notif-time {
+    flex-shrink: 0;
+    margin: 0;
 }
 
 .notif-title {
@@ -1733,7 +1768,7 @@ body.chat-page {
     height: 1.25rem;
     padding: 0 0.35rem;
     border-radius: 999px;
-    background: #ef4444;
+    background: #e9f105;
     color: #fff;
     font-size: 0.65rem;
     font-weight: 700;
@@ -1766,7 +1801,7 @@ body.chat-page {
 
 .data-card-item {
     background: #fff;
-    border: 1px solid #d1fae5;
+    border: 1px solid var(--primary-border);
     border-radius: 0.65rem;
     padding: 0.85rem 1rem;
 }
@@ -1820,7 +1855,7 @@ body.chat-page {
     padding: 0.75rem 1rem;
     background: #fff;
     border-radius: 0.65rem;
-    border: 1px solid #d1fae5;
+    border: 1px solid var(--primary-border);
     text-decoration: none;
     color: inherit;
     transition: background 0.15s ease, box-shadow 0.15s ease;
@@ -1876,7 +1911,7 @@ body.chat-page {
 // ── Profile cards ──────────────────────────────────────────
 .profile-section {
     background: #fff;
-    border: 1px solid #d1fae5;
+    border: 1px solid var(--primary-border);
     border-radius: 0.65rem;
     padding: 1.25rem;
     margin-bottom: 1rem;
@@ -1898,7 +1933,7 @@ body.chat-page {
 .chat-card {
     border-radius: 0.5rem;
     overflow: hidden;
-    border: 1px solid #d1fae5;
+    border: 1px solid var(--primary-border);
 }
 
 .chat-card-header {
@@ -1920,7 +1955,7 @@ body.chat-page {
 
 .chat-footer {
     background: #fff;
-    border-top: 1px solid #d1fae5;
+    border-top: 1px solid var(--primary-border);
     padding: 0.75rem 1rem;
 }
 
@@ -1940,7 +1975,7 @@ body.chat-page {
     padding: 0.5rem 0.75rem;
     border-radius: 0.5rem;
     background: #fff;
-    border: 1px solid #d1fae5;
+    border: 1px solid var(--primary-border);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     word-break: break-word;
 }
@@ -1993,7 +2028,7 @@ body.chat-page {
 
 .reply-list {
     margin-left: 2rem;
-    border-left: 2px solid #bbf7d0;
+    border-left: 2px solid var(--primary-soft);
     padding-left: 0.65rem;
     margin-top: 0.35rem;
 }

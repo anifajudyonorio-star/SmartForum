@@ -227,7 +227,7 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const chartColor = '#16a34a';
+const chartColor = themeColor('primary');
 
 new Chart(document.getElementById('postsChart'), {
     type: 'bar',
@@ -251,7 +251,7 @@ new Chart(document.getElementById('monthlyChart'), {
             label: 'Posts',
             data: @json($monthlyPosts),
             borderColor: chartColor,
-            backgroundColor: 'rgba(22,163,74,0.1)',
+            backgroundColor: themeColorAlpha('primary', 0.1),
             fill: true,
             tension: 0.3,
             borderWidth: 2
@@ -266,7 +266,7 @@ new Chart(document.getElementById('pieChart'), {
         labels: @json($topicLabels),
         datasets: [{
             data: @json($topicCounts),
-            backgroundColor: ['#166534', '#16a34a', '#4ade80', '#86efac', '#bbf7d0', '#dcfce7']
+            backgroundColor: themeChartPalette()
         }]
     },
     options: { responsive: true, maintainAspectRatio: false }

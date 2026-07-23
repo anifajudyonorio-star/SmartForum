@@ -1,4 +1,5 @@
 import './bootstrap';
+import './theme';
 import './chat';
 import './notifications';
 import { initOfflineSync, queueAction } from './offline';

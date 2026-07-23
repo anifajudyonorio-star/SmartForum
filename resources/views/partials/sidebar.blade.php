@@ -66,10 +66,17 @@
             @if($showLecturerTools)
                 <li class="sidebar-section-label">Lecturer</li>
                 <li class="sidebar-nav-item">
-                    <a class="sidebar-nav-link {{ request()->routeIs('quizzes.*') || request()->routeIs('quiz-categories.*') || request()->routeIs('questions.*') || request()->routeIs('category-enrollments.*') || request()->routeIs('quiz-announcements.*') ? 'active' : '' }}"
+                    <a class="sidebar-nav-link {{ request()->routeIs('quizzes.*') || request()->routeIs('quiz-categories.*') || request()->routeIs('questions.*') || request()->routeIs('category-enrollments.*') ? 'active' : '' }}"
                        href="{{ route('quizzes.index') }}">
                         <i class="bi bi-patch-question-fill"></i>
                         <span>Quizzes</span>
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a class="sidebar-nav-link {{ request()->routeIs('quiz-announcements.*') ? 'active' : '' }}"
+                       href="{{ route('quiz-announcements.index') }}">
+                        <i class="bi bi-megaphone-fill"></i>
+                        <span>Announcements</span>
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
@@ -150,10 +157,17 @@
             @if($showLecturerTools)
                 <li class="sidebar-section-label">Lecturer</li>
                 <li class="sidebar-nav-item">
-                    <a class="sidebar-nav-link {{ request()->routeIs('quizzes.*') || request()->routeIs('quiz-categories.*') || request()->routeIs('questions.*') || request()->routeIs('category-enrollments.*') || request()->routeIs('quiz-announcements.*') ? 'active' : '' }}"
+                    <a class="sidebar-nav-link {{ request()->routeIs('quizzes.*') || request()->routeIs('quiz-categories.*') || request()->routeIs('questions.*') || request()->routeIs('category-enrollments.*') ? 'active' : '' }}"
                        href="{{ route('quizzes.index') }}">
                         <i class="bi bi-patch-question-fill"></i>
                         <span>Quizzes</span>
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a class="sidebar-nav-link {{ request()->routeIs('quiz-announcements.*') ? 'active' : '' }}"
+                       href="{{ route('quiz-announcements.index') }}">
+                        <i class="bi bi-megaphone-fill"></i>
+                        <span>Announcements</span>
                     </a>
                 </li>
                 <li class="sidebar-nav-item">

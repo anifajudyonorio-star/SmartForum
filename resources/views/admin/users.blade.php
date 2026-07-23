@@ -119,84 +119,6 @@
                             @endif
                         </td>
                     </tr>
-
-                    {{-- Warn Modal --}}
-                    <div class="modal fade" id="warnModal{{ $user->id }}" tabindex="-1">
-                        <div class="modal-dialog modal-sm">
-                            <div class="modal-content">
-                                <form action="{{ route('admin.users.warn', $user) }}" method="POST">
-                                    @csrf
-                                    <div class="modal-header">
-                                        <h6 class="modal-title">Warn {{ $user->Fname }}
-                                            <small class="text-muted">({{ $user->warnings }}/2 warnings)</small>
-                                        </h6>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        @if($user->warnings == 1)
-                                            <div class="alert alert-warning small py-2">⚠️ This is the final warning. The user will be blacklisted.</div>
-                                        @endif
-                                        <label class="form-label small">Reason (optional)</label>
-                                        <textarea name="reason" class="form-control form-control-sm" rows="2"></textarea>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-warning btn-sm">Issue Warning</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Blacklist Modal --}}
-                    <div class="modal fade" id="blacklistModal{{ $user->id }}" tabindex="-1">
-                        <div class="modal-dialog modal-sm">
-                            <div class="modal-content">
-                                <form action="{{ route('admin.users.blacklist', $user) }}" method="POST">
-                                    @csrf
-                                    <div class="modal-header">
-                                        <h6 class="modal-title">Blacklist {{ $user->Fname }}</h6>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="alert alert-danger small py-2">This will immediately block the user from accessing the platform.</div>
-                                        <label class="form-label small">Reason (optional)</label>
-                                        <textarea name="reason" class="form-control form-control-sm" rows="2"></textarea>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-danger btn-sm">Blacklist User</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    {{-- Promote Modal --}}
-                    <div class="modal fade" id="promoteModal{{ $user->id }}" tabindex="-1">
-                        <div class="modal-dialog modal-sm">
-                            <div class="modal-content">
-                                <form action="{{ route('admin.users.promote', $user) }}" method="POST">
-                                    @csrf
-                                    <div class="modal-header">
-                                        <h6 class="modal-title">Change Role — {{ $user->Fname }}</h6>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <label class="form-label small">Select new role</label>
-                                        <select name="role" class="form-select form-select-sm">
-                                            <option value="student" {{ $user->role === 'student' ? 'selected' : '' }}>Student</option>
-                                            <option value="lecturer" {{ $user->role === 'lecturer' ? 'selected' : '' }}>Lecturer</option>
-                                            <option value="admin" {{ $user->role === 'admin' ? 'selected' : '' }}>Admin</option>
-                                        </select>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-info btn-sm text-white">Save Role</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
                     @empty
                     <tr><td colspan="6" class="text-muted text-center py-3">No users found.</td></tr>
                     @endforelse
@@ -204,6 +126,87 @@
             </table>
         </div>
     </div>
+
+    @foreach($users as $user)
+        {{-- Warn Modal --}}
+        <div class="modal fade" id="warnModal{{ $user->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <form action="{{ route('admin.users.warn', $user) }}" method="POST">
+                        @csrf
+                        <div class="modal-header">
+                            <h6 class="modal-title">Warn {{ $user->Fname }}
+                                <small class="text-muted">({{ $user->warnings }}/2 warnings)</small>
+                            </h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            @if($user->warnings == 1)
+                                <div class="alert alert-warning small py-2">This is the final warning. The user will be blacklisted.</div>
+                            @endif
+                            <label class="form-label small">Reason (optional)</label>
+                            <textarea name="reason" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-warning btn-sm">Issue Warning</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {{-- Blacklist Modal --}}
+        <div class="modal fade" id="blacklistModal{{ $user->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <form action="{{ route('admin.users.blacklist', $user) }}" method="POST">
+                        @csrf
+                        <div class="modal-header">
+                            <h6 class="modal-title">Blacklist {{ $user->Fname }}</h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-danger small py-2">This will immediately block the user from accessing the platform.</div>
+                            <label class="form-label small">Reason (optional)</label>
+                            <textarea name="reason" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-danger btn-sm">Blacklist User</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {{-- Promote Modal --}}
+        <div class="modal fade" id="promoteModal{{ $user->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <form action="{{ route('admin.users.promote', $user) }}" method="POST">
+                        @csrf
+                        <div class="modal-header">
+                            <h6 class="modal-title">Change Role — {{ $user->Fname }}</h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label small">Select new role</label>
+                            <select name="role" class="form-select form-select-sm">
+                                <option value="student" {{ $user->role === 'student' ? 'selected' : '' }}>Student</option>
+                                <option value="lecturer" {{ $user->role === 'lecturer' ? 'selected' : '' }}>Lecturer</option>
+                                <option value="admin" {{ $user->role === 'admin' ? 'selected' : '' }}>Admin</option>
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-info btn-sm text-white">Save Role</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endforeach
 </div>
 @endsection
 

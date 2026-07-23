@@ -188,7 +188,7 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const chartColor = '#16a34a';
+const chartColor = themeColor('primary');
 
 new Chart(document.getElementById('groupMonthlyChart'), {
     type: 'line',
@@ -198,7 +198,7 @@ new Chart(document.getElementById('groupMonthlyChart'), {
             label: 'Posts',
             data: @json($monthly_posts),
             borderColor: chartColor,
-            backgroundColor: 'rgba(22,163,74,0.1)',
+            backgroundColor: themeColorAlpha('primary', 0.1),
             fill: true,
             tension: 0.3,
             borderWidth: 2

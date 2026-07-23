@@ -1,0 +1,18 @@
+// ── Theme colors (single source of truth) ───────────────────
+// Change palette here only. Bootstrap, CSS variables, and charts
+// all read from these values.
+
+$primary: #16a34a;
+$primary-dark: #15803d;
+$primary-light: #4ade80;
+$primary-lighter: #86efac;
+$primary-soft: #bbf7d0;
+$primary-muted: #dcfce7;
+$primary-border: #d1fae5;
+$primary-surface: #ecfdf5;
+$sidebar-bg: #166534;
+
+$body-color: #1f2937;
+$warning: #fbbf24;
+$danger: #ef4444;
+$danger-light: #f87171;

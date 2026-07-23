@@ -233,8 +233,8 @@
                 datasets: [{
                     label: 'Average %',
                     data: averageValues,
-                    backgroundColor: 'rgba(22, 163, 74, 0.65)',
-                    borderColor: '#15803d',
+                    backgroundColor: themeColorAlpha('primary', 0.65),
+                    borderColor: themeColor('primary-dark'),
                     borderWidth: 1,
                 }],
             },
@@ -261,7 +261,12 @@
                 labels: distributionEntries.map(([label]) => label),
                 datasets: [{
                     data: distributionEntries.map(([, count]) => count),
-                    backgroundColor: ['#16a34a', '#4ade80', '#fbbf24', '#f87171'],
+                    backgroundColor: [
+                        themeColor('primary'),
+                        themeColor('primary-light'),
+                        themeColor('warning'),
+                        themeColor('danger-light'),
+                    ],
                 }],
             },
             options: {

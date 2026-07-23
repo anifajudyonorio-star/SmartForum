@@ -210,6 +210,42 @@ public class ApiClient {
         return getJson("/api/student/announcements");
     }
 
+    public static Optional<JsonObject> getAdminUsers() {
+        return getJson("/api/admin/users");
+    }
+
+    public static MutationResult createAdminUser(String fname, String lname, String email, String password, String confirmation) {
+        JsonObject body = new JsonObject();
+        body.addProperty("Fname", fname);
+        body.addProperty("Lname", lname);
+        body.addProperty("email", email);
+        body.addProperty("password", password);
+        body.addProperty("password_confirmation", confirmation);
+        return mutateJson("POST", "/api/admin/users", body);
+    }
+
+    public static MutationResult warnAdminUser(int userId, String reason) {
+        JsonObject body = new JsonObject();
+        body.addProperty("reason", reason == null ? "" : reason);
+        return mutateJson("POST", "/api/admin/users/" + userId + "/warn", body);
+    }
+
+    public static MutationResult promoteAdminUser(int userId, String role) {
+        JsonObject body = new JsonObject();
+        body.addProperty("role", role);
+        return mutateJson("POST", "/api/admin/users/" + userId + "/promote", body);
+    }
+
+    public static MutationResult blacklistAdminUser(int userId, String reason) {
+        JsonObject body = new JsonObject();
+        body.addProperty("reason", reason == null ? "" : reason);
+        return mutateJson("POST", "/api/admin/users/" + userId + "/blacklist", body);
+    }
+
+    public static MutationResult unblacklistAdminUser(int userId) {
+        return mutateJson("POST", "/api/admin/users/" + userId + "/unblacklist", new JsonObject());
+    }
+
     public static MutationResult postQuizAnnouncement(int categoryId, String title, String message) {
         JsonObject body = new JsonObject();
         body.addProperty("category_id", categoryId);

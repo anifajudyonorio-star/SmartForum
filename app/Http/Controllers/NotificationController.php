@@ -3,24 +3,24 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 
 class NotificationController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $notifications = Auth::user()
-            ->notifications()
-            ->visible()
-            ->with(['post.topic.group', 'post.user', 'parentPost.user', 'quiz'])
-            ->latest()
-            ->get();
+        $notifications = $this->userNotificationsQuery()->get()
+            ->map(fn ($notification) => $this->formatNotification($notification));
+        $unreadCount = $this->unreadCount();
 
-        $notificationGroups = $this->groupForDisplay($notifications);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'notifications' => $notifications->values(),
+                'unread_count' => $unreadCount,
+            ]);
+        }
 
-        return view('notification.index', compact('notificationGroups'));
+        return view('notification.index', compact('notifications', 'unreadCount'));
     }
 
     public function poll(Request $request)
@@ -37,22 +37,11 @@ class NotificationController extends Controller
             $query->where('id', '>', $afterId);
         }
 
-        $notifications = $query->latest()->get()->map(function ($notification) {
-            return [
-                'id' => $notification->id,
-                'title' => $notification->title,
-                'message' => $notification->message,
-                'type' => $notification->Notification_Type,
-                'quiz_id' => $notification->quiz_id,
-                'parent_post_id' => $notification->parent_post_id,
-                'url' => $this->notificationUrl($notification),
-                'time' => $notification->created_at->diffForHumans(),
-            ];
-        });
+        $notifications = $query->latest()->get()->map(fn ($notification) => $this->formatNotification($notification));
 
         return response()->json([
             'notifications' => $notifications,
-            'unread_count' => Auth::user()->notifications()->visible()->where('Is_Read', false)->count(),
+            'unread_count' => $this->unreadCount(),
             'latest_id' => (int) Auth::user()->notifications()->visible()->max('id'),
         ]);
     }
@@ -64,7 +53,9 @@ class NotificationController extends Controller
             ->with(['post.topic', 'quiz', 'user'])
             ->findOrFail($id);
 
-        $notification->markAsRead();
+        if (! $notification->Is_Read) {
+            $notification->markAsRead();
+        }
 
         $url = $this->notificationUrl($notification);
 
@@ -72,104 +63,52 @@ class NotificationController extends Controller
             return response()->json([
                 'success' => true,
                 'url' => $url,
-                'unread_count' => auth()->user()->notifications()->visible()->where('Is_Read', false)->count(),
+                'unread_count' => $this->unreadCount(),
             ]);
         }
 
         return redirect($url);
     }
 
-    /**
-     * Group related notifications into threaded display groups.
-     */
-    private function groupForDisplay(Collection $notifications): Collection
+    private function userNotificationsQuery()
     {
-        $groups = [];
-
-        foreach ($notifications as $notification) {
-            if ($notification->Notification_Type === 'reply' && $notification->parent_post_id) {
-                $key = 'reply_'.$notification->parent_post_id;
-
-                if (! isset($groups[$key])) {
-                    $groups[$key] = [
-                        'type' => 'reply_thread',
-                        'latest_at' => $notification->created_at,
-                        'items' => [],
-                    ];
-                }
-
-                $groups[$key]['items'][] = $notification;
-
-                if ($notification->created_at->gt($groups[$key]['latest_at'])) {
-                    $groups[$key]['latest_at'] = $notification->created_at;
-                }
-            } elseif ($notification->Notification_Type === 'PostCreated' && $notification->post?->Topic_ID) {
-                $key = 'topic_'.$notification->post->Topic_ID;
-
-                if (! isset($groups[$key])) {
-                    $groups[$key] = [
-                        'type' => 'topic_thread',
-                        'latest_at' => $notification->created_at,
-                        'items' => [],
-                    ];
-                }
-
-                $groups[$key]['items'][] = $notification;
-
-                if ($notification->created_at->gt($groups[$key]['latest_at'])) {
-                    $groups[$key]['latest_at'] = $notification->created_at;
-                }
-            } else {
-                $groups['single_'.$notification->id] = [
-                    'type' => 'single',
-                    'latest_at' => $notification->created_at,
-                    'item' => $notification,
-                ];
-            }
-        }
-
-        foreach ($groups as &$group) {
-            if (in_array($group['type'], ['reply_thread', 'topic_thread'], true)) {
-                usort($group['items'], fn ($a, $b) => $a->created_at <=> $b->created_at);
-                $group = $this->enrichThreadGroup($group);
-            }
-        }
-        unset($group);
-
-        return collect($groups)
-            ->sortByDesc(fn ($group) => $group['latest_at'])
-            ->values();
+        return Auth::user()
+            ->notifications()
+            ->visible()
+            ->with(['post.topic.group', 'post.user', 'parentPost.user', 'quiz', 'group'])
+            ->latest();
     }
 
-    private function enrichThreadGroup(array $group): array
+    private function unreadCount(): int
     {
-        $items = collect($group['items']);
-        $first = $items->first();
+        return Auth::user()->notifications()->visible()->where('Is_Read', false)->count();
+    }
 
-        $group['count'] = $items->count();
-        $group['unread_count'] = $items->where('is_read', false)->count();
-        $group['has_unread'] = $group['unread_count'] > 0;
+    private function formatNotification($notification): array
+    {
+        $notification->loadMissing(['post.topic', 'group', 'quiz', 'user']);
 
-        if ($group['type'] === 'reply_thread') {
-            $parent = $first?->parentPost;
-            $topic = $first?->post?->topic;
+        return [
+            'id' => $notification->id,
+            'title' => $notification->title,
+            'message' => $notification->message,
+            'type' => $notification->Notification_Type,
+            'is_read' => (bool) $notification->Is_Read,
+            'time' => $notification->created_at?->diffForHumans(),
+            'url' => $this->notificationUrl($notification),
+            'icon' => $this->iconForType($notification->Notification_Type),
+        ];
+    }
 
-            $group['heading'] = 'Replies to your message';
-            $group['context'] = $topic?->Title;
-            $group['context_url'] = $topic ? route('topics.show', $topic) : null;
-            $group['quote'] = $parent ? Str::limit($parent->Post_Content, 100) : null;
-            $group['icon'] = 'bi-reply-fill';
-        } else {
-            $topic = $first?->post?->topic;
-
-            $group['heading'] = 'New posts in discussion';
-            $group['context'] = $topic?->Title;
-            $group['context_url'] = $topic ? route('topics.show', $topic) : null;
-            $group['quote'] = $topic?->group?->Group_Name;
-            $group['icon'] = 'bi-chat-left-text-fill';
-        }
-
-        return $group;
+    private function iconForType(?string $type): string
+    {
+        return match ($type) {
+            'Quiz' => 'bi-patch-question-fill',
+            'warning' => 'bi-exclamation-triangle-fill',
+            'PostCreated' => 'bi-chat-left-text-fill',
+            'reply' => 'bi-reply-fill',
+            default => 'bi-bell-fill',
+        };
     }
 
     private function notificationUrl($notification): string
