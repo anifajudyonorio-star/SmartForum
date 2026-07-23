@@ -48,7 +48,7 @@ return [
     ],
 
     'ml' => [
-        'url' => env('ML_SERVICE_URL', 'http://localhost:5000'),
+        'url' => env('ML_SERVICE_URL', 'http://localhost:5001'),
     ],
 
 ];

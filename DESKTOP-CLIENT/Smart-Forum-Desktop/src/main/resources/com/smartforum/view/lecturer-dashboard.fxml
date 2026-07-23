@@ -25,8 +25,8 @@
                <Label styleClass="dashboard-title" text="Welcome back, Lecturer!" />
                <Label styleClass="dashboard-subtitle" text="Monitor student participation and track quiz performance across your groups." />
             </VBox>
-            <Button mnemonicParsing="false" onAction="#onViewQuizReports" styleClass="btn-outline btn-sm dashboard-action-btn" text="📈  Quiz Reports" />
-            <Button mnemonicParsing="false" onAction="#onViewParticipation" styleClass="btn-primary btn-sm dashboard-action-btn" text="📊  Participation" />
+            <Button fx:id="quizReportsBtn" mnemonicParsing="false" onAction="#onViewQuizReports" styleClass="btn-outline-primary btn-sm dashboard-action-btn" text="📈  Quiz Reports" />
+            <Button fx:id="participationBtn" mnemonicParsing="false" onAction="#onViewParticipation" styleClass="btn-primary btn-sm dashboard-action-btn" text="📊  Participation" />
          </HBox>
 
          <VBox fx:id="groupAdminCard" managed="false" maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="dashboard-card" visible="false">
@@ -76,7 +76,7 @@
                   <Label styleClass="dashboard-card-title" text="❓  Student Quiz Progress" />
                   <Label styleClass="dashboard-subtitle" text="Track previous quiz outcomes for students in your managed quizzes." />
                </VBox>
-               <Button mnemonicParsing="false" onAction="#onViewQuizReports" styleClass="btn-outline-secondary btn-sm" text="View all reports" />
+               <Button fx:id="viewAllReportsBtn" mnemonicParsing="false" onAction="#onViewQuizReports" styleClass="btn-outline-primary btn-sm" text="View all reports" />
             </HBox>
             <VBox spacing="12.0" styleClass="dashboard-card-body">
                <GridPane hgap="8.0" maxWidth="1.7976931348623157E308" vgap="8.0">

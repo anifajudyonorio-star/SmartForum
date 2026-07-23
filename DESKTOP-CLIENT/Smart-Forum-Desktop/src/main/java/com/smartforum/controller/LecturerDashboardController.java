@@ -9,6 +9,7 @@ import com.smartforum.model.GroupAdminSummaryRow;
 import com.smartforum.model.ParticipantRow;
 import com.smartforum.model.QuizResult;
 import com.smartforum.util.ApiSupport;
+import com.smartforum.util.ButtonStyles;
 import com.smartforum.util.GroupAdminDashboardSupport;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -54,6 +55,9 @@ public class LecturerDashboardController {
     @FXML private TableColumn<GroupAdminSummaryRow, Number> groupAdminPostsColumn;
     @FXML private TableColumn<GroupAdminSummaryRow, Void> groupAdminActionColumn;
     @FXML private Button viewStatisticsBtn;
+    @FXML private Button quizReportsBtn;
+    @FXML private Button participationBtn;
+    @FXML private Button viewAllReportsBtn;
     @FXML private TableView<ParticipantRow> participantsTable;
     @FXML private TableColumn<ParticipantRow, String> nameColumn;
     @FXML private TableColumn<ParticipantRow, Number> topicsColumn;
@@ -119,7 +123,10 @@ public class LecturerDashboardController {
         configureQuizFilter();
 
         GroupAdminDashboardSupport.configureHeader(groupAdminTitleBox);
-        GroupAdminDashboardSupport.configureViewStatisticsButton(viewStatisticsBtn);
+        ButtonStyles.applyOutlinePrimary(quizReportsBtn, true);
+        ButtonStyles.applyPrimary(participationBtn, true);
+        ButtonStyles.applyOutlinePrimary(viewAllReportsBtn, true);
+        ButtonStyles.applyPrimary(viewStatisticsBtn, true);
         GroupAdminDashboardSupport.configureTable(
                 groupAdminTable,
                 groupAdminGroupColumn,

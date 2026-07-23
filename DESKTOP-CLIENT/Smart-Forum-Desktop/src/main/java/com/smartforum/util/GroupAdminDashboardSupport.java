@@ -20,6 +20,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import com.smartforum.util.ButtonStyles;
 import org.kordamp.ikonli.bootstrapicons.BootstrapIcons;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -37,8 +38,6 @@ public final class GroupAdminDashboardSupport {
     private static final String TEXT_HEADER = "#374151";
     private static final String TABLE_LIGHT = "#f9fafb";
     private static final String ROW_HOVER = "#f3f4f6";
-    private static final String PRIMARY_GREEN = "#16a34a";
-    private static final String PRIMARY_GREEN_HOVER = "#15803d";
 
     private GroupAdminDashboardSupport() {
     }
@@ -82,25 +81,7 @@ public final class GroupAdminDashboardSupport {
 
     /** Web: btn btn-primary btn-sm in group-admin card header. */
     public static void configureViewStatisticsButton(Button button) {
-        if (button == null) {
-            return;
-        }
-        button.getStyleClass().addAll("btn-primary", "btn-sm");
-        applyPrimaryButtonStyle(button, PRIMARY_GREEN);
-        button.hoverProperty().addListener((obs, wasHover, isHover) ->
-                applyPrimaryButtonStyle(button, isHover ? PRIMARY_GREEN_HOVER : PRIMARY_GREEN));
-    }
-
-    private static void applyPrimaryButtonStyle(Button button, String background) {
-        button.setStyle(
-                "-fx-background-color: " + background + ";"
-                        + "-fx-text-fill: white;"
-                        + "-fx-font-weight: bold;"
-                        + "-fx-font-size: 11px;"
-                        + "-fx-background-radius: 6;"
-                        + "-fx-padding: 4 10 4 10;"
-                        + "-fx-cursor: hand;"
-        );
+        ButtonStyles.applyPrimary(button, true);
     }
 
     public static void configureTable(
@@ -139,7 +120,8 @@ public final class GroupAdminDashboardSupport {
             private final Button statsBtn = new Button("Group Stats");
 
             {
-                statsBtn.getStyleClass().addAll("btn-outline", "btn-sm");
+                statsBtn.getStyleClass().addAll("btn-outline-primary", "btn-sm");
+                ButtonStyles.applyOutlinePrimary(statsBtn, true);
                 statsBtn.setOnAction(event -> {
                     GroupAdminSummaryRow row = getTableView().getItems().get(getIndex());
                     if (row != null) {

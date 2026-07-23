@@ -219,7 +219,7 @@
     -fx-padding: 0 0 4 0;
 }
 
-.btn-primary-sm {
+.button.btn-primary-sm {
     -fx-background-color: #16a34a;
     -fx-background-insets: 0;
     -fx-text-fill: white;
@@ -232,7 +232,9 @@
     -fx-effect: null;
 }
 
-.btn-primary-sm:hover {
+.button.btn-primary-sm:hover,
+.button.btn-primary-sm:pressed,
+.button.btn-primary-sm:focused {
     -fx-background-color: #15803d;
 }
 
@@ -633,9 +635,64 @@
     -fx-padding: 0;
 }
 
-/* ── Buttons (match Laravel .btn-primary / .btn-outline-primary) ─ */
-.btn-primary {
-    -fx-background-color: #16a34a;
+/* ── Buttons (match web --primary / --primary-dark) ─ */
+.button.btn-primary {
+    -fx-background-color: #16a34a, #16a34a, #16a34a, #16a34a;
+    -fx-background-insets: 0;
+    -fx-text-fill: white;
+    -fx-font-family: "Nunito", sans-serif;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-background-radius: 8;
+    -fx-padding: 7 14 7 14;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-effect: null;
+}
+
+.button.btn-primary:hover,
+.button.btn-primary:pressed,
+.button.btn-primary:focused {
+    -fx-background-color: #15803d, #15803d, #15803d, #15803d;
+    -fx-text-fill: white;
+}
+
+.button.btn-sm {
+    -fx-font-size: 11px;
+    -fx-padding: 4 10 4 10;
+}
+
+.button.btn-outline-primary,
+.button.btn-outline {
+    -fx-background-color: white, white, white, white;
+    -fx-background-insets: 0;
+    -fx-text-fill: #15803d;
+    -fx-border-color: #16a34a;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-border-width: 1;
+    -fx-font-family: "Nunito", sans-serif;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+    -fx-effect: null;
+}
+
+.button.btn-outline-primary:hover,
+.button.btn-outline-primary:pressed,
+.button.btn-outline-primary:focused,
+.button.btn-outline:hover,
+.button.btn-outline:pressed,
+.button.btn-outline:focused {
+    -fx-background-color: #16a34a, #16a34a, #16a34a, #16a34a;
+    -fx-text-fill: white;
+    -fx-border-color: #16a34a;
+}
+
+.button.btn-danger {
+    -fx-background-color: #ef4444;
     -fx-background-insets: 0;
     -fx-text-fill: white;
     -fx-font-family: "Nunito", sans-serif;
@@ -648,46 +705,9 @@
     -fx-effect: null;
 }
 
-.btn-primary:hover {
-    -fx-background-color: #15803d;
-}
-
-.btn-sm {
-    -fx-font-size: 11px;
-    -fx-padding: 4 10 4 10;
-}
-
-.btn-outline {
-    -fx-background-color: white;
-    -fx-text-fill: #15803d;
-    -fx-border-color: #16a34a;
-    -fx-border-radius: 8;
-    -fx-border-width: 1;
-    -fx-font-family: "Nunito", sans-serif;
-    -fx-font-size: 12px;
-    -fx-font-weight: 600;
-    -fx-padding: 6 14 6 14;
-    -fx-cursor: hand;
-}
-
-.btn-outline:hover {
-    -fx-background-color: #16a34a;
-    -fx-text-fill: white;
-    -fx-border-color: #16a34a;
-}
-
-.btn-danger {
-    -fx-background-color: #ef4444;
-    -fx-text-fill: white;
-    -fx-font-family: "Nunito", sans-serif;
-    -fx-font-size: 12px;
-    -fx-font-weight: 600;
-    -fx-background-radius: 8;
-    -fx-padding: 7 14 7 14;
-    -fx-cursor: hand;
-}
-
-.btn-danger:hover {
+.button.btn-danger:hover,
+.button.btn-danger:pressed,
+.button.btn-danger:focused {
     -fx-background-color: #dc2626;
 }
 
@@ -1727,8 +1747,8 @@
 
 .btn-outline-secondary {
     -fx-background-color: white;
-    -fx-text-fill: #6b7280;
-    -fx-border-color: #d1d5db;
+    -fx-text-fill: #6c757d;
+    -fx-border-color: #6c757d;
     -fx-border-width: 1;
     -fx-border-radius: 6;
     -fx-background-radius: 6;
@@ -1739,9 +1759,9 @@
 }
 
 .btn-outline-secondary:hover {
-    -fx-background-color: #374151;
+    -fx-background-color: #6c757d;
     -fx-text-fill: white;
-    -fx-border-color: #374151;
+    -fx-border-color: #6c757d;
 }
 
 .btn-success {

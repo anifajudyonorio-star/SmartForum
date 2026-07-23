@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Group;
 use App\Models\Topic;
+use App\Models\TopicView;
 use App\Models\User;
 use App\Services\MachineLearningService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class TopicRecommendationsTest extends TestCase
@@ -77,5 +79,62 @@ class TopicRecommendationsTest extends TestCase
             ->get(route('topics.index'))
             ->assertOk()
             ->assertDontSee('Ghost topic');
+    }
+
+    public function test_cross_group_related_topic_is_sent_to_ml_service(): void
+    {
+        Http::fake([
+            'localhost:5001/recommend' => Http::response([
+                'user_id' => 1,
+                'recommendations' => [
+                    ['id' => 2, 'title' => 'Agile and Waterfall', 'score' => 0.42],
+                ],
+            ], 200),
+        ]);
+
+        $user = User::factory()->create(['role' => 'student']);
+        $debateGroup = Group::factory()->create(['Group_Name' => 'Debate Group']);
+        $overviewGroup = Group::factory()->create(['Group_Name' => 'Overview Group']);
+
+        $debateGroup->members()->attach($user->id, [
+            'Member_Status' => 'active',
+            'Member_Role' => 'member',
+        ]);
+        $overviewGroup->members()->attach($user->id, [
+            'Member_Status' => 'active',
+            'Member_Role' => 'member',
+        ]);
+
+        $debateTopic = Topic::factory()->create([
+            'Title' => 'Agile and Waterfall Debate',
+            'Topic_Description' => 'Discussion comparing agile and waterfall methodologies',
+            'Group_ID' => $debateGroup->id,
+            'Created_By' => $user->id,
+        ]);
+
+        Topic::factory()->create([
+            'Title' => 'Agile and Waterfall',
+            'Topic_Description' => 'Overview of agile and waterfall project management',
+            'Group_ID' => $overviewGroup->id,
+            'Created_By' => User::factory()->create()->id,
+        ]);
+
+        TopicView::create([
+            'user_id' => $user->id,
+            'topic_id' => $debateTopic->id,
+            'viewed_at' => now(),
+        ]);
+
+        app(MachineLearningService::class)->getRecommendations($user->id);
+
+        Http::assertSent(function ($request) use ($overviewGroup, $debateGroup, $debateTopic) {
+            $payload = $request->data();
+
+            return $request->url() === 'http://localhost:5001/recommend'
+                && in_array($debateGroup->id, $payload['engaged_group_ids'], true)
+                && ! in_array($overviewGroup->id, $payload['engaged_group_ids'], true)
+                && in_array($debateTopic->id, $payload['engaged_topic_ids'], true)
+                && collect($payload['topics'])->contains(fn ($topic) => (int) $topic['group_id'] === (int) $overviewGroup->id);
+        });
     }
 }

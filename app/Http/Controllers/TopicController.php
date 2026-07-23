@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Group;
 use App\Models\Topic;
 use App\Models\Post;
+use App\Models\TopicView;
 use App\Services\MachineLearningService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -53,6 +54,8 @@ class TopicController extends Controller
 
         $topic->load('group');
 
+        $this->recordTopicEngagementView($topic);
+
         $posts = Post::with(['user', 'parent.user', 'hiddenFromUsers'])
             ->where('Topic_ID', $topic->id)
             ->visibleTo(Auth::user())
@@ -98,6 +101,8 @@ class TopicController extends Controller
 
         $topic->load('group');
 
+        $this->recordTopicEngagementView($topic);
+
         $posts = Post::with(['user', 'parent.user', 'hiddenFromUsers'])
             ->where('Topic_ID', $topic->id)
             ->visibleTo(Auth::user())
@@ -107,6 +112,17 @@ class TopicController extends Controller
         $groupMembers = \App\Services\PostVisibilityService::groupMembersExcept($topic, Auth::user());
 
         return view('topics.show', compact('topic', 'posts', 'groupMembers'));
+    }
+
+    private function recordTopicEngagementView(Topic $topic): void
+    {
+        TopicView::updateOrCreate(
+            [
+                'user_id' => Auth::id(),
+                'topic_id' => $topic->id,
+            ],
+            ['viewed_at' => now()]
+        );
     }
 
     public function edit(Topic $topic)

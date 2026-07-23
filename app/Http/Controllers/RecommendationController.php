@@ -16,10 +16,8 @@ class RecommendationController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        $viewableTopicIds = Topic::visibleToUser($user)->pluck('id');
-
         $recommendations = collect($mlService->getRecommendations($user->id))
-            ->filter(fn ($item) => isset($item['id']) && $viewableTopicIds->contains((int) $item['id']))
+            ->filter(fn ($item) => isset($item['id']))
             ->values()
             ->all();
 
