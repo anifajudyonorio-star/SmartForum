@@ -1821,7 +1821,39 @@
 
 .notif-item.unread {
     -fx-border-color: #16a34a;
+    -fx-border-width: 1.5;
     -fx-background-color: #f0fdf4;
+}
+
+.notif-unread-dot {
+    -fx-text-fill: #16a34a;
+    -fx-font-size: 10px;
+    -fx-min-width: 10;
+}
+
+.notif-badge {
+    -fx-background-color: #ef4444;
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 999;
+    -fx-padding: 1 6 1 6;
+    -fx-min-width: 18;
+    -fx-alignment: center;
+}
+
+.sidebar-nav-label {
+    -fx-text-fill: rgba(255, 255, 255, 0.88);
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+}
+
+.sidebar-nav-btn:hover .sidebar-nav-label {
+    -fx-text-fill: white;
+}
+
+.sidebar-nav-btn.active .sidebar-nav-label {
+    -fx-text-fill: white;
 }
 
 .notif-icon {

@@ -7,6 +7,7 @@ import com.smartforum.model.Post;
 import com.smartforum.model.Topic;
 import com.smartforum.service.AppSession;
 import com.smartforum.service.GroupService;
+import com.smartforum.service.SyncStatusService;
 import com.smartforum.service.TopicService;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -104,6 +105,7 @@ public class TopicController {
 
     private List<Post> currentPosts = List.of();
     private String currentGroupName = "";
+    private final List<Post> pendingPosts = new ArrayList<>();
 
     private final PostController postController = new PostController();
     private final GroupService groupService = GroupService.getInstance();
@@ -207,6 +209,20 @@ public class TopicController {
         hideExcludePanel();
         clearExcludeSelections(excludeCheckboxes);
 
+        // Reload chat after offline sync so pending posts are replaced with real ones
+        SyncStatusService.getInstance().setOnSyncSuccess(() -> {
+            if (this.topicId != topicId) return;
+            new Thread(() -> {
+                List<Post> posts = postController.loadPosts(topicId);
+                Platform.runLater(() -> {
+                    pendingPosts.clear(); // sync done, real posts are now on server
+                    currentPosts = posts;
+                    Group g = groupService.getGroup(groupId).orElse(null);
+                    loadMessages(topic, g != null ? g.getName() : "Group");
+                    scrollMessagesToBottom();
+                });
+            }, "sync-reload").start();
+        });
         Group group = groupService.getGroup(groupId).orElse(null);
         String groupName = group != null ? group.getName() : "Group";
 
@@ -275,11 +291,15 @@ public class TopicController {
         }
 
         try {
-            postController.store(topicId, content, replyToPostId, collectExcluded(excludeCheckboxes));
+            Post post = postController.store(topicId, content, replyToPostId, collectExcluded(excludeCheckboxes));
             messageInput.clear();
             onCancelReply(null);
             hideExcludePanel();
             clearExcludeSelections(excludeCheckboxes);
+            // Track pending post locally if it was queued offline
+            if (post != null && post.getId() >= 1000) {
+                pendingPosts.add(post);
+            }
             refreshChat();
         } catch (IllegalArgumentException | IllegalStateException ex) {
             showAlert(Alert.AlertType.WARNING, "Cannot send", ex.getMessage());
@@ -463,7 +483,14 @@ public class TopicController {
     }
 
     private void loadMessages(Topic topic, String groupName) {
-        List<Post> posts = postController.loadPosts(topicId);
+        List<Post> posts = new ArrayList<>(postController.loadPosts(topicId));
+        // Merge pending offline posts that aren't in the API response yet
+        Set<Integer> apiIds = new HashSet<>();
+        posts.forEach(p -> apiIds.add(p.getId()));
+        for (Post pending : pendingPosts) {
+            if (!apiIds.contains(pending.getId())) posts.add(pending);
+        }
+        posts.sort((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()));
         currentPosts = posts;
         currentGroupName = groupName;
         chatSubtitleLabel.setText(groupName + " • " + posts.size() + " messages");
@@ -570,9 +597,9 @@ public class TopicController {
         meta.getChildren().add(time);
 
         if (mine) {
-            boolean pending = post.getId() >= 1000 && !com.smartforum.util.NetworkMonitor.isOnline();
-            Label tick = new Label(pending ? "\u2713" : "\u2713\u2713");
-            tick.getStyleClass().add(pending ? "msg-tick-pending" : "msg-tick-sent");
+            boolean isPending = pendingPosts.stream().anyMatch(p -> p.getId() == post.getId());
+            Label tick = new Label(isPending ? "\u2713" : "\u2713\u2713");
+            tick.getStyleClass().add(isPending ? "msg-tick-pending" : "msg-tick-sent");
             meta.getChildren().add(tick);
         }
 

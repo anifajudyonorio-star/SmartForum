@@ -5,8 +5,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 
 public class NetworkMonitor {
-    private static final String HOST = "127.0.0.1";
-    private static final int PORT = 8000;
+    private static final String HOST = "8.8.8.8";
+    private static final int PORT = 53;
     private static final int TIMEOUT_MS = 1500;
 
     // null = no override, true/false = forced state

@@ -3,8 +3,6 @@ package com.smartforum.service;
 import com.smartforum.util.NetworkMonitor;
 import com.smartforum.util.OfflineQueue;
 import javafx.application.Platform;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
@@ -20,11 +18,11 @@ public class SyncStatusService {
     private static final SyncStatusService INSTANCE = new SyncStatusService();
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss");
 
-    private final IntegerProperty pendingCount = new SimpleIntegerProperty(0);
     private final StringProperty statusText = new SimpleStringProperty("● Online");
     private final StringProperty lastSyncText = new SimpleStringProperty("Never");
 
     private BiConsumer<String, String> bannerCallback;
+    private Runnable onSyncSuccessCallback;
     private Boolean lastKnownOnline = null;
     private ScheduledExecutorService scheduler;
     private volatile boolean flushing = false;
@@ -33,12 +31,19 @@ public class SyncStatusService {
 
     public static SyncStatusService getInstance() { return INSTANCE; }
 
-    public IntegerProperty pendingCountProperty() { return pendingCount; }
     public StringProperty statusTextProperty()    { return statusText; }
     public StringProperty lastSyncTextProperty()  { return lastSyncText; }
 
     public void setBannerCallback(BiConsumer<String, String> callback) {
         this.bannerCallback = callback;
+    }
+
+    public void setOnSyncSuccess(Runnable callback) {
+        this.onSyncSuccessCallback = callback;
+    }
+
+    private void notifySyncSuccess() {
+        if (onSyncSuccessCallback != null) Platform.runLater(onSyncSuccessCallback);
     }
 
     private void showBanner(String message, String type) {
@@ -68,6 +73,23 @@ public class SyncStatusService {
         });
     }
 
+    public void syncNow(Runnable onDone) {
+        new Thread(() -> OfflineQueue.flush(
+            () -> Platform.runLater(() -> {
+                updateLastSync();
+                refresh();
+                showBanner("Back online — offline actions synced!", "success");
+                notifySyncSuccess();
+                if (onDone != null) onDone.run();
+            }),
+            () -> Platform.runLater(() -> {
+                refresh();
+                showBanner("Sync failed. Will retry when connection is stable.", "danger");
+                if (onDone != null) onDone.run();
+            })
+        )).start();
+    }
+
     private void tick() {
         boolean online = NetworkMonitor.isOnline();
         int pending = OfflineQueue.size();
@@ -93,16 +115,7 @@ public class SyncStatusService {
 
         lastKnownOnline = online;
 
-        Platform.runLater(() -> {
-            pendingCount.set(OfflineQueue.size());
-            if (!online) {
-                statusText.set("● Offline");
-            } else if (OfflineQueue.size() > 0) {
-                statusText.set("⏳ " + OfflineQueue.size() + " pending");
-            } else {
-                statusText.set("● Online");
-            }
-        });
+        Platform.runLater(this::refresh);
     }
 
     private void autoSync(boolean fromReconnect, boolean announceResult) {
@@ -118,6 +131,7 @@ public class SyncStatusService {
                 refresh();
                 if (announceResult) {
                     showBanner("Back online — offline actions synced!", "success");
+                    notifySyncSuccess();
                 }
             }),
             () -> Platform.runLater(() -> {
@@ -132,11 +146,8 @@ public class SyncStatusService {
 
     private void refresh() {
         boolean online = NetworkMonitor.isOnline();
-        pendingCount.set(OfflineQueue.size());
         if (!online) {
             statusText.set("● Offline");
-        } else if (OfflineQueue.size() > 0) {
-            statusText.set("⏳ " + OfflineQueue.size() + " pending");
         } else {
             statusText.set("● Online");
         }
