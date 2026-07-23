@@ -5,11 +5,14 @@ public class NotificationItem {
     private final String title;
     private final String message;
     private final String type;
-    private final boolean read;
+    private boolean read;
     private final String time;
     private final Integer topicId;
+    private final Integer groupId;
+    private final Integer quizId;
 
-    public NotificationItem(int id, String title, String message, String type, boolean read, String time, Integer topicId) {
+    public NotificationItem(int id, String title, String message, String type, boolean read,
+                            String time, Integer topicId, Integer groupId, Integer quizId) {
         this.id = id;
         this.title = title;
         this.message = message;
@@ -17,6 +20,8 @@ public class NotificationItem {
         this.read = read;
         this.time = time;
         this.topicId = topicId;
+        this.groupId = groupId;
+        this.quizId = quizId;
     }
 
     public int getId() {
@@ -39,12 +44,24 @@ public class NotificationItem {
         return read;
     }
 
+    public void setRead(boolean read) {
+        this.read = read;
+    }
+
     public String getTime() {
         return time;
     }
 
     public Integer getTopicId() {
         return topicId;
+    }
+
+    public Integer getGroupId() {
+        return groupId;
+    }
+
+    public Integer getQuizId() {
+        return quizId;
     }
 
     public String getIcon() {

@@ -441,7 +441,11 @@ public class ApiClient {
     }
 
     public static boolean markNotificationRead(int notificationId) {
-        return sendJson("PATCH", "/api/notifications/" + notificationId + "/read", null);
+        return mutateJson("PATCH", "/api/notifications/" + notificationId + "/read", null).success();
+    }
+
+    public static MutationResult markNotificationReadResult(int notificationId) {
+        return mutateJson("PATCH", "/api/notifications/" + notificationId + "/read", null);
     }
 
     // Legacy aliases used by ChatController

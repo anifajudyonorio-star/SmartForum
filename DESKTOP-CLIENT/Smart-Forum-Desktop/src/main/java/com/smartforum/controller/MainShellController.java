@@ -1,9 +1,13 @@
 package com.smartforum.controller;
 
+import com.smartforum.api.ApiClient;
 import com.smartforum.service.AppSession;
 import com.smartforum.service.SyncStatusService;
+import com.smartforum.util.ApiSupport;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
@@ -15,6 +19,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import org.kordamp.ikonli.bootstrapicons.BootstrapIcons;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -24,6 +29,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class MainShellController implements ShellNavigator {
@@ -61,6 +69,9 @@ public class MainShellController implements ShellNavigator {
     private TopicController topicController;
     private TopicSearchController topicSearchController;
     private NotificationViewController notificationViewController;
+    private Label notificationsNavBadge;
+    private int lastNotificationPollId;
+    private ScheduledExecutorService notificationPoller;
 
     private final List<Button> navButtons = new ArrayList<>();
     private final Deque<Runnable> backStack = new ArrayDeque<>();
@@ -70,6 +81,7 @@ public class MainShellController implements ShellNavigator {
     private void initialize() {
         configureSidebarForRole();
         setupSidebarNavIcons();
+        setupNotificationsNavButton();
         setupBackNavButton();
 
         navButtons.addAll(List.of(
@@ -108,7 +120,84 @@ public class MainShellController implements ShellNavigator {
         sync.setBannerCallback(this::showBanner);
         sync.start();
 
+        startNotificationPolling();
         showDashboard();
+    }
+
+    private void setupNotificationsNavButton() {
+        FontIcon icon = FontIcon.of(BootstrapIcons.BELL_FILL);
+        icon.getStyleClass().add("sidebar-nav-icon");
+
+        Label label = new Label("Notifications");
+        label.getStyleClass().add("sidebar-nav-label");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        notificationsNavBadge = new Label();
+        notificationsNavBadge.getStyleClass().add("notif-badge");
+        notificationsNavBadge.setVisible(false);
+        notificationsNavBadge.setManaged(false);
+
+        HBox row = new HBox(10, icon, label, spacer, notificationsNavBadge);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setMaxWidth(Double.MAX_VALUE);
+
+        notificationsNavBtn.setGraphic(row);
+        notificationsNavBtn.setText("");
+        notificationsNavBtn.setMaxWidth(Double.MAX_VALUE);
+    }
+
+    public void updateNotificationsBadge(int unread) {
+        if (notificationsNavBadge == null) {
+            return;
+        }
+        if (unread <= 0) {
+            notificationsNavBadge.setVisible(false);
+            notificationsNavBadge.setManaged(false);
+            notificationsNavBadge.setText("");
+            return;
+        }
+        notificationsNavBadge.setText(unread > 99 ? "99+" : String.valueOf(unread));
+        notificationsNavBadge.setVisible(true);
+        notificationsNavBadge.setManaged(true);
+    }
+
+    private void startNotificationPolling() {
+        if (!ApiSupport.useApi()) {
+            return;
+        }
+
+        refreshNotificationUnreadCount();
+
+        notificationPoller = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread thread = new Thread(r, "notification-poller");
+            thread.setDaemon(true);
+            return thread;
+        });
+        notificationPoller.scheduleAtFixedRate(this::pollNotifications, 12, 12, TimeUnit.SECONDS);
+    }
+
+    private void refreshNotificationUnreadCount() {
+        new Thread(() -> ApiClient.getNotifications().ifPresent(json -> {
+            int unread = json.get("unread_count").getAsInt();
+            Platform.runLater(() -> updateNotificationsBadge(unread));
+        }), "notification-unread-refresh").start();
+    }
+
+    private void pollNotifications() {
+        ApiClient.pollNotifications(lastNotificationPollId).ifPresent(json -> {
+            if (json.has("latest_id") && !json.get("latest_id").isJsonNull()) {
+                lastNotificationPollId = Math.max(lastNotificationPollId, json.get("latest_id").getAsInt());
+            }
+            int unread = json.get("unread_count").getAsInt();
+            Platform.runLater(() -> {
+                updateNotificationsBadge(unread);
+                if (notificationViewController != null && "notifications.fxml".equals(activeContentKey)) {
+                    notificationViewController.refresh();
+                }
+            });
+        });
     }
 
     @FXML
@@ -255,7 +344,6 @@ public class MainShellController implements ShellNavigator {
         setNavIcon(dashboardNavBtn, BootstrapIcons.SPEEDOMETER2);
         setNavIcon(groupsNavBtn, BootstrapIcons.PEOPLE_FILL);
         setNavIcon(topicSearchNavBtn, BootstrapIcons.SEARCH);
-        setNavIcon(notificationsNavBtn, BootstrapIcons.BELL_FILL);
         setNavIcon(quizzesNavBtn, BootstrapIcons.PATCH_QUESTION_FILL);
         setNavIcon(announcementsNavBtn, BootstrapIcons.MEGAPHONE_FILL);
         setNavIcon(quizProgressNavBtn, BootstrapIcons.GRAPH_UP);
@@ -492,6 +580,7 @@ public class MainShellController implements ShellNavigator {
         loadView("notifications.fxml", notificationsNavBtn, controller -> {
             notificationViewController = (NotificationViewController) controller;
             notificationViewController.setNavigator(this);
+            notificationViewController.setUnreadCountUpdater(this::updateNotificationsBadge);
             notificationViewController.refresh();
         });
     }

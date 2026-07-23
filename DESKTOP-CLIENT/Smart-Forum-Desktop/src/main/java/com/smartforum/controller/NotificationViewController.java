@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
+import com.smartforum.api.ApiClient.MutationResult;
 import com.smartforum.model.NotificationItem;
 import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
@@ -26,6 +27,7 @@ public class NotificationViewController {
 
     private ShellNavigator navigator;
     private Consumer<Integer> unreadCountUpdater;
+    private int unreadCount;
 
     @FXML
     private void initialize() {
@@ -40,6 +42,23 @@ public class NotificationViewController {
         this.unreadCountUpdater = unreadCountUpdater;
     }
 
+    public void applyUnreadCount(int unread) {
+        unreadCount = Math.max(0, unread);
+        if (unreadCountLabel != null) {
+            if (unreadCount == 0) {
+                unreadCountLabel.setVisible(false);
+                unreadCountLabel.setManaged(false);
+            } else {
+                unreadCountLabel.setText(unreadCount + " unread");
+                unreadCountLabel.setVisible(true);
+                unreadCountLabel.setManaged(true);
+            }
+        }
+        if (unreadCountUpdater != null) {
+            unreadCountUpdater.accept(unreadCount);
+        }
+    }
+
     public void refresh() {
         if (ApiSupport.useApi()) {
             loadFromApi();
@@ -50,56 +69,61 @@ public class NotificationViewController {
 
     private void loadFromApi() {
         new Thread(() -> ApiClient.getNotifications().ifPresentOrElse(json -> Platform.runLater(() -> {
-            int unread = json.get("unread_count").getAsInt();
-            unreadCountLabel.setText(unread + " unread");
-            updateUnreadBadge(unread);
+            applyUnreadCount(json.get("unread_count").getAsInt());
 
             notificationsBox.getChildren().clear();
             JsonArray notifications = json.getAsJsonArray("notifications");
             if (notifications.isEmpty()) {
-                VBox empty = new VBox(8);
-                empty.setAlignment(Pos.CENTER);
-                empty.getStyleClass().add("groups-empty-state");
-                empty.getChildren().addAll(new Label("🔕"), new Label("No notifications yet."));
-                notificationsBox.getChildren().add(empty);
+                notificationsBox.getChildren().add(buildEmptyState());
                 return;
             }
 
             for (JsonElement element : notifications) {
-                JsonObject obj = element.getAsJsonObject();
-                Integer topicId = obj.has("topic_id") && !obj.get("topic_id").isJsonNull()
-                        ? obj.get("topic_id").getAsInt()
-                        : null;
-                NotificationItem item = new NotificationItem(
-                        obj.get("id").getAsInt(),
-                        obj.get("title").getAsString(),
-                        obj.get("message").getAsString(),
-                        obj.has("type") ? obj.get("type").getAsString() : "",
-                        !obj.has("is_read") ? false : obj.get("is_read").getAsBoolean(),
-                        obj.has("time") ? obj.get("time").getAsString() : "",
-                        topicId
-                );
-                notificationsBox.getChildren().add(buildNotificationRow(item));
+                notificationsBox.getChildren().add(buildNotificationRow(parseNotification(element.getAsJsonObject())));
             }
         }), () -> Platform.runLater(this::loadEmptyState))).start();
     }
 
     private void loadEmptyState() {
-        unreadCountLabel.setText("0 unread");
-        updateUnreadBadge(0);
+        applyUnreadCount(0);
         notificationsBox.getChildren().clear();
+        notificationsBox.getChildren().add(buildEmptyState());
+    }
+
+    private VBox buildEmptyState() {
         VBox empty = new VBox(8);
         empty.setAlignment(Pos.CENTER);
         empty.getStyleClass().add("groups-empty-state");
         empty.getChildren().addAll(new Label("🔕"), new Label("No notifications yet."));
-        notificationsBox.getChildren().add(empty);
+        return empty;
+    }
+
+    private NotificationItem parseNotification(JsonObject obj) {
+        return new NotificationItem(
+                obj.get("id").getAsInt(),
+                obj.get("title").getAsString(),
+                obj.get("message").getAsString(),
+                obj.has("type") ? obj.get("type").getAsString() : "",
+                obj.has("is_read") && !obj.get("is_read").isJsonNull() && obj.get("is_read").getAsBoolean(),
+                obj.has("time") ? obj.get("time").getAsString() : "",
+                readNullableInt(obj, "topic_id"),
+                readNullableInt(obj, "group_id"),
+                readNullableInt(obj, "quiz_id")
+        );
+    }
+
+    private Integer readNullableInt(JsonObject obj, String field) {
+        if (!obj.has(field) || obj.get(field).isJsonNull()) {
+            return null;
+        }
+        return obj.get(field).getAsInt();
     }
 
     private HBox buildNotificationRow(NotificationItem item) {
         HBox row = new HBox(12);
         row.setAlignment(Pos.TOP_LEFT);
         row.setPadding(new Insets(12));
-        row.getStyleClass().addAll("notif-item");
+        row.getStyleClass().add("notif-item");
         if (!item.isRead()) {
             row.getStyleClass().add("unread");
         }
@@ -109,6 +133,14 @@ public class NotificationViewController {
 
         VBox body = new VBox(4);
         HBox top = new HBox(8);
+        top.setAlignment(Pos.CENTER_LEFT);
+
+        if (!item.isRead()) {
+            Label unreadDot = new Label("●");
+            unreadDot.getStyleClass().add("notif-unread-dot");
+            top.getChildren().add(unreadDot);
+        }
+
         Label title = new Label(item.getTitle());
         title.getStyleClass().add("notif-title");
         Region spacer = new Region();
@@ -129,35 +161,53 @@ public class NotificationViewController {
             if (event.getButton() != MouseButton.PRIMARY) {
                 return;
             }
-            onNotificationClicked(item);
+            onNotificationClicked(item, row);
         });
 
         return row;
     }
 
-    private void onNotificationClicked(NotificationItem item) {
-        if (ApiSupport.useApi()) {
+    private void onNotificationClicked(NotificationItem item, HBox row) {
+        if (ApiSupport.useApi() && !item.isRead()) {
             new Thread(() -> {
-                ApiClient.markNotificationRead(item.getId());
+                MutationResult result = ApiClient.markNotificationReadResult(item.getId());
                 Platform.runLater(() -> {
-                    if (item.getTopicId() != null && navigator != null) {
-                        navigator.showTopic(item.getTopicId());
-                    } else {
-                        refresh();
+                    if (result.success()) {
+                        markRowAsRead(item, row);
+                        if (result.body() != null && result.body().has("unread_count")) {
+                            applyUnreadCount(result.body().get("unread_count").getAsInt());
+                        } else {
+                            applyUnreadCount(Math.max(0, unreadCount - 1));
+                        }
                     }
+                    navigateToNotification(item);
                 });
             }).start();
             return;
         }
 
-        if (item.getTopicId() != null && navigator != null) {
-            navigator.showTopic(item.getTopicId());
-        }
+        navigateToNotification(item);
     }
 
-    private void updateUnreadBadge(int unread) {
-        if (unreadCountUpdater != null) {
-            unreadCountUpdater.accept(unread);
+    private void markRowAsRead(NotificationItem item, HBox row) {
+        item.setRead(true);
+        row.getStyleClass().remove("unread");
+        row.lookupAll(".notif-unread-dot").forEach(node -> {
+            node.setVisible(false);
+            node.setManaged(false);
+        });
+    }
+
+    private void navigateToNotification(NotificationItem item) {
+        if (navigator == null) {
+            return;
+        }
+        if (item.getTopicId() != null) {
+            navigator.showTopic(item.getTopicId());
+        } else if (item.getGroupId() != null) {
+            navigator.showGroup(item.getGroupId());
+        } else if (item.getQuizId() != null) {
+            navigator.showQuizzes();
         }
     }
 }
