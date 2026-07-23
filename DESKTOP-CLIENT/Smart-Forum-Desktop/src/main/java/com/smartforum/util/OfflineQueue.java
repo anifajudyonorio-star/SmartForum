@@ -5,10 +5,6 @@ import com.google.gson.reflect.TypeToken;
 
 import java.io.*;
 import java.lang.reflect.Type;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,9 +12,7 @@ import java.util.UUID;
 
 public class OfflineQueue {
     private static final Path QUEUE_FILE = Paths.get(System.getProperty("user.home"), ".smartforum_queue.json");
-    private static final String BASE_URL = "http://127.0.0.1:8000/api";
     private static final Gson GSON = new Gson();
-    private static final HttpClient HTTP = HttpClient.newHttpClient();
 
     public static class QueueEntry {
         public String actionType;
@@ -42,14 +36,11 @@ public class OfflineQueue {
             String json = Files.readString(QUEUE_FILE);
             Type type = new TypeToken<List<QueueEntry>>() {}.getType();
             List<QueueEntry> list = GSON.fromJson(json, type);
-            if (list == null) {
-                return new ArrayList<>();
-            }
+            if (list == null) return new ArrayList<>();
             for (QueueEntry entry : list) {
                 if (entry.actionUuid == null || entry.actionUuid.isBlank()) {
                     entry.actionUuid = entry.pendingId != null && !entry.pendingId.isBlank()
-                            ? entry.pendingId
-                            : UUID.randomUUID().toString();
+                            ? entry.pendingId : UUID.randomUUID().toString();
                 }
                 if (entry.pendingId == null || entry.pendingId.isBlank()) {
                     entry.pendingId = entry.actionUuid;
@@ -90,34 +81,26 @@ public class OfflineQueue {
 
         new Thread(() -> {
             try {
-                // 1. Register device
-                String deviceId = getDeviceId();
-                JsonObject deviceBody = new JsonObject();
-                deviceBody.addProperty("device_id", deviceId);
-                deviceBody.addProperty("device_name", "Desktop Client");
-                deviceBody.addProperty("device_type", "desktop");
-                post("/sync/device", deviceBody.toString(), token);
-
-                // 2. Upload actions
-                JsonArray actions = new JsonArray();
-                for (QueueEntry e : queue) {
-                    JsonObject action = new JsonObject();
-                    action.addProperty("action_uuid", e.actionUuid);
-                    action.addProperty("action_type", e.actionType);
-                    action.add("payload", e.payload);
-                    actions.add(action);
+                List<QueueEntry> remaining = new ArrayList<>();
+                for (QueueEntry entry : queue) {
+                    boolean ok = false;
+                    if ("create_post".equals(entry.actionType)) {
+                        int topicId = entry.payload.get("topic_id").getAsInt();
+                        String content = entry.payload.get("content").getAsString();
+                        Integer parentId = entry.payload.has("parent_post_id")
+                                ? entry.payload.get("parent_post_id").getAsInt() : null;
+                        ok = com.smartforum.api.ApiClient.sendPost(topicId, content, parentId);
+                    } else if ("create_topic".equals(entry.actionType)) {
+                        int groupId = entry.payload.get("group_id").getAsInt();
+                        String title = entry.payload.get("title").getAsString();
+                        String desc = entry.payload.has("description")
+                                ? entry.payload.get("description").getAsString() : "";
+                        ok = com.smartforum.api.ApiClient.createTopic(groupId, title, desc);
+                    }
+                    if (!ok) remaining.add(entry);
                 }
-                JsonObject uploadBody = new JsonObject();
-                uploadBody.add("actions", actions);
-                HttpResponse<String> uploadRes = post("/sync/upload", uploadBody.toString(), token);
-                if (uploadRes.statusCode() != 200) { if (onFailure != null) onFailure.run(); return; }
-
-                // 3. Sync
-                JsonObject syncBody = new JsonObject();
-                syncBody.addProperty("device_id", deviceId);
-                HttpResponse<String> syncRes = post("/sync", syncBody.toString(), token);
-                if (syncRes.statusCode() == 200) {
-                    saveQueue(new ArrayList<>());
+                saveQueue(remaining);
+                if (remaining.isEmpty()) {
                     if (onSuccess != null) onSuccess.run();
                 } else {
                     if (onFailure != null) onFailure.run();
@@ -127,28 +110,5 @@ public class OfflineQueue {
                 if (onFailure != null) onFailure.run();
             }
         }).start();
-    }
-
-    private static HttpResponse<String> post(String path, String body, String token) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + path))
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .header("Authorization", "Bearer " + token)
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-        return HTTP.send(req, HttpResponse.BodyHandlers.ofString());
-    }
-
-    private static String getDeviceId() {
-        Path idFile = Paths.get(System.getProperty("user.home"), ".smartforum_device_id");
-        try {
-            if (Files.exists(idFile)) return Files.readString(idFile).trim();
-            String id = "desktop-" + java.util.UUID.randomUUID();
-            Files.writeString(idFile, id);
-            return id;
-        } catch (IOException e) {
-            return "desktop-unknown";
-        }
     }
 }

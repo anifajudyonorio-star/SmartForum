@@ -56,7 +56,6 @@ public class MainShellController implements ShellNavigator {
     @FXML private Button quizNavBtn;
     @FXML private Label topBarUserAvatar;
     @FXML private Label syncStatusLabel;
-    @FXML private Label pendingLabel;
     @FXML private Label offlineBanner;
     @FXML private VBox profileMenu;
     @FXML private Group profileMenuWrapper;
@@ -114,9 +113,6 @@ public class MainShellController implements ShellNavigator {
                 syncStatusLabel.getStyleClass().add("top-bar-online-badge");
             }
         });
-        pendingLabel.textProperty().bind(
-            sync.pendingCountProperty().asString().map(n -> n.equals("0") ? "" : n + " queued")
-        );
         sync.setBannerCallback(this::showBanner);
         sync.start();
 

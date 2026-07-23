@@ -8,6 +8,7 @@ import com.smartforum.model.Topic;
 import com.smartforum.util.ApiSupport;
 import com.smartforum.util.NetworkMonitor;
 import com.smartforum.util.OfflineQueue;
+import javafx.application.Platform;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -247,7 +248,7 @@ public class PostService {
             payload.addProperty("parent_post_id", parentPostId);
         }
         OfflineQueue.add("create_post", payload);
-        SyncStatusService.getInstance().refreshNow();
+        Platform.runLater(() -> SyncStatusService.getInstance().refreshNow());
     }
 
     private Post buildLocalPendingPost(int topicId, String content, Integer parentPostId) {
