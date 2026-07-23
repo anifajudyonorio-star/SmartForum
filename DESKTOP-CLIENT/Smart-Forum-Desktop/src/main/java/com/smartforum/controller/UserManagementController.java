@@ -1,309 +1,267 @@
 package com.smartforum.controller;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
-import com.smartforum.model.AdminUserRow;
-import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.stage.Window;
+import javafx.scene.layout.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
 
 public class UserManagementController {
 
-    @FXML private Label userCountLabel;
-    @FXML private TableView<AdminUserRow> usersTable;
-    @FXML private TableColumn<AdminUserRow, String> colName;
-    @FXML private TableColumn<AdminUserRow, String> colEmail;
-    @FXML private TableColumn<AdminUserRow, String> colRole;
-    @FXML private TableColumn<AdminUserRow, String> colWarnings;
-    @FXML private TableColumn<AdminUserRow, String> colStatus;
-    @FXML private TableColumn<AdminUserRow, Void> colActions;
+    @FXML private VBox userListBox;
+    @FXML private Label statusLabel;
+    @FXML private Button addLecturerBtn;
+
+    // Add lecturer form fields (inline panel)
+    @FXML private VBox addLecturerPanel;
+    @FXML private TextField fnameField;
+    @FXML private TextField lnameField;
+    @FXML private TextField emailField;
+    @FXML private PasswordField passwordField;
+    @FXML private PasswordField passwordConfirmField;
+    @FXML private Label addLecturerError;
+
+    private record UserRow(int id, String fname, String lname, String email,
+                           String role, int warnings, boolean blacklisted) {}
+
+    private final List<UserRow> users = new ArrayList<>();
 
     @FXML
     private void initialize() {
-        colName.setCellValueFactory(new PropertyValueFactory<>("name"));
-        colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
-        colRole.setCellValueFactory(new PropertyValueFactory<>("role"));
-        colWarnings.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(
-                cell.getValue() == null ? "" : cell.getValue().getWarningsLabel()));
-        colStatus.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(
-                cell.getValue() == null ? "" : cell.getValue().getStatusLabel()));
-        colActions.setCellFactory(column -> actionCell());
-        usersTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        addLecturerPanel.setVisible(false);
+        addLecturerPanel.setManaged(false);
         loadUsers();
     }
 
-    @FXML
-    private void showAddLecturerDialog() {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Add Lecturer");
-        dialog.setHeaderText("Create a new lecturer account");
-        attachDialogOwner(dialog);
-
-        TextField firstName = new TextField();
-        firstName.setPromptText("First name");
-        TextField lastName = new TextField();
-        lastName.setPromptText("Last name");
-        TextField email = new TextField();
-        email.setPromptText("Email");
-        PasswordField password = new PasswordField();
-        password.setPromptText("Password");
-        PasswordField confirm = new PasswordField();
-        confirm.setPromptText("Confirm password");
-
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.add(new Label("First Name"), 0, 0);
-        grid.add(firstName, 1, 0);
-        grid.add(new Label("Last Name"), 0, 1);
-        grid.add(lastName, 1, 1);
-        grid.add(new Label("Email"), 0, 2);
-        grid.add(email, 1, 2);
-        grid.add(new Label("Password"), 0, 3);
-        grid.add(password, 1, 3);
-        grid.add(new Label("Confirm"), 0, 4);
-        grid.add(confirm, 1, 4);
-        dialog.getDialogPane().setContent(grid);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-        dialog.showAndWait().ifPresent(result -> {
-            if (result != ButtonType.OK) {
-                return;
-            }
-            if (firstName.getText().isBlank() || lastName.getText().isBlank() || email.getText().isBlank()
-                    || password.getText().isBlank()) {
-                alert("Missing fields", "Please fill in all fields.");
-                return;
-            }
-            if (!password.getText().equals(confirm.getText())) {
-                alert("Password mismatch", "Password confirmation does not match.");
-                return;
-            }
-            new Thread(() -> {
-                ApiClient.MutationResult response = ApiClient.createAdminUser(
-                        firstName.getText().trim(),
-                        lastName.getText().trim(),
-                        email.getText().trim(),
-                        password.getText(),
-                        confirm.getText());
-                Platform.runLater(() -> {
-                    if (response.success()) {
-                        alert("Success", response.message());
-                        loadUsers();
-                    } else {
-                        alert("Could not create user", response.message());
-                    }
-                });
-            }).start();
-        });
-    }
-
     private void loadUsers() {
-        if (!ApiSupport.useApi()) {
-            usersTable.setItems(FXCollections.observableArrayList());
-            userCountLabel.setText("0");
+        statusLabel.setText("Loading…");
+        userListBox.getChildren().clear();
+        new Thread(() -> ApiClient.getAdminUsers().ifPresentOrElse(json -> {
+            JsonArray arr = json.getAsJsonArray("users");
+            users.clear();
+            for (var el : arr) {
+                JsonObject u = el.getAsJsonObject();
+                users.add(new UserRow(
+                        u.get("id").getAsInt(),
+                        u.get("Fname").getAsString(),
+                        u.get("Lname").getAsString(),
+                        u.get("email").getAsString(),
+                        u.get("role").getAsString(),
+                        u.get("warnings").getAsInt(),
+                        u.get("is_blacklisted").getAsBoolean()
+                ));
+            }
+            Platform.runLater(() -> {
+                statusLabel.setText("");
+                renderUsers();
+            });
+        }, () -> Platform.runLater(() -> statusLabel.setText("Failed to load users.")))).start();
+    }
+
+    private void renderUsers() {
+        userListBox.getChildren().clear();
+        if (users.isEmpty()) {
+            Label empty = new Label("No users found.");
+            empty.getStyleClass().add("empty-label");
+            userListBox.getChildren().add(empty);
             return;
         }
-
-        new Thread(() -> ApiClient.getAdminUsers().ifPresentOrElse(json -> Platform.runLater(() -> {
-            List<AdminUserRow> rows = parseUsers(json.getAsJsonArray("users"));
-            usersTable.setItems(FXCollections.observableArrayList(rows));
-            userCountLabel.setText(String.valueOf(rows.size()));
-        }), () -> Platform.runLater(() -> {
-            usersTable.setItems(FXCollections.observableArrayList());
-            userCountLabel.setText("0");
-        }))).start();
-    }
-
-    private List<AdminUserRow> parseUsers(JsonArray array) {
-        List<AdminUserRow> rows = new ArrayList<>();
-        for (JsonElement element : array) {
-            JsonObject item = element.getAsJsonObject();
-            AdminUserRow row = new AdminUserRow();
-            row.setId(item.get("id").getAsInt());
-            row.setName(item.get("name").getAsString());
-            row.setEmail(item.get("email").getAsString());
-            row.setRole(item.get("role").getAsString());
-            row.setWarnings(item.get("warnings").getAsInt());
-            row.setBlacklisted(item.get("is_blacklisted").getAsBoolean());
-            rows.add(row);
+        for (UserRow u : users) {
+            userListBox.getChildren().add(buildUserCard(u));
         }
-        return rows;
     }
 
-    private TableCell<AdminUserRow, Void> actionCell() {
-        return new TableCell<>() {
-            private final Button warnBtn = smallButton("Warn", "btn-outline");
-            private final Button blacklistBtn = smallButton("Blacklist", "btn-danger");
-            private final Button roleBtn = smallButton("Role", "btn-outline");
-            private final Button reinstateBtn = smallButton("Reinstate", "btn-primary");
-            private final HBox activeBox = new HBox(6, warnBtn, blacklistBtn, roleBtn);
-            private final HBox blockedBox = new HBox(6, reinstateBtn);
+    private VBox buildUserCard(UserRow u) {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("um-user-card");
+        if (u.blacklisted()) card.getStyleClass().add("um-user-card-blacklisted");
 
-            {
-                activeBox.setAlignment(Pos.CENTER_LEFT);
-                blockedBox.setAlignment(Pos.CENTER_LEFT);
-                warnBtn.setOnAction(e -> {
-                    e.consume();
-                    AdminUserRow user = currentRow();
-                    if (user != null) {
-                        warnUser(user);
-                    }
-                });
-                blacklistBtn.setOnAction(e -> {
-                    e.consume();
-                    AdminUserRow user = currentRow();
-                    if (user != null) {
-                        blacklistUser(user);
-                    }
-                });
-                roleBtn.setOnAction(e -> {
-                    e.consume();
-                    AdminUserRow user = currentRow();
-                    if (user != null) {
-                        changeRole(user);
-                    }
-                });
-                reinstateBtn.setOnAction(e -> {
-                    e.consume();
-                    AdminUserRow user = currentRow();
-                    if (user != null) {
-                        reinstateUser(user);
-                    }
-                });
-            }
+        // Top row: avatar + info
+        Label avatar = new Label(u.fname().substring(0, 1).toUpperCase());
+        avatar.getStyleClass().add("um-avatar");
 
-            private AdminUserRow currentRow() {
-                if (getTableRow() != null && getTableRow().getItem() != null) {
-                    return getTableRow().getItem();
-                }
-                int index = getIndex();
-                if (index >= 0 && index < getTableView().getItems().size()) {
-                    return getTableView().getItems().get(index);
-                }
-                return null;
-            }
+        Label name = new Label(u.fname() + " " + u.lname());
+        name.getStyleClass().add("um-user-name");
 
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || currentRow() == null) {
-                    setGraphic(null);
-                    return;
-                }
-                setGraphic(currentRow().isBlacklisted() ? blockedBox : activeBox);
-                setAlignment(Pos.CENTER_LEFT);
-            }
-        };
+        Label email = new Label(u.email());
+        email.getStyleClass().add("um-user-email");
+
+        VBox info = new VBox(2, name, email);
+        info.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(info, Priority.ALWAYS);
+
+        // Badges
+        Label roleBadge = new Label(formatRole(u.role()));
+        roleBadge.getStyleClass().addAll("um-badge", "um-badge-role");
+
+        String warnStyle = u.warnings() >= 2 ? "um-badge-danger" : u.warnings() == 1 ? "um-badge-warning" : "um-badge-muted";
+        Label warnBadge = new Label(u.warnings() + "/2 warns");
+        warnBadge.getStyleClass().addAll("um-badge", warnStyle);
+
+        Label statusBadge = new Label(u.blacklisted() ? "Blacklisted" : "Active");
+        statusBadge.getStyleClass().addAll("um-badge", u.blacklisted() ? "um-badge-danger" : "um-badge-success");
+
+        HBox badges = new HBox(6, roleBadge, warnBadge, statusBadge);
+        badges.setAlignment(Pos.CENTER_LEFT);
+
+        HBox topRow = new HBox(10, avatar, info);
+        topRow.setAlignment(Pos.CENTER_LEFT);
+
+        // Action buttons
+        HBox actions = buildActions(u);
+
+        card.getChildren().addAll(topRow, badges, actions);
+        return card;
     }
 
-    private Button smallButton(String text, String styleClass) {
-        Button button = new Button(text);
-        button.getStyleClass().addAll("button", "btn-sm", styleClass);
-        button.setMinHeight(Button.USE_PREF_SIZE);
-        button.setFocusTraversable(false);
-        return button;
-    }
+    private HBox buildActions(UserRow u) {
+        HBox actions = new HBox(6);
+        actions.setAlignment(Pos.CENTER_LEFT);
 
-    private void warnUser(AdminUserRow user) {
-        Optional<String> reason = promptReason("Warn " + user.getName(), "Reason (optional)");
-        if (reason.isEmpty()) {
-            return;
+        if (!u.blacklisted()) {
+            Button warnBtn = new Button("⚠ Warn");
+            warnBtn.getStyleClass().addAll("btn-warning", "btn-sm");
+            warnBtn.setOnAction(e -> showReasonDialog("Warn " + u.fname() + " (" + u.warnings() + "/2 warnings)",
+                    u.warnings() == 1 ? "⚠ Final warning — user will be blacklisted." : null,
+                    reason -> doAction(() -> ApiClient.adminWarnUser(u.id(), reason))));
+
+            Button blacklistBtn = new Button("⛔ Blacklist");
+            blacklistBtn.getStyleClass().addAll("btn-danger", "btn-sm");
+            blacklistBtn.setOnAction(e -> showReasonDialog("Blacklist " + u.fname(),
+                    "This will immediately block the user from accessing the platform.",
+                    reason -> doAction(() -> ApiClient.adminBlacklistUser(u.id(), reason))));
+
+            Button roleBtn = new Button("🛡 Role");
+            roleBtn.getStyleClass().addAll("btn-outline", "btn-sm");
+            roleBtn.setOnAction(e -> showRoleDialog(u));
+
+            actions.getChildren().addAll(warnBtn, blacklistBtn, roleBtn);
+        } else {
+            Button reinstateBtn = new Button("✔ Reinstate");
+            reinstateBtn.getStyleClass().addAll("btn-success", "btn-sm");
+            reinstateBtn.setOnAction(e -> doAction(() -> ApiClient.adminUnblacklistUser(u.id())));
+            actions.getChildren().add(reinstateBtn);
         }
-        runMutation(() -> ApiClient.warnAdminUser(user.getId(), reason.get()));
+        return actions;
     }
 
-    private void blacklistUser(AdminUserRow user) {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Blacklist " + user.getName() + "?", ButtonType.YES, ButtonType.NO);
-        confirm.setHeaderText("This will block the user from accessing the platform.");
-        attachDialogOwner(confirm);
-        confirm.showAndWait().ifPresent(result -> {
-            if (result != ButtonType.YES) {
-                return;
-            }
-            Optional<String> reason = promptReason("Blacklist " + user.getName(), "Reason (optional)");
-            if (reason.isEmpty()) {
-                return;
-            }
-            runMutation(() -> ApiClient.blacklistAdminUser(user.getId(), reason.get()));
-        });
-    }
-
-    private void reinstateUser(AdminUserRow user) {
-        runMutation(() -> ApiClient.unblacklistAdminUser(user.getId()));
-    }
-
-    private void changeRole(AdminUserRow user) {
-        ChoiceDialog<String> dialog = new ChoiceDialog<>(user.getRole(), "student", "lecturer", "admin");
-        dialog.setTitle("Change Role");
-        dialog.setHeaderText("Change role for " + user.getName());
-        dialog.setContentText("Select role:");
-        attachDialogOwner(dialog);
-        dialog.showAndWait().ifPresent(role -> runMutation(() -> ApiClient.promoteAdminUser(user.getId(), role)));
-    }
-
-    private Optional<String> promptReason(String title, String prompt) {
-        TextInputDialog dialog = new TextInputDialog("");
+    private void showReasonDialog(String title, String warning, java.util.function.Consumer<String> onConfirm) {
+        Dialog<String> dialog = new Dialog<>();
         dialog.setTitle(title);
         dialog.setHeaderText(null);
-        dialog.setContentText(prompt);
-        attachDialogOwner(dialog);
-        return dialog.showAndWait();
-    }
 
-    private void attachDialogOwner(Dialog<?> dialog) {
-        Window owner = ownerWindow();
-        if (owner != null) {
-            dialog.initOwner(owner);
+        VBox content = new VBox(8);
+        content.setPrefWidth(320);
+        if (warning != null) {
+            Label warn = new Label(warning);
+            warn.getStyleClass().add("um-dialog-warning");
+            warn.setWrapText(true);
+            content.getChildren().add(warn);
         }
+        Label reasonLabel = new Label("Reason (optional)");
+        reasonLabel.getStyleClass().add("form-label");
+        TextArea reasonArea = new TextArea();
+        reasonArea.setPrefRowCount(2);
+        reasonArea.getStyleClass().add("form-textarea");
+        content.getChildren().addAll(reasonLabel, reasonArea);
+
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.setResultConverter(bt -> bt == ButtonType.OK ? reasonArea.getText() : null);
+        dialog.showAndWait().ifPresent(onConfirm);
     }
 
-    private Window ownerWindow() {
-        if (usersTable != null && usersTable.getScene() != null) {
-            return usersTable.getScene().getWindow();
-        }
-        return null;
+    private void showRoleDialog(UserRow u) {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(u.role(), "student", "lecturer", "admin");
+        dialog.setTitle("Change Role — " + u.fname());
+        dialog.setHeaderText("Select new role for " + u.fname() + " " + u.lname());
+        dialog.setContentText("Role:");
+        dialog.showAndWait().ifPresent(role -> doAction(() -> ApiClient.adminChangeRole(u.id(), role)));
     }
 
-    private void runMutation(Supplier<ApiClient.MutationResult> action) {
+    private void doAction(java.util.function.Supplier<ApiClient.MutationResult> action) {
         new Thread(() -> {
-            ApiClient.MutationResult result = action.get();
+            var result = action.get();
+            Platform.runLater(() -> {
+                statusLabel.setText(result.message());
+                if (result.success()) loadUsers();
+            });
+        }).start();
+    }
+
+    @FXML
+    private void toggleAddLecturer() {
+        boolean show = !addLecturerPanel.isVisible();
+        addLecturerPanel.setVisible(show);
+        addLecturerPanel.setManaged(show);
+        addLecturerError.setText("");
+        if (!show) clearAddForm();
+    }
+
+    @FXML
+    private void submitAddLecturer() {
+        String fname = fnameField.getText().trim();
+        String lname = lnameField.getText().trim();
+        String email = emailField.getText().trim();
+        String pass = passwordField.getText();
+        String confirm = passwordConfirmField.getText();
+
+        if (fname.isEmpty() || lname.isEmpty() || email.isEmpty() || pass.isEmpty()) {
+            addLecturerError.setText("All fields are required.");
+            return;
+        }
+        if (!pass.equals(confirm)) {
+            addLecturerError.setText("Passwords do not match.");
+            return;
+        }
+        addLecturerError.setText("");
+        new Thread(() -> {
+            var result = ApiClient.adminCreateLecturer(fname, lname, email, pass);
             Platform.runLater(() -> {
                 if (result.success()) {
-                    alert("Success", result.message());
+                    clearAddForm();
+                    addLecturerPanel.setVisible(false);
+                    addLecturerPanel.setManaged(false);
+                    statusLabel.setText(result.message());
                     loadUsers();
                 } else {
-                    alert("Action failed", result.message());
+                    addLecturerError.setText(result.message());
+                }
+            });
+        }).start();
                 }
             });
         }).start();
     }
 
-    private void alert(String title, String message) {
-        Alert alert = new Alert(resultAlertType(title), message, ButtonType.OK);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        attachDialogOwner(alert);
-        alert.showAndWait();
+    @FXML
+    private void cancelAddLecturer() {
+        addLecturerPanel.setVisible(false);
+        addLecturerPanel.setManaged(false);
+        clearAddForm();
     }
 
-    private Alert.AlertType resultAlertType(String title) {
-        return "Action failed".equals(title) || title.startsWith("Could not")
-                ? Alert.AlertType.ERROR
-                : Alert.AlertType.INFORMATION;
+    private void clearAddForm() {
+        fnameField.clear();
+        lnameField.clear();
+        emailField.clear();
+        passwordField.clear();
+        passwordConfirmField.clear();
+    }
+
+    private String formatRole(String role) {
+        return switch (role.toLowerCase()) {
+            case "admin" -> "Super Admin";
+            case "lecturer" -> "Lecturer";
+            default -> "Student";
+        };
+    }
+}
     }
 }

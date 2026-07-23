@@ -53,7 +53,6 @@ class AdminUserApiController extends Controller
     public function warn(Request $request, User $user)
     {
         abort_unless(Auth::user()->isAdmin(), 403);
-
         if ($user->warnings >= 2) {
             $user->is_blacklisted = true;
         } else {
@@ -90,21 +89,6 @@ class AdminUserApiController extends Controller
             'message' => $user->is_blacklisted
                 ? "{$user->Fname} has been blacklisted after {$user->warnings} warnings."
                 : "Warning {$user->warnings}/2 issued to {$user->Fname}.",
-            'user' => $this->serializeUser($user->fresh()),
-        ]);
-    }
-
-    public function promote(Request $request, User $user)
-    {
-        abort_unless(Auth::user()->isAdmin(), 403);
-
-        $request->validate(['role' => ['required', 'in:student,lecturer,admin']]);
-
-        $oldRole = $user->role;
-        $user->update(['role' => $request->role]);
-
-        return response()->json([
-            'message' => "{$user->Fname}'s role changed from {$oldRole} to {$request->role}.",
             'user' => $this->serializeUser($user->fresh()),
         ]);
     }
