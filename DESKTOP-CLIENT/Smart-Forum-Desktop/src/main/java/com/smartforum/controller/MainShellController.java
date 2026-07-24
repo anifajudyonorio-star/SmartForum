@@ -291,6 +291,10 @@ public class MainShellController implements ShellNavigator {
         hideProfileMenu();
         QuizLaunchMonitor.getInstance().stop();
         SyncStatusService.getInstance().stop();
+        if (notificationPoller != null && !notificationPoller.isShutdown()) {
+            notificationPoller.shutdownNow();
+            notificationPoller = null;
+        }
         com.smartforum.util.SessionManager.getInstance().clear();
         com.smartforum.UserSession.getInstance().clear();
         try {
@@ -520,10 +524,6 @@ public class MainShellController implements ShellNavigator {
     @FXML
     private void showParticipationFromNav() {
         navigateWithBack(this::showParticipationInternal);
-    }
-
-    private void showQuizManagementInternal() {
-        loadView("quiz-management.fxml", activeQuizzesNavBtn(), null);
     }
 
     @FXML

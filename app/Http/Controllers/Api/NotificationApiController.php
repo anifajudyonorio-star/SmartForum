@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\NotificationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,12 +26,31 @@ class NotificationApiController extends Controller
 
     public function poll(Request $request)
     {
-        return app(NotificationController::class)->poll($request);
+        $afterId = (int) $request->query('after', 0);
+
+        $query = Auth::user()
+            ->notifications()
+            ->with(['post.topic', 'group', 'quiz', 'user'])
+            ->visible()
+            ->where('Is_Read', false);
+
+        if ($afterId > 0) {
+            $query->where('id', '>', $afterId);
+        }
+
+        $notifications = $query->latest()->get()
+            ->map(fn ($notification) => $this->formatNotification($notification));
+
+        return response()->json([
+            'notifications' => $notifications,
+            'unread_count' => Auth::user()->notifications()->visible()->where('Is_Read', false)->count(),
+            'latest_id' => (int) Auth::user()->notifications()->visible()->max('id'),
+        ]);
     }
 
     public function markAsRead(Request $request, $id)
     {
-        return app(NotificationController::class)->markAsRead($request, $id);
+        return app(\App\Http\Controllers\NotificationController::class)->markAsRead($request, $id);
     }
 
     private function formatNotification($notification): array

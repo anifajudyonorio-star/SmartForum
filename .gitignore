@@ -25,3 +25,7 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+*.db
+*.sqlite
+scripts/database/*.sqlite
+DESKTOP-CLIENT/**/smartforum.db

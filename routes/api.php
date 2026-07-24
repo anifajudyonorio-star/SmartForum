@@ -66,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/quizzes/{quiz}', [QuizApiController::class, 'destroy']);
 
     Route::get('/student/quizzes', [StudentQuizApiController::class, 'index']);
+    Route::get('/student/quizzes/launch-poll', [StudentQuizApiController::class, 'launchPoll']);
     Route::post('/student/quizzes/enroll', [StudentQuizApiController::class, 'enroll']);
     Route::post('/student/quizzes/unenroll', [StudentQuizApiController::class, 'unenroll']);
     Route::get('/student/quizzes/{quiz}', [StudentQuizApiController::class, 'show']);

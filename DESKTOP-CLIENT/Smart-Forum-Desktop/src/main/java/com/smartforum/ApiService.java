@@ -9,9 +9,13 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
+import com.smartforum.util.ApiConfig;
+
 public class ApiService {
 
-    private static final String BASE_URL = "http://127.0.0.1:8000/api";
+    private static String baseUrl() {
+        return ApiConfig.apiBaseUrl();
+    }
     private static final HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
@@ -36,7 +40,7 @@ public class ApiService {
     private static ApiResponse get(String endpoint, String token) {
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder()
-                    .uri(URI.create(BASE_URL + endpoint))
+                    .uri(URI.create(baseUrl() + endpoint))
                     .header("Accept", "application/json")
                     .GET();
             if (token != null) builder.header("Authorization", "Bearer " + token);
@@ -59,7 +63,7 @@ public class ApiService {
     private static ApiResponse post(String endpoint, String body, String token) {
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder()
-                    .uri(URI.create(BASE_URL + endpoint))
+                    .uri(URI.create(baseUrl() + endpoint))
                     .header("Content-Type", "application/json")
                     .header("Accept", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body));

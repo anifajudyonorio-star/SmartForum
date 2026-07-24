@@ -1,22 +1,32 @@
 package com.smartforum.service;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.smartforum.api.ApiClient;
 import com.smartforum.controller.QuizLaunchDialogController;
 import com.smartforum.controller.QuizModalController;
 import com.smartforum.dao.CategoryStudentDAO;
 import com.smartforum.dao.QuizAttemptDAO;
 import com.smartforum.dao.QuizDAO;
 import com.smartforum.model.ForumUser;
+import com.smartforum.model.Question;
 import com.smartforum.model.Quiz;
+import com.smartforum.model.QuizAttempt;
+import com.smartforum.util.ApiSupport;
 import com.smartforum.util.QuizSchedule;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.stage.Window;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -26,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Polls local quizzes for the signed-in student and pops a launch dialog
+ * Polls quizzes for the signed-in student and pops a launch dialog
  * when a quiz is about to start or becomes available (Laravel-parity).
  */
 public final class QuizLaunchMonitor {
@@ -85,6 +95,58 @@ public final class QuizLaunchMonitor {
             return;
         }
 
+        if (ApiSupport.useApi()) {
+            tickFromApi(user);
+            return;
+        }
+
+        tickFromLocalDb(user);
+    }
+
+    private void tickFromApi(ForumUser user) {
+        ApiClient.getStudentQuizLaunchPoll().ifPresent(json -> {
+            if (!json.has("quizzes") || !json.get("quizzes").isJsonArray()) {
+                return;
+            }
+
+            JsonArray quizzes = json.getAsJsonArray("quizzes");
+            Quiz available = null;
+            Quiz soon = null;
+            long soonSeconds = Long.MAX_VALUE;
+
+            for (JsonElement element : quizzes) {
+                JsonObject quizJson = element.getAsJsonObject();
+                int quizId = quizJson.get("id").getAsInt();
+                if (dismissedIds.contains(quizId)) {
+                    continue;
+                }
+
+                String status = quizJson.get("status").getAsString();
+                if ("Active".equals(status)) {
+                    available = quizFromPollJson(quizJson);
+                    break;
+                }
+
+                if ("Scheduled".equals(status)) {
+                    int seconds = quizJson.get("seconds_until_start").getAsInt();
+                    if (seconds > 0 && seconds <= PRESTART_SECONDS && seconds < soonSeconds) {
+                        soonSeconds = seconds;
+                        soon = quizFromPollJson(quizJson);
+                    }
+                }
+            }
+
+            Quiz chosen = available != null ? available : soon;
+            if (chosen == null) {
+                return;
+            }
+
+            boolean prestart = available == null;
+            Platform.runLater(() -> showDialog(user, chosen, prestart));
+        });
+    }
+
+    private void tickFromLocalDb(ForumUser user) {
         int categoryId = new CategoryStudentDAO().getCategoryForStudent(user.getId(), user.getName());
         if (categoryId < 0) {
             return;
@@ -133,6 +195,19 @@ public final class QuizLaunchMonitor {
         Platform.runLater(() -> showDialog(user, chosen, prestart));
     }
 
+    private Quiz quizFromPollJson(JsonObject quizJson) {
+        Quiz quiz = new Quiz();
+        quiz.setId(quizJson.get("id").getAsInt());
+        quiz.setTitle(quizJson.get("title").getAsString());
+        if (quizJson.has("duration_minutes") && !quizJson.get("duration_minutes").isJsonNull()) {
+            quiz.setDuration(quizJson.get("duration_minutes").getAsInt());
+        }
+        if (quizJson.has("description") && !quizJson.get("description").isJsonNull()) {
+            quiz.setDescription(quizJson.get("description").getAsString());
+        }
+        return quiz;
+    }
+
     private void showDialog(ForumUser user, Quiz quiz, boolean prestart) {
         if (dialogOpen.get() || QUIZ_WINDOW_OPEN.get()) {
             return;
@@ -175,20 +250,76 @@ public final class QuizLaunchMonitor {
     }
 
     private void startQuiz(ForumUser user, Quiz quiz) {
+        if (ApiSupport.useApi()) {
+            new Thread(() -> ApiClient.getStudentQuizSession(quiz.getId(), true).ifPresentOrElse(
+                session -> Platform.runLater(() -> openApiQuizWindow(session)),
+                () -> Platform.runLater(() -> showAlert("Unable to Start", "Could not start this quiz session."))
+            )).start();
+            return;
+        }
+
         try {
             StudentQuizLauncher.LaunchRequest request = StudentQuizLauncher.prepare(user, quiz);
             openQuizWindow(request);
         } catch (Exception e) {
-            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
-                javafx.scene.control.Alert.AlertType.WARNING);
-            alert.setTitle("Unable to Start");
-            alert.setHeaderText(null);
-            alert.setContentText(e.getMessage());
-            alert.showAndWait();
+            showAlert("Unable to Start", e.getMessage());
+        }
+    }
+
+    private void openApiQuizWindow(JsonObject session) {
+        try {
+            JsonObject quizJson = session.getAsJsonObject("quiz");
+            JsonObject attemptJson = session.getAsJsonObject("attempt");
+            Quiz quiz = new Quiz();
+            quiz.setId(quizJson.get("id").getAsInt());
+            quiz.setTitle(quizJson.get("title").getAsString());
+            quiz.setDuration(quizJson.get("duration").getAsInt());
+
+            List<Question> questions = new ArrayList<>();
+            for (JsonElement element : session.getAsJsonArray("questions")) {
+                JsonObject questionJson = element.getAsJsonObject();
+                Question question = new Question();
+                question.setId(questionJson.get("id").getAsInt());
+                question.setQuestion(questionJson.get("question").getAsString());
+                question.setMarks(questionJson.get("marks").getAsInt());
+
+                JsonArray options = questionJson.getAsJsonArray("options");
+                if (options.size() > 0) {
+                    question.setOptionA(options.get(0).getAsJsonObject().get("text").getAsString());
+                    question.setOptionAId(options.get(0).getAsJsonObject().get("id").getAsInt());
+                }
+                if (options.size() > 1) {
+                    question.setOptionB(options.get(1).getAsJsonObject().get("text").getAsString());
+                    question.setOptionBId(options.get(1).getAsJsonObject().get("id").getAsInt());
+                }
+                if (options.size() > 2) {
+                    question.setOptionC(options.get(2).getAsJsonObject().get("text").getAsString());
+                    question.setOptionCId(options.get(2).getAsJsonObject().get("id").getAsInt());
+                }
+                if (options.size() > 3) {
+                    question.setOptionD(options.get(3).getAsJsonObject().get("text").getAsString());
+                    question.setOptionDId(options.get(3).getAsJsonObject().get("id").getAsInt());
+                }
+                questions.add(question);
+            }
+
+            QuizAttempt attempt = new QuizAttempt();
+            attempt.setId(attemptJson.get("id").getAsInt());
+            attempt.setQuizId(quiz.getId());
+            attempt.setDeadlineAt(LocalDateTime.parse(attemptJson.get("deadline_at").getAsString()));
+
+            ForumUser user = AppSession.getInstance().getCurrentUser();
+            openQuizWindow(new StudentQuizLauncher.LaunchRequest(quiz, questions, user, attempt), true);
+        } catch (Exception e) {
+            showAlert("Error", "Failed to open quiz window: " + e.getMessage());
         }
     }
 
     public static void openQuizWindow(StudentQuizLauncher.LaunchRequest request) throws Exception {
+        openQuizWindow(request, false);
+    }
+
+    private static void openQuizWindow(StudentQuizLauncher.LaunchRequest request, boolean apiMode) throws Exception {
         QUIZ_WINDOW_OPEN.set(true);
         try {
             FXMLLoader loader = new FXMLLoader(
@@ -204,7 +335,7 @@ public final class QuizLaunchMonitor {
                 request.getQuestions(),
                 request.getStudent(),
                 request.getAttempt(),
-                false
+                apiMode
             );
 
             Stage stage = new Stage();
@@ -224,5 +355,13 @@ public final class QuizLaunchMonitor {
             QUIZ_WINDOW_OPEN.set(false);
             throw e;
         }
+    }
+
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

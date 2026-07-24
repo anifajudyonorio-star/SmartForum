@@ -181,7 +181,7 @@ public class OfflineQueue {
 
             if (lastFlushMessage.isBlank()) {
                 lastFlushMessage = "Could not reach the server. Make sure Laravel is running on "
-                        + ApiClient.BASE_URL + ".";
+                        + ApiClient.getBaseUrl() + ".";
             }
             return false;
         } catch (Exception e) {

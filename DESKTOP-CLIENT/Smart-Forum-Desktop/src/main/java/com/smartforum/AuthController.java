@@ -15,6 +15,7 @@ import javafx.stage.Stage;
 
 import com.smartforum.api.ApiClient;
 import com.smartforum.api.ApiMapper;
+import com.smartforum.util.ApiConfig;
 import com.smartforum.model.ForumUser;
 import com.smartforum.service.AppSession;
 import com.smartforum.service.ForumDataCache;
@@ -219,7 +220,7 @@ public class AuthController {
             }
         }));
         try {
-            Desktop.getDesktop().browse(new URI("http://127.0.0.1:8000/auth/google/redirect?desktop=1"));
+            Desktop.getDesktop().browse(new URI(ApiConfig.baseUrl() + "/auth/google/redirect?desktop=1"));
             showInfo("Browser opened. Complete sign in with Google...");
         } catch (Exception e) {
             showError("Could not open browser. Make sure the Laravel server is running.");
@@ -261,7 +262,7 @@ public class AuthController {
     public void handleForgotPassword() {
         String email = loginEmail.getText().trim();
         if (email.isEmpty()) { showError("Enter your email first, then click Forgot password."); return; }
-        try { Desktop.getDesktop().browse(new URI("http://127.0.0.1:8000/forgot-password?email=" + email)); }
+        try { Desktop.getDesktop().browse(new URI(ApiConfig.baseUrl() + "/forgot-password?email=" + email)); }
         catch (Exception e) { showError("Could not open browser."); }
     }
 

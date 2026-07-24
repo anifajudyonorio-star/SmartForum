@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\StudentQuizController;
 use App\Models\CategoryStudent;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
@@ -53,6 +54,11 @@ class StudentQuizApiController extends Controller
             'quizzes' => $quizzes->map(fn (Quiz $quiz) => $this->serializeListedQuiz($quiz, $completedQuizIds))->values(),
             'completed_quiz_ids' => $completedQuizIds->values(),
         ]);
+    }
+
+    public function launchPoll()
+    {
+        return app(StudentQuizController::class)->launchPoll();
     }
 
     public function enroll(Request $request)

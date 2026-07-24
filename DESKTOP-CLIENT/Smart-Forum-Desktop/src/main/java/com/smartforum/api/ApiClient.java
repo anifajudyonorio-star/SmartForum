@@ -2,6 +2,7 @@ package com.smartforum.api;
 
 import com.google.gson.*;
 import com.smartforum.model.*;
+import com.smartforum.util.ApiConfig;
 import com.smartforum.util.SessionManager;
 import com.smartforum.UserSession;
 
@@ -13,7 +14,9 @@ import java.util.List;
 import java.util.Optional;
 
 public class ApiClient {
-    public static final String BASE_URL = "http://127.0.0.1:8000";
+    public static String getBaseUrl() {
+        return ApiConfig.baseUrl();
+    }
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(20);
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
@@ -28,7 +31,7 @@ public class ApiClient {
             token = UserSession.getInstance().getToken();
         }
         HttpRequest.Builder b = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + path))
+                .uri(URI.create(getBaseUrl() + path))
                 .timeout(REQUEST_TIMEOUT)
                 .header("Accept", "application/json")
                 .header("Content-Type", "application/json");
@@ -127,7 +130,7 @@ public class ApiClient {
             }
         }
         if (statusCode == 0) {
-            return "Could not reach the server. Make sure Laravel is running on " + BASE_URL + ".";
+            return "Could not reach the server. Make sure Laravel is running on " + getBaseUrl() + ".";
         }
         return extractMessage(json, false);
     }
@@ -175,7 +178,7 @@ public class ApiClient {
 
             HttpResponse<String> res = HTTP.send(
                     HttpRequest.newBuilder()
-                            .uri(URI.create(BASE_URL + "/api/login"))
+                            .uri(URI.create(ApiConfig.apiBaseUrl() + "/login"))
                             .header("Accept", "application/json")
                             .header("Content-Type", "application/json")
                             .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
@@ -319,6 +322,10 @@ public class ApiClient {
 
     public static Optional<JsonObject> getStudentQuizzes() {
         return getJson("/api/student/quizzes");
+    }
+
+    public static Optional<JsonObject> getStudentQuizLaunchPoll() {
+        return getJson("/api/student/quizzes/launch-poll");
     }
 
     public static MutationResult enrollInQuizCategory(int categoryId) {
@@ -568,15 +575,6 @@ public class ApiClient {
         return mutateJson("PATCH", "/api/notifications/" + notificationId + "/read", null);
     }
 
-    // Legacy aliases used by ChatController
-    public static List<Topic> getTopics() {
-        return fetchTopics();
-    }
-
-    public static List<Post> getPosts(int topicId) {
-        return fetchPosts(topicId);
-    }
-
     // ── Admin user management ──────────────────────────────────────────────────
 
     public static MutationResult adminWarnUser(int userId, String reason) {
@@ -658,7 +656,7 @@ public class ApiClient {
         try {
             HttpResponse<String> res = HTTP.send(
                     HttpRequest.newBuilder()
-                            .uri(URI.create(BASE_URL + "/up"))
+                            .uri(URI.create(getBaseUrl() + "/up"))
                             .timeout(java.time.Duration.ofMillis(4500))
                             .GET()
                             .build(),

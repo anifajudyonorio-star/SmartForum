@@ -415,6 +415,37 @@ export function buildMessageHtml(post) {
         }
     }
 
+    function queuePendingPost(content) {
+        const topicId = chat.dataset.topicId;
+        const parentId = parentInput?.value || null;
+        const excludedUsers = collectExcludedUsers();
+
+        const exportArea = document.getElementById('chatExportArea');
+        const empty = document.getElementById('chatEmpty');
+        if (empty) empty.remove();
+
+        const bubble = buildPendingBubble(content, 'tmp');
+        exportArea?.appendChild(bubble);
+        scrollToBottom();
+
+        const payload = {
+            topic_id: Number(topicId),
+            content,
+            parent_post_id: parentId ? Number(parentId) : null,
+        };
+        if (excludedUsers.length > 0) {
+            payload.excluded_users = excludedUsers;
+        }
+
+        const pendingId = window.queueAction('create_post', payload, bubble);
+        bubble.dataset.pendingId = pendingId;
+
+        input.value = '';
+        autoGrow(input);
+        clearReply();
+        clearExcludeSelections();
+    }
+
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -423,34 +454,7 @@ export function buildMessageHtml(post) {
             if (isOffline) {
                 const content = input?.value?.trim();
                 if (!content) return;
-                const topicId = chat.dataset.topicId;
-                const parentId = parentInput?.value || null;
-                const excludedUsers = collectExcludedUsers();
-
-                const exportArea = document.getElementById('chatExportArea');
-                const empty = document.getElementById('chatEmpty');
-                if (empty) empty.remove();
-
-                const bubble = buildPendingBubble(content, 'tmp');
-                exportArea?.appendChild(bubble);
-                scrollToBottom();
-
-                const payload = {
-                    topic_id: Number(topicId),
-                    content,
-                    parent_post_id: parentId ? Number(parentId) : null,
-                };
-                if (excludedUsers.length > 0) {
-                    payload.excluded_users = excludedUsers;
-                }
-
-                const pendingId = window.queueAction('create_post', payload, bubble);
-                bubble.dataset.pendingId = pendingId;
-
-                input.value = '';
-                autoGrow(input);
-                clearReply();
-                clearExcludeSelections();
+                queuePendingPost(content);
                 return;
             }
 
@@ -471,7 +475,10 @@ export function buildMessageHtml(post) {
                     body: formData,
                 });
 
-                if (!res.ok) throw new Error('Send failed');
+                if (!res.ok) {
+                    queuePendingPost(content);
+                    return;
+                }
 
                 const data = await res.json();
                 const exportArea = document.getElementById('chatExportArea');
@@ -492,7 +499,7 @@ export function buildMessageHtml(post) {
                 clearExcludeSelections();
                 scrollToBottom();
             } catch {
-                // fetch failed — do nothing
+                queuePendingPost(content);
             } finally {
                 sendBtn.disabled = false;
             }
