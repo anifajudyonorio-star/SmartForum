@@ -105,6 +105,7 @@
                             style="-fx-background-color: transparent; -fx-text-fill: #6b7280; -fx-cursor: hand; -fx-font-size: 13; -fx-padding: 0 8 0 0;"
                             StackPane.alignment="CENTER_RIGHT"/>
                 </StackPane>
+                <Label text="Min 8 chars, uppercase, number &amp; symbol" style="-fx-text-fill: #6b7280; -fx-font-size: 10;"/>
             </VBox>
             <VBox spacing="4">
                 <Label text="Confirm Password" style="-fx-text-fill: #9ca3af; -fx-font-size: 11; -fx-font-weight: bold;"/>
@@ -133,6 +134,24 @@
             <!-- Google Register -->
             <Button fx:id="googleRegisterBtn" onAction="#handleGoogleSignIn" maxWidth="Infinity"
                     style="-fx-background-color: #1f2937; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 10; -fx-cursor: hand; -fx-font-size: 12; -fx-border-color: #374151; -fx-border-radius: 6;"/>
+        </VBox>
+
+        <!-- OTP Verification Pane -->
+        <VBox fx:id="otpPane" visible="false" managed="false" style="-fx-padding: 16 16 0 16; -fx-spacing: 12; -fx-alignment: center;">
+            <Label fx:id="otpEmailLabel" text="" wrapText="true"
+                   style="-fx-text-fill: #9ca3af; -fx-font-size: 11; -fx-alignment: center; -fx-text-alignment: center;" maxWidth="340"/>
+            <HBox fx:id="otpBoxRow" alignment="CENTER" spacing="8">
+                <TextField fx:id="otp0" maxWidth="44" style="-fx-background-color: #1f2937; -fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-alignment: center; -fx-background-radius: 6; -fx-border-color: #374151; -fx-border-radius: 6; -fx-padding: 8 0;"/>
+                <TextField fx:id="otp1" maxWidth="44" style="-fx-background-color: #1f2937; -fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-alignment: center; -fx-background-radius: 6; -fx-border-color: #374151; -fx-border-radius: 6; -fx-padding: 8 0;"/>
+                <TextField fx:id="otp2" maxWidth="44" style="-fx-background-color: #1f2937; -fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-alignment: center; -fx-background-radius: 6; -fx-border-color: #374151; -fx-border-radius: 6; -fx-padding: 8 0;"/>
+                <TextField fx:id="otp3" maxWidth="44" style="-fx-background-color: #1f2937; -fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-alignment: center; -fx-background-radius: 6; -fx-border-color: #374151; -fx-border-radius: 6; -fx-padding: 8 0;"/>
+                <TextField fx:id="otp4" maxWidth="44" style="-fx-background-color: #1f2937; -fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-alignment: center; -fx-background-radius: 6; -fx-border-color: #374151; -fx-border-radius: 6; -fx-padding: 8 0;"/>
+                <TextField fx:id="otp5" maxWidth="44" style="-fx-background-color: #1f2937; -fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-alignment: center; -fx-background-radius: 6; -fx-border-color: #374151; -fx-border-radius: 6; -fx-padding: 8 0;"/>
+            </HBox>
+            <Button text="Verify Email" onAction="#handleVerifyOtp" maxWidth="Infinity"
+                    style="-fx-background-color: #16a34a; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 10; -fx-cursor: hand; -fx-font-size: 13;"/>
+            <Button fx:id="resendBtn" text="Resend Code" onAction="#handleResendCode" maxWidth="Infinity"
+                    style="-fx-background-color: transparent; -fx-text-fill: #6b7280; -fx-font-size: 11; -fx-cursor: hand; -fx-border-color: transparent;"/>
         </VBox>
 
         <VBox.margin>

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Auth\EmailVerificationCodeController;
 use App\Http\Controllers\Controller;
+use App\Models\EmailVerificationCode;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -41,7 +43,7 @@ class AuthApiController extends Controller
             'Fname'    => ['required', 'string', 'max:255'],
             'Lname'    => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ['required', 'confirmed', Rules\Password::min(8)->mixedCase()->numbers()->symbols()],
             'role'     => ['required', 'in:student'],
             'terms'    => ['accepted'],
         ], [
@@ -57,12 +59,52 @@ class AuthApiController extends Controller
             'role'     => 'student',
         ]);
 
+        EmailVerificationCodeController::sendCode($user);
+
         $token = $user->createToken('desktop')->plainTextToken;
 
         return response()->json([
             'token' => $token,
             'user'  => $this->formatUser($user),
         ], 201);
+    }
+
+    public function verifyCode(Request $request)
+    {
+        $request->validate(['code' => ['required', 'digits:6']]);
+
+        $user = $request->user();
+
+        $record = EmailVerificationCode::where('user_id', $user->id)
+            ->where('code', $request->code)
+            ->latest()
+            ->first();
+
+        if (! $record || $record->isExpired()) {
+            return response()->json(['message' => 'The code is invalid or has expired.'], 422);
+        }
+
+        $user->markEmailAsVerified();
+        $record->delete();
+
+        return response()->json(['message' => 'Email verified successfully.']);
+    }
+
+    public function resendCode(Request $request)
+    {
+        $user = $request->user();
+
+        $recent = EmailVerificationCode::where('user_id', $user->id)
+            ->where('expires_at', '>', now()->addMinutes(9))
+            ->exists();
+
+        if ($recent) {
+            return response()->json(['message' => 'Please wait before requesting a new code.'], 429);
+        }
+
+        EmailVerificationCodeController::sendCode($user);
+
+        return response()->json(['message' => 'A new code has been sent to your email.']);
     }
 
     private function formatUser(User $user): array

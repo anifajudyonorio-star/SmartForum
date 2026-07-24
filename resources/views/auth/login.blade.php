@@ -94,6 +94,7 @@
                                 <i data-feather="eye" style="width:16px;height:16px;"></i>
                             </button>
                         </div>
+                        <div class="mt-1" style="font-size:0.68rem;color:#6b7280;">Min 8 chars, uppercase, number &amp; symbol</div>
                     </div>
                     <div class="mb-2">
                         <label for="password_confirmation" class="form-label auth-label">Confirm password</label>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Auth\EmailVerificationCodeController;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +25,7 @@ class RegisteredUserController extends Controller
             'Fname' => ['required', 'string', 'max:255'],
             'Lname' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ['required', 'confirmed', Rules\Password::min(8)->mixedCase()->numbers()->symbols()],
             'role' => ['required', 'in:student'],
             'terms' => ['accepted'],
         ], [
@@ -43,6 +44,8 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('verification.notice', absolute: false));
+        EmailVerificationCodeController::sendCode($user);
+
+        return redirect()->route('verification.notice');
     }
 }

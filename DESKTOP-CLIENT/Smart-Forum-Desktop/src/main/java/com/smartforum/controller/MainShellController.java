@@ -824,7 +824,7 @@ public class MainShellController implements ShellNavigator {
         }
 
         if ("quiz-management.fxml".equals(key)) {
-            return this::showQuizManagementInternal;
+            return this::showQuizzesInternal;
         }
 
         if ("user-management.fxml".equals(key)) {

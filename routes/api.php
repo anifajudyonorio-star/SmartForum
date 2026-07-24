@@ -25,6 +25,8 @@ use App\Http\Controllers\RecommendationController;
 // Desktop client auth
 Route::post('/login', [AuthApiController::class, 'login']);
 Route::post('/register', [AuthApiController::class, 'register']);
+Route::middleware('auth:sanctum')->post('/verify-email', [AuthApiController::class, 'verifyCode']);
+Route::middleware('auth:sanctum')->post('/verify-email/resend', [AuthApiController::class, 'resendCode']);
 
 // Issue a Sanctum token for the authenticated web user (offline sync)
 Route::middleware('auth')->post('/token', function (\Illuminate\Http\Request $request) {

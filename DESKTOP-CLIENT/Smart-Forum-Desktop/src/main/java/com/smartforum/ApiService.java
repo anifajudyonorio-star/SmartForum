@@ -37,6 +37,15 @@ public class ApiService {
         return post("/register", body, null);
     }
 
+    public static ApiResponse verifyCode(String token, String code) {
+        String body = String.format("{\"code\":\"%s\"}", code);
+        return post("/verify-email", body, token);
+    }
+
+    public static ApiResponse resendCode(String token) {
+        return post("/verify-email/resend", "{}", token);
+    }
+
     private static ApiResponse get(String endpoint, String token) {
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder()

@@ -27,9 +27,9 @@ import java.net.URI;
 public class AuthController {
 
     @FXML private Button signInTab, registerTab;
-    @FXML private VBox signInPane, registerPane;
-    @FXML private Label errorLabel;
-    @FXML private Button googleSignInBtn, googleRegisterBtn;
+    @FXML private VBox signInPane, registerPane, otpPane;
+    @FXML private Label errorLabel, otpEmailLabel;
+    @FXML private Button googleSignInBtn, googleRegisterBtn, resendBtn;
 
     // Sign in fields
     @FXML private TextField loginEmail;
@@ -44,6 +44,12 @@ public class AuthController {
     @FXML private TextField regPasswordVisible, regPasswordConfirmVisible;
     @FXML private Button regEyeBtn, regConfirmEyeBtn;
     @FXML private CheckBox termsCheck;
+
+    // OTP fields
+    @FXML private TextField otp0, otp1, otp2, otp3, otp4, otp5;
+
+    private String pendingToken;
+    private String pendingEmail;
 
     private boolean loginPassVisible = false;
     private boolean regPassVisible = false;
@@ -190,7 +196,92 @@ public class AuthController {
             ApiService.ApiResponse response = ApiService.register(fname, lname, email, password, confirm);
             Platform.runLater(() -> {
                 setLoading(false);
-                if (response.isSuccess()) { showSuccess("Account created! You can now sign in."); showSignIn(); }
+                if (response.isSuccess()) {
+                    // Extract token from registration response and show OTP pane
+                    try {
+                        pendingToken = response.body().has("token")
+                            ? response.body().get("token").getAsString() : null;
+                        pendingEmail = email;
+                        showOtpPane();
+                    } catch (Exception e) {
+                        showError("Registration succeeded but could not start verification.");
+                    }
+                } else {
+                    showError(response.getMessage());
+                }
+            });
+        }).start();
+    }
+
+    private void showOtpPane() {
+        signInPane.setVisible(false); signInPane.setManaged(false);
+        registerPane.setVisible(false); registerPane.setManaged(false);
+        otpPane.setVisible(true); otpPane.setManaged(true);
+        signInTab.setStyle("-fx-background-color: transparent; -fx-text-fill: #9ca3af; -fx-background-radius: 6; -fx-font-weight: bold; -fx-font-size: 12; -fx-cursor: hand; -fx-border-color: #374151; -fx-border-radius: 6;");
+        registerTab.setStyle("-fx-background-color: transparent; -fx-text-fill: #9ca3af; -fx-background-radius: 6; -fx-font-weight: bold; -fx-font-size: 12; -fx-cursor: hand; -fx-border-color: #374151; -fx-border-radius: 6;");
+        otpEmailLabel.setText("We sent a 6-digit code to " + pendingEmail + ". Enter it below.");
+        clearError();
+        setupOtpBoxes();
+        otp0.requestFocus();
+    }
+
+    private void setupOtpBoxes() {
+        TextField[] boxes = {otp0, otp1, otp2, otp3, otp4, otp5};
+        for (int i = 0; i < boxes.length; i++) {
+            final int idx = i;
+            boxes[i].textProperty().addListener((obs, oldVal, newVal) -> {
+                if (newVal.length() > 1) boxes[idx].setText(newVal.substring(newVal.length() - 1));
+                String filtered = boxes[idx].getText().replaceAll("[^0-9]", "");
+                if (!filtered.equals(boxes[idx].getText())) boxes[idx].setText(filtered);
+                if (!boxes[idx].getText().isEmpty() && idx < boxes.length - 1) boxes[idx + 1].requestFocus();
+                if (getOtpCode().length() == 6) handleVerifyOtp();
+            });
+            boxes[i].setOnKeyPressed(e -> {
+                if (e.getCode() == javafx.scene.input.KeyCode.BACK_SPACE && boxes[idx].getText().isEmpty() && idx > 0)
+                    boxes[idx - 1].requestFocus();
+            });
+        }
+    }
+
+    private String getOtpCode() {
+        return otp0.getText() + otp1.getText() + otp2.getText() + otp3.getText() + otp4.getText() + otp5.getText();
+    }
+
+    @FXML
+    public void handleVerifyOtp() {
+        String code = getOtpCode();
+        if (code.length() < 6) { showError("Enter the full 6-digit code."); return; }
+        if (pendingToken == null) { showError("Session expired. Please register again."); return; }
+
+        setLoading(true);
+        new Thread(() -> {
+            ApiService.ApiResponse response = ApiService.verifyCode(pendingToken, code);
+            Platform.runLater(() -> {
+                setLoading(false);
+                if (response.isSuccess()) {
+                    showSuccess("Email verified! You can now sign in.");
+                    pendingToken = null;
+                    pendingEmail = null;
+                    showSignIn();
+                } else {
+                    showError(response.getMessage());
+                    otp0.setText(""); otp1.setText(""); otp2.setText("");
+                    otp3.setText(""); otp4.setText(""); otp5.setText("");
+                    otp0.requestFocus();
+                }
+            });
+        }).start();
+    }
+
+    @FXML
+    public void handleResendCode() {
+        if (pendingToken == null) { showError("Session expired. Please register again."); return; }
+        resendBtn.setDisable(true);
+        new Thread(() -> {
+            ApiService.ApiResponse response = ApiService.resendCode(pendingToken);
+            Platform.runLater(() -> {
+                resendBtn.setDisable(false);
+                if (response.isSuccess()) showSuccess("A new code has been sent.");
                 else showError(response.getMessage());
             });
         }).start();

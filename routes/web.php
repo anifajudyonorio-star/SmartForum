@@ -38,7 +38,7 @@ Route::post('/auth/{provider}/callback', [SocialAuthController::class, 'callback
 Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
     ->where('provider', 'google|apple');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/latest-posts', [DashboardController::class, 'latestPosts'])->name('dashboard.latest-posts');
 
