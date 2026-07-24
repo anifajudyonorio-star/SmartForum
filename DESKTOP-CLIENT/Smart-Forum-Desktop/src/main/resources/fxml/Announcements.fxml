@@ -6,7 +6,8 @@
 
 <ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;"
             xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.smartforum.controller.AnnouncementsController">
+            fx:controller="com.smartforum.controller.AnnouncementsController"
+            styleClass="quiz-page" stylesheets="@/com/smartforum/css/app.css">
 
     <content>
         <VBox spacing="12.0" styleClass="dashboard-content">
@@ -26,11 +27,13 @@
                 <Label fx:id="enrollmentAlertLabel" wrapText="true"/>
             </HBox>
 
-            <HBox fx:id="lecturerLayout" spacing="12.0" visible="false" managed="false">
+            <!-- Lecturer post form + list (shown for lecturers/admins in configureForCurrentUser) -->
+            <HBox fx:id="lecturerLayout" spacing="12.0" visible="true" managed="true">
                 <VBox minWidth="280.0" prefWidth="320.0" spacing="12.0" styleClass="dashboard-card">
                     <Label text="Post Announcement" styleClass="dashboard-card-title"/>
                     <Label text="Quiz Title" styleClass="form-label"/>
-                    <ComboBox fx:id="cmbCategory" maxWidth="1.7976931348623157E308"/>
+                    <ComboBox fx:id="cmbCategory" maxWidth="1.7976931348623157E308"
+                              promptText="Select quiz title"/>
                     <Label text="Title" styleClass="form-label"/>
                     <TextField fx:id="txtTitle" promptText="Announcement title"/>
                     <Label text="Message" styleClass="form-label"/>
@@ -46,7 +49,8 @@
                         <Region HBox.hgrow="ALWAYS"/>
                         <Label fx:id="announcementCountLabel" styleClass="badge-muted" text="0"/>
                     </HBox>
-                    <TableView fx:id="tblAnnouncements" styleClass="dashboard-table" VBox.vgrow="ALWAYS">
+                    <TableView fx:id="tblAnnouncements" styleClass="dashboard-table" VBox.vgrow="ALWAYS"
+                               prefHeight="360">
                         <columns>
                             <TableColumn fx:id="colCategory" prefWidth="120.0" text="Quiz Title"/>
                             <TableColumn fx:id="colTitle" prefWidth="140.0" text="Title"/>

@@ -88,4 +88,9 @@ public class Group {
     public void setJoinStatus(String joinStatus) {
         this.joinStatus = joinStatus == null ? "none" : joinStatus;
     }
+
+    @Override
+    public String toString() {
+        return name == null || name.isBlank() ? "Group #" + id : name;
+    }
 }

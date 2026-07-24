@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
@@ -9,33 +10,157 @@
             styleClass="quiz-page" stylesheets="@/com/smartforum/css/app.css">
 
     <content>
-        <VBox spacing="12.0" styleClass="dashboard-content">
-            <HBox alignment="TOP_LEFT" spacing="12.0" styleClass="dashboard-header">
-                <VBox spacing="4.0" HBox.hgrow="ALWAYS">
-                    <Label text="Manage Quizzes" styleClass="dashboard-title"/>
-                    <Label text="Create quiz titles, quizzes, and questions. Publish when ready."
-                           styleClass="dashboard-subtitle"/>
-                </VBox>
-                <Label fx:id="quizCountLabel" styleClass="badge-muted" text="0"/>
-            </HBox>
+        <StackPane>
+            <!-- LIST VIEW -->
+            <VBox fx:id="listPane" spacing="12.0" styleClass="dashboard-content">
+                <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-header">
+                    <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                        <Label text="Manage Quizzes" styleClass="dashboard-title"/>
+                        <Label text="Create quizzes, review their questions, then publish when ready."
+                               styleClass="dashboard-subtitle"/>
+                    </VBox>
+                    <Label fx:id="quizCountLabel" styleClass="badge-muted" text="0"/>
+                    <Button fx:id="btnCreateQuiz" text="+ Create Quiz" onAction="#openCreateQuiz"
+                            styleClass="btn-primary"/>
+                </HBox>
 
-            <VBox spacing="8.0" styleClass="dashboard-card" VBox.vgrow="ALWAYS">
-                <TableView fx:id="tblQuizzes" styleClass="dashboard-table" VBox.vgrow="ALWAYS">
-                    <columns>
-                        <TableColumn fx:id="colTitle" prefWidth="160.0" text="Quiz Title"/>
-                        <TableColumn fx:id="colCategory" prefWidth="150.0" text="Quiz Title Template"/>
-                        <TableColumn fx:id="colGroup" prefWidth="130.0" text="Group"/>
-                        <TableColumn fx:id="colQuestions" prefWidth="90.0" text="Questions"/>
-                        <TableColumn fx:id="colMaximumMarks" prefWidth="110.0" text="Maximum Marks"/>
-                        <TableColumn fx:id="colDuration" prefWidth="90.0" text="Duration"/>
-                        <TableColumn fx:id="colStatus" prefWidth="110.0" text="Status"/>
-                        <TableColumn fx:id="colActions" prefWidth="220.0" text="Actions"/>
-                    </columns>
-                    <placeholder>
-                        <Label styleClass="empty-label" text="No quizzes yet."/>
-                    </placeholder>
-                </TableView>
+                <VBox spacing="8.0" styleClass="dashboard-card" VBox.vgrow="ALWAYS">
+                    <Label text="Quizzes" styleClass="dashboard-card-title"/>
+                    <TableView fx:id="tblQuizzes" styleClass="dashboard-table" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="colTitle" prefWidth="160.0" text="Quiz Title"/>
+                            <TableColumn fx:id="colCategory" prefWidth="150.0" text="Quiz Title Template"/>
+                            <TableColumn fx:id="colGroup" prefWidth="130.0" text="Group"/>
+                            <TableColumn fx:id="colQuestions" prefWidth="90.0" text="Questions"/>
+                            <TableColumn fx:id="colMaximumMarks" prefWidth="110.0" text="Maximum Marks"/>
+                            <TableColumn fx:id="colDuration" prefWidth="90.0" text="Duration"/>
+                            <TableColumn fx:id="colStatus" prefWidth="110.0" text="Status"/>
+                            <TableColumn fx:id="colActions" prefWidth="280.0" text="Actions"/>
+                        </columns>
+                        <placeholder>
+                            <Label styleClass="empty-label" text="No quizzes yet."/>
+                        </placeholder>
+                    </TableView>
+                </VBox>
             </VBox>
-        </VBox>
+
+            <!-- CREATE VIEW -->
+            <VBox fx:id="createPane" spacing="12.0" styleClass="dashboard-content"
+                  visible="false" managed="false">
+                <padding><Insets top="4" right="4" bottom="4" left="4"/></padding>
+
+                <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-header">
+                    <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                        <Label fx:id="lblFormTitle" text="Create New Quiz" styleClass="dashboard-title"/>
+                        <Label fx:id="lblFormSubtitle" text="Draft a quiz, add questions next, then publish when ready."
+                               styleClass="dashboard-subtitle"/>
+                    </VBox>
+                    <Button text="Back to list" onAction="#cancelCreateQuiz" styleClass="btn-outline"/>
+                </HBox>
+
+                <VBox spacing="14.0" styleClass="quiz-card" maxWidth="720">
+                    <Label text="Quiz details" styleClass="dashboard-card-title"/>
+
+                    <VBox spacing="6.0">
+                        <Label text="Quiz Title Template" styleClass="form-label"/>
+                        <ComboBox fx:id="cmbCategory" maxWidth="Infinity" promptText="Select quiz title"/>
+                    </VBox>
+
+                    <VBox spacing="6.0">
+                        <Label text="Assign To Group" styleClass="form-label"/>
+                        <ComboBox fx:id="cmbGroup" maxWidth="Infinity" promptText="Select group"/>
+                    </VBox>
+
+                    <VBox spacing="6.0">
+                        <Label text="Quiz Title" styleClass="form-label"/>
+                        <TextField fx:id="txtTitle" promptText="Enter quiz title"/>
+                    </VBox>
+
+                    <VBox spacing="6.0">
+                        <Label text="Description" styleClass="form-label"/>
+                        <TextArea fx:id="txtDescription" prefRowCount="3" wrapText="true"
+                                  promptText="Describe this quiz"
+                                  styleClass="form-textarea"/>
+                    </VBox>
+
+                    <HBox spacing="12.0">
+                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                            <Label text="Duration (minutes)" styleClass="form-label"/>
+                            <Spinner fx:id="spnDuration" editable="true" maxWidth="Infinity"/>
+                        </VBox>
+                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                            <Label text="Participation Marks" styleClass="form-label"/>
+                            <Spinner fx:id="spnParticipation" editable="true" maxWidth="Infinity"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="12.0">
+                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                            <Label text="Start Time" styleClass="form-label"/>
+                            <TextField fx:id="txtStartTime" promptText="yyyy-MM-dd'T'HH:mm"/>
+                        </VBox>
+                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                            <Label text="End Time" styleClass="form-label"/>
+                            <TextField fx:id="txtEndTime" promptText="yyyy-MM-dd'T'HH:mm"/>
+                        </VBox>
+                    </HBox>
+
+                    <Label fx:id="lblCreateFeedback" wrapText="true" styleClass="dashboard-subtitle"/>
+
+                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                        <Button text="Cancel" onAction="#cancelCreateQuiz" styleClass="btn-outline"/>
+                        <Button fx:id="btnSaveQuiz" text="Create Quiz" onAction="#saveCreateQuiz"
+                                styleClass="btn-primary"/>
+                    </HBox>
+                </VBox>
+            </VBox>
+
+            <!-- REVIEW VIEW -->
+            <VBox fx:id="reviewPane" spacing="12.0" styleClass="dashboard-content"
+                  visible="false" managed="false">
+                <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-header">
+                    <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                        <Label text="Review Quiz" styleClass="dashboard-title"/>
+                        <Label text="Review the quiz and its questions before publishing."
+                               styleClass="dashboard-subtitle"/>
+                    </VBox>
+                    <Button text="Back to list" onAction="#closeReview" styleClass="btn-outline"/>
+                    <Button fx:id="btnReviewEdit" text="Edit Schedule" onAction="#editFromReview"
+                            styleClass="btn-outline"/>
+                    <Button fx:id="btnReviewPublish" text="Publish Quiz" onAction="#publishFromReview"
+                            styleClass="btn-primary"/>
+                </HBox>
+
+                <VBox spacing="10.0" styleClass="quiz-card">
+                    <Label fx:id="lblReviewTitle" styleClass="dashboard-card-title" text="Quiz"/>
+                    <Label fx:id="lblReviewDescription" wrapText="true" styleClass="dashboard-subtitle"/>
+                    <HBox spacing="18.0">
+                        <Label fx:id="lblReviewCategory" styleClass="quiz-badge"/>
+                        <Label fx:id="lblReviewGroup" styleClass="quiz-badge"/>
+                        <Label fx:id="lblReviewStatus" styleClass="quiz-badge"/>
+                        <Label fx:id="lblReviewDuration" styleClass="quiz-badge"/>
+                        <Label fx:id="lblReviewMarks" styleClass="quiz-badge"/>
+                    </HBox>
+                </VBox>
+
+                <VBox spacing="8.0" styleClass="dashboard-card" VBox.vgrow="ALWAYS">
+                    <Label text="Questions" styleClass="dashboard-card-title"/>
+                    <TableView fx:id="tblReviewQuestions" styleClass="dashboard-table" VBox.vgrow="ALWAYS"
+                               prefHeight="320">
+                        <columns>
+                            <TableColumn fx:id="colReviewNumber" prefWidth="50.0" text="#"/>
+                            <TableColumn fx:id="colReviewQuestion" prefWidth="280.0" text="Question"/>
+                            <TableColumn fx:id="colReviewOptions" prefWidth="360.0" text="Options"/>
+                            <TableColumn fx:id="colReviewCorrect" prefWidth="80.0" text="Correct"/>
+                            <TableColumn fx:id="colReviewMarks" prefWidth="70.0" text="Marks"/>
+                        </columns>
+                        <placeholder>
+                            <Label styleClass="empty-label"
+                                   text="This quiz has no questions yet. Add some in the Questions tab."/>
+                        </placeholder>
+                    </TableView>
+                </VBox>
+            </VBox>
+        </StackPane>
     </content>
 </ScrollPane>

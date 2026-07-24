@@ -82,8 +82,12 @@ public final class StudentQuizLauncher {
             throw new IllegalStateException("You have already submitted this quiz.");
         }
 
-        QuizAttempt attempt = attemptDAO.startOrResume(
-            freshQuiz, user.getId(), user.getName(), currentCategory);
-        return new LaunchRequest(freshQuiz, questions, user, attempt);
+        try {
+            QuizAttempt attempt = attemptDAO.startOrResume(
+                freshQuiz, user.getId(), user.getName(), currentCategory);
+            return new LaunchRequest(freshQuiz, questions, user, attempt);
+        } catch (java.sql.SQLException e) {
+            throw new IllegalStateException("Quiz attempt could not be created: " + e.getMessage(), e);
+        }
     }
 }

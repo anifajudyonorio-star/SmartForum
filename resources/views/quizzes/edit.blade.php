@@ -6,7 +6,7 @@
 
     @if(!$quiz->isDraft() || $quiz->hasAssessmentActivity())
         <div class="alert alert-info">
-            Published assessment settings are locked. Only the title and description can be updated.
+            Group and quiz-title assignment are locked after publish. You can still update the title, description, duration, and start/end times.
         </div>
     @endif
 
@@ -60,8 +60,7 @@
 
                 <div class="mb-3">
                     <label class="form-label">Duration (minutes)</label>
-                    <input type="number" name="duration" class="form-control" value="{{ old('duration', $quiz->duration) }}" min="1" required
-                           @disabled(!$quiz->isDraft() || $quiz->hasAssessmentActivity())>
+                    <input type="number" name="duration" class="form-control" value="{{ old('duration', $quiz->duration) }}" min="1" required>
                 </div>
                 <div class="mb-3">
                       <label class="form-label">Participation Marks</label>
@@ -80,14 +79,12 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Start Time</label>
                         <input type="datetime-local" name="start_time" class="form-control"
-                               value="{{ old('start_time', $quiz->start_time?->format('Y-m-d\TH:i')) }}" required
-                               @disabled(!$quiz->isDraft() || $quiz->hasAssessmentActivity())>
+                               value="{{ old('start_time', $quiz->start_time?->format('Y-m-d\TH:i')) }}" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">End Time</label>
                         <input type="datetime-local" name="end_time" class="form-control"
-                               value="{{ old('end_time', $quiz->end_time?->format('Y-m-d\TH:i')) }}" required
-                               @disabled(!$quiz->isDraft() || $quiz->hasAssessmentActivity())>
+                               value="{{ old('end_time', $quiz->end_time?->format('Y-m-d\TH:i')) }}" required>
                     </div>
                 </div>
 

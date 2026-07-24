@@ -99,8 +99,26 @@ public class ApiClient {
     }
 
     private static String extractMessage(JsonObject json, boolean ok) {
-        if (json.has("message")) {
+        if (json.has("message") && !json.get("message").isJsonNull()) {
             return json.get("message").getAsString();
+        }
+        if (!ok && json.has("errors") && json.get("errors").isJsonObject()) {
+            StringBuilder combined = new StringBuilder();
+            JsonObject errors = json.getAsJsonObject("errors");
+            for (String key : errors.keySet()) {
+                if (!errors.get(key).isJsonArray()) {
+                    continue;
+                }
+                for (JsonElement element : errors.getAsJsonArray(key)) {
+                    if (combined.length() > 0) {
+                        combined.append(' ');
+                    }
+                    combined.append(element.getAsString());
+                }
+            }
+            if (combined.length() > 0) {
+                return combined.toString();
+            }
         }
         return ok ? "Success" : "Request failed";
     }
@@ -258,8 +276,49 @@ public class ApiClient {
         return mutateJson("DELETE", "/api/quiz-announcements/" + announcementId, null);
     }
 
+    public static Optional<JsonObject> getQuizCategories() {
+        return getJson("/api/quiz-categories");
+    }
+
+    public static MutationResult createQuizCategory(String name, String description) {
+        JsonObject body = new JsonObject();
+        body.addProperty("category_name", name);
+        if (description != null) {
+            body.addProperty("description", description);
+        }
+        return mutateJson("POST", "/api/quiz-categories", body);
+    }
+
+    public static Optional<JsonObject> getManagedQuestions() {
+        return getJson("/api/questions");
+    }
+
+    public static MutationResult createQuestion(JsonObject body) {
+        return mutateJson("POST", "/api/questions", body);
+    }
+
+    public static MutationResult updateQuestion(int questionId, JsonObject body) {
+        return mutateJson("PUT", "/api/questions/" + questionId, body);
+    }
+
+    public static MutationResult deleteQuestion(int questionId) {
+        return mutateJson("DELETE", "/api/questions/" + questionId, null);
+    }
+
     public static Optional<JsonObject> getManagedQuizzes() {
         return getJson("/api/quizzes");
+    }
+
+    public static MutationResult createQuiz(JsonObject body) {
+        return mutateJson("POST", "/api/quizzes", body);
+    }
+
+    public static MutationResult updateQuiz(int quizId, JsonObject body) {
+        return mutateJson("PUT", "/api/quizzes/" + quizId, body);
+    }
+
+    public static Optional<JsonObject> getManagedQuiz(int quizId) {
+        return getJson("/api/quizzes/" + quizId);
     }
 
     public static MutationResult publishQuiz(int quizId) {
@@ -272,6 +331,14 @@ public class ApiClient {
 
     public static Optional<JsonObject> getStudentQuizzes() {
         return getJson("/api/student/quizzes");
+    }
+
+    public static Optional<JsonObject> getStudentQuizLaunchPoll() {
+        return getJson("/api/student/quizzes/launch-poll");
+    }
+
+    public static Optional<JsonObject> getStudentQuizProgress() {
+        return getJson("/api/student/quizzes/progress");
     }
 
     public static MutationResult enrollInQuizCategory(int categoryId) {

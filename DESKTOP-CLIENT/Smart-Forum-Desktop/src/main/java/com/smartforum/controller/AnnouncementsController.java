@@ -64,6 +64,14 @@ public class AnnouncementsController {
         colAction.setCellValueFactory(param -> null);
         colAction.setCellFactory(column -> actionCell());
         tblAnnouncements.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        // Always configure on load (sidebar navigation and Quizzes → Announcements tab).
+        configureForCurrentUser();
+    }
+
+    /** Refresh when the Announcements tab is selected inside quiz management. */
+    public void reload() {
+        configureForCurrentUser();
     }
 
     public void setOpenQuizzesHandler(Runnable handler) {
@@ -73,10 +81,13 @@ public class AnnouncementsController {
     /** Adapt UI for the signed-in role (called by MainShell after load). */
     public void configureForCurrentUser() {
         boolean isStudent = AppSession.getInstance().isStudent();
+        boolean canPost = AppSession.getInstance().isLecturer()
+                || AppSession.getInstance().isSystemAdmin()
+                || !isStudent;
 
         if (lecturerLayout != null) {
-            lecturerLayout.setVisible(!isStudent);
-            lecturerLayout.setManaged(!isStudent);
+            lecturerLayout.setVisible(canPost);
+            lecturerLayout.setManaged(canPost);
         }
         if (studentCardsBox != null) {
             studentCardsBox.setVisible(isStudent);

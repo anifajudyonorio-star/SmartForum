@@ -1,16 +1,12 @@
 package com.smartforum.controller;
 
-import com.smartforum.dao.QuestionDAO;
 import com.smartforum.model.Quiz;
-import com.smartforum.util.QuizSchedule;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.util.Duration;
-
-import java.time.LocalDateTime;
 
 public class QuizLaunchDialogController {
 
@@ -25,18 +21,18 @@ public class QuizLaunchDialogController {
 
     private Quiz quiz;
     private boolean prestart;
-    private Runnable onLater;
-    private Runnable onStart;
+    private Runnable laterAction;
+    private Runnable startAction;
     private Timeline timeline;
     private long secondsLeft;
 
-    public void setup(Quiz quiz, boolean prestart, Runnable onLater, Runnable onStart) {
+    public void setup(Quiz quiz, boolean prestart, long prestartSeconds, Runnable onLater, Runnable onStart) {
         this.quiz = quiz;
         this.prestart = prestart;
-        this.onLater = onLater;
-        this.onStart = onStart;
+        this.laterAction = onLater;
+        this.startAction = onStart;
 
-        int questionCount = new QuestionDAO().getQuestionsByQuizId(quiz.getId()).size();
+        int questionCount = quiz.getQuestionsCount();
         lblTitle.setText(prestart ? quiz.getTitle() + " starts soon" : quiz.getTitle() + " is live");
         String description = quiz.getDescription();
         lblDescription.setText(
@@ -45,15 +41,13 @@ public class QuizLaunchDialogController {
                 : description
         );
         lblDuration.setText(quiz.getDuration() + " min");
-        lblQuestions.setText(questionCount + " questions");
+        lblQuestions.setText(Math.max(0, questionCount) + " questions");
 
         if (prestart) {
             lblTimerLabel.setText("Starts in");
             btnStart.setText("Wait for start");
             btnStart.setDisable(true);
-            LocalDateTime start = QuizSchedule.parseStart(quiz.getStartDate());
-            secondsLeft = start == null ? 0
-                : Math.max(0, java.time.Duration.between(LocalDateTime.now(), start).getSeconds());
+            secondsLeft = Math.max(0, prestartSeconds);
         } else {
             lblTimerLabel.setText("Quiz duration");
             btnStart.setText("Start Quiz");
@@ -101,8 +95,8 @@ public class QuizLaunchDialogController {
     @FXML
     private void onLater() {
         stopTimer();
-        if (onLater != null) {
-            onLater.run();
+        if (laterAction != null) {
+            laterAction.run();
         }
     }
 
@@ -112,8 +106,8 @@ public class QuizLaunchDialogController {
             return;
         }
         stopTimer();
-        if (onStart != null) {
-            onStart.run();
+        if (startAction != null) {
+            startAction.run();
         }
     }
 

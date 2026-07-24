@@ -57,7 +57,7 @@ public class GroupStatisticsController {
     @FXML
     private void onBackToAllStatistics() {
         if (navigator != null) {
-            navigator.showStatisticsOverview();
+            navigator.reopenStatisticsOverview();
         }
     }
 

@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\ParticipationApiController;
 use App\Http\Controllers\Api\PostApiController;
 use App\Http\Controllers\Api\QuizAnnouncementApiController;
 use App\Http\Controllers\Api\QuizApiController;
+use App\Http\Controllers\Api\QuizCategoryApiController;
+use App\Http\Controllers\Api\QuestionApiController;
 use App\Http\Controllers\Api\StudentQuizApiController;
 use App\Http\Controllers\Api\ReportApiController;
 use App\Http\Controllers\Api\ProfileApiController;
@@ -60,11 +62,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/quiz-announcements/{quizAnnouncement}', [QuizAnnouncementApiController::class, 'destroy']);
     Route::get('/student/announcements', [QuizAnnouncementApiController::class, 'studentFeed']);
 
+    Route::get('/quiz-categories', [QuizCategoryApiController::class, 'index']);
+    Route::post('/quiz-categories', [QuizCategoryApiController::class, 'store']);
+
+    Route::get('/questions', [QuestionApiController::class, 'index']);
+    Route::post('/questions', [QuestionApiController::class, 'store']);
+    Route::put('/questions/{question}', [QuestionApiController::class, 'update']);
+    Route::delete('/questions/{question}', [QuestionApiController::class, 'destroy']);
+
     Route::get('/quizzes', [QuizApiController::class, 'index']);
+    Route::post('/quizzes', [QuizApiController::class, 'store']);
+    Route::get('/quizzes/{quiz}', [QuizApiController::class, 'show']);
+    Route::put('/quizzes/{quiz}', [QuizApiController::class, 'update']);
     Route::patch('/quizzes/{quiz}/publish', [QuizApiController::class, 'publish']);
     Route::delete('/quizzes/{quiz}', [QuizApiController::class, 'destroy']);
 
     Route::get('/student/quizzes', [StudentQuizApiController::class, 'index']);
+    Route::get('/student/quizzes/launch-poll', [StudentQuizApiController::class, 'launchPoll']);
+    Route::get('/student/quizzes/progress', [StudentQuizApiController::class, 'progress']);
     Route::post('/student/quizzes/enroll', [StudentQuizApiController::class, 'enroll']);
     Route::post('/student/quizzes/unenroll', [StudentQuizApiController::class, 'unenroll']);
     Route::get('/student/quizzes/{quiz}', [StudentQuizApiController::class, 'show']);

@@ -21,6 +21,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.stage.Window;
 import org.kordamp.ikonli.bootstrapicons.BootstrapIcons;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -81,6 +82,7 @@ public class MainShellController implements ShellNavigator {
     private final List<Button> navButtons = new ArrayList<>();
     private final Deque<Runnable> backStack = new ArrayDeque<>();
     private String activeContentKey = "";
+    private int lastGroupStatisticsId;
 
     @FXML
     private void initialize() {
@@ -126,15 +128,29 @@ public class MainShellController implements ShellNavigator {
         startNotificationPolling();
 
         if (AppSession.getInstance().isStudent()) {
-            // Defer until the scene/window exists so the launch dialog can own it.
-            javafx.application.Platform.runLater(() -> {
-                if (contentArea.getScene() != null && contentArea.getScene().getWindow() != null) {
-                    QuizLaunchMonitor.getInstance().start(contentArea.getScene().getWindow());
+            // Always start the monitor; attach owner when the window is ready.
+            Platform.runLater(this::attachQuizLaunchMonitor);
+            contentArea.sceneProperty().addListener((obs, oldScene, newScene) -> {
+                if (newScene != null) {
+                    attachQuizLaunchMonitor();
+                    newScene.windowProperty().addListener((wObs, oldWin, newWin) -> {
+                        if (newWin != null) {
+                            QuizLaunchMonitor.getInstance().start(newWin);
+                        }
+                    });
                 }
             });
         }
 
         showDashboard();
+    }
+
+    private void attachQuizLaunchMonitor() {
+        Window window = null;
+        if (contentArea.getScene() != null) {
+            window = contentArea.getScene().getWindow();
+        }
+        QuizLaunchMonitor.getInstance().start(window);
     }
 
     private void setupNotificationsNavButton() {
@@ -181,6 +197,7 @@ public class MainShellController implements ShellNavigator {
             return;
         }
 
+        stopNotificationPolling();
         refreshNotificationUnreadCount();
 
         notificationPoller = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -189,6 +206,13 @@ public class MainShellController implements ShellNavigator {
             return thread;
         });
         notificationPoller.scheduleAtFixedRate(this::pollNotifications, 12, 12, TimeUnit.SECONDS);
+    }
+
+    private void stopNotificationPolling() {
+        if (notificationPoller != null) {
+            notificationPoller.shutdownNow();
+            notificationPoller = null;
+        }
     }
 
     private void refreshNotificationUnreadCount() {
@@ -287,10 +311,12 @@ public class MainShellController implements ShellNavigator {
     @FXML
     private void handleLogout() {
         hideProfileMenu();
+        stopNotificationPolling();
         QuizLaunchMonitor.getInstance().stop();
         SyncStatusService.getInstance().stop();
         com.smartforum.util.SessionManager.getInstance().clear();
         com.smartforum.UserSession.getInstance().clear();
+        AppSession.getInstance().clear();
         try {
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
                 getClass().getResource("/com/smartforum/auth-view.fxml"));
@@ -385,10 +411,13 @@ public class MainShellController implements ShellNavigator {
     private void setupBackNavButton() {
         FontIcon icon = FontIcon.of(BootstrapIcons.ARROW_LEFT);
         icon.getStyleClass().add("top-bar-back-icon");
+        icon.setMouseTransparent(true);
         backNavBtn.setGraphic(icon);
         backNavBtn.setText("");
         backNavBtn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         backNavBtn.setTooltip(new Tooltip("Go back"));
+        // Ensure the handler is wired even if FXML binding is stale.
+        backNavBtn.setOnAction(e -> onBack());
     }
 
     @FXML
@@ -439,14 +468,16 @@ public class MainShellController implements ShellNavigator {
                 FXMLLoader loader = new FXMLLoader(resource);
                 Node view = loader.load();
                 TakeQuizController ctrl = loader.getController();
-                ctrl.setOpenAnnouncementsHandler(this::showAnnouncementsInternal);
-                ctrl.setOpenQuizProgressHandler(this::showQuizProgressInternal);
+                // Use public navigators so the back stack records Quizzes → Announcements/Progress.
+                ctrl.setOpenAnnouncementsHandler(this::showAnnouncements);
+                ctrl.setOpenQuizProgressHandler(this::showQuizProgress);
                 ctrl.loadForCurrentStudent();
                 fillContentArea(view);
                 contentArea.getChildren().setAll(view);
                 activeContentKey = "TakeQuiz.fxml";
                 pageTitleLabel.setText(APP_TITLE);
                 setActiveNav(activeQuizzesNavBtn());
+                updateBackButton();
             } catch (Exception e) {
                 showLoadError("TakeQuiz.fxml", e);
             }
@@ -462,13 +493,15 @@ public class MainShellController implements ShellNavigator {
             FXMLLoader loader = new FXMLLoader(resource);
             Node view = loader.load();
             AnnouncementsController ctrl = loader.getController();
-            ctrl.setOpenQuizzesHandler(this::showQuizzesInternal);
+            // Use public navigator so Available Quizzes pushes Announcements onto the back stack.
+            ctrl.setOpenQuizzesHandler(this::showQuizzes);
             ctrl.configureForCurrentUser();
             fillContentArea(view);
             contentArea.getChildren().setAll(view);
             activeContentKey = "Announcements.fxml";
             pageTitleLabel.setText(APP_TITLE);
             setActiveNav(activeAnnouncementsNavBtn());
+            updateBackButton();
         } catch (Exception e) {
             showLoadError("Announcements.fxml", e);
         }
@@ -489,6 +522,7 @@ public class MainShellController implements ShellNavigator {
             activeContentKey = "Results.fxml";
             pageTitleLabel.setText(APP_TITLE);
             setActiveNav(quizReportsNavBtn);
+            updateBackButton();
         } catch (Exception e) {
             showLoadError("Results.fxml", e);
         }
@@ -526,10 +560,33 @@ public class MainShellController implements ShellNavigator {
 
     @FXML
     private void onBack() {
-        if (backStack.isEmpty()) {
-            return;
+        try {
+            if (!backStack.isEmpty()) {
+                // Restore the real previous page (no extra history entry).
+                backStack.pop().run();
+            } else if (activeContentKey != null && !activeContentKey.isBlank()
+                    && !activeContentKey.endsWith("-dashboard.fxml")) {
+                // Safety net: if history is empty but we left Home, return to dashboard.
+                showDashboardInternal();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            showLoadError("previous page", ex);
         }
-        backStack.pop().run();
+        updateBackButton();
+    }
+
+    /** Open a group without adding to the back stack (in-page "Back to Group" links). */
+    @Override
+    public void reopenGroup(int groupId) {
+        showGroupInternal(groupId);
+        updateBackButton();
+    }
+
+    /** Open statistics overview without adding to the back stack. */
+    @Override
+    public void reopenStatisticsOverview() {
+        showStatisticsInternal();
         updateBackButton();
     }
 
@@ -624,6 +681,7 @@ public class MainShellController implements ShellNavigator {
     }
 
     private void showGroupStatisticsInternal(int groupId) {
+        lastGroupStatisticsId = groupId;
         loadView("group-statistics.fxml", statisticsNavBtn, controller -> {
             if (controller instanceof GroupStatisticsController stats) {
                 stats.setNavigator(this);
@@ -682,76 +740,109 @@ public class MainShellController implements ShellNavigator {
     }
 
     private void navigateWithBack(Runnable forward) {
-        Runnable back = captureBackTarget();
-        if (back != null) {
-            backStack.push(back);
+        // Snapshot the current page BEFORE leaving so Back can restore it.
+        if (activeContentKey != null && !activeContentKey.isBlank()) {
+            backStack.push(captureBackTarget());
         }
         forward.run();
         updateBackButton();
     }
 
+    /**
+     * Snapshot how to restore the page currently on screen.
+     * Prefer activeContentKey over node-identity checks — those were unreliable
+     * and caused Back to fall through to the dashboard.
+     */
     private Runnable captureBackTarget() {
-        if (topicSearchController != null && topicSearchController.getRootNode() != null
-                && isCurrentView(topicSearchController.getRootNode())) {
-            return this::openTopicSearchInternal;
-        }
+        String key = activeContentKey == null ? "" : activeContentKey;
 
-        if (groupController != null && groupController.getRootNode() != null
-                && isCurrentView(groupController.getRootNode())) {
+        if ("groups.fxml".equals(key) && groupController != null) {
             if (groupController.isShowingDetail()) {
                 int groupId = groupController.getGroupId();
                 return () -> showGroupInternal(groupId);
             }
             if (groupController.isShowingCreate()) {
-                return groupController.isExploreMode()
-                        ? this::showExploreGroupsInternal
-                        : this::showGroupsIndexInternal;
+                return this::showCreateGroupInternal;
             }
             return groupController.isExploreMode()
                     ? this::showExploreGroupsInternal
                     : this::showGroupsIndexInternal;
         }
 
-        if (topicController != null && topicController.getRootNode() != null
-                && isCurrentView(topicController.getRootNode())) {
+        if ("topics.fxml".equals(key) && topicController != null) {
+            if (topicController.isCreating()) {
+                int groupId = topicController.getGroupId();
+                return () -> showCreateTopicInternal(groupId);
+            }
+            int topicId = topicController.getTopicId();
+            if (topicId > 0) {
+                return () -> showTopicInternal(topicId);
+            }
             int groupId = topicController.getGroupId();
-            return () -> showGroupInternal(groupId);
+            if (groupId > 0) {
+                return () -> showGroupInternal(groupId);
+            }
         }
 
-        if ("notifications.fxml".equals(activeContentKey)) {
+        if ("topic-search.fxml".equals(key)) {
+            return this::openTopicSearchInternal;
+        }
+
+        if ("notifications.fxml".equals(key)) {
             return this::showNotificationsInternal;
         }
 
-        if ("group-statistics.fxml".equals(activeContentKey)) {
+        if ("group-statistics.fxml".equals(key)) {
+            int groupId = lastGroupStatisticsId;
+            return () -> showGroupStatisticsInternal(groupId);
+        }
+
+        if ("statistics.fxml".equals(key)) {
             return this::showStatisticsInternal;
         }
 
-        if ("statistics.fxml".equals(activeContentKey)) {
-            return this::showStatisticsInternal;
+        if ("participation.fxml".equals(key)) {
+            return this::showParticipationInternal;
         }
 
-        if ("participation.fxml".equals(activeContentKey)) {
+        if ("TakeQuiz.fxml".equals(key)) {
+            return this::showQuizzesInternal;
+        }
+
+        if ("Announcements.fxml".equals(key)) {
+            return this::showAnnouncementsInternal;
+        }
+
+        if ("Results.fxml".equals(key)) {
+            return this::showQuizReportsInternal;
+        }
+
+        if ("quiz-progress.fxml".equals(key)) {
+            return this::showQuizProgressInternal;
+        }
+
+        if ("quiz-management.fxml".equals(key)) {
+            return this::showQuizManagementInternal;
+        }
+
+        if ("user-management.fxml".equals(key)) {
+            return this::showUserManagementInternal;
+        }
+
+        if ("profile.fxml".equals(key)) {
+            return this::showProfileInternal;
+        }
+
+        if (key.endsWith("-dashboard.fxml")) {
             return this::showDashboardInternal;
         }
 
-        if ("TakeQuiz.fxml".equals(activeContentKey)
-                || "Announcements.fxml".equals(activeContentKey)
-                || "Results.fxml".equals(activeContentKey)
-                || "quiz-progress.fxml".equals(activeContentKey)) {
-            return this::showDashboardInternal;
-        }
-
-        if ("quiz-management.fxml".equals(activeContentKey)
-                || "user-management.fxml".equals(activeContentKey)) {
-            return this::showDashboardInternal;
-        }
-
-        if (activeContentKey != null && activeContentKey.endsWith("-dashboard.fxml")) {
-            return this::showDashboardInternal;
-        }
-
-        if ("groups.fxml".equals(activeContentKey)) {
-            return this::showGroupsIndexInternal;
+        // Last resort: reload by known key via the standard view loader when possible.
+        if (!key.isBlank() && !key.equals("TakeQuiz.fxml")
+                && !key.equals("Announcements.fxml")
+                && !key.equals("Results.fxml")) {
+            String reloadKey = key;
+            return () -> loadView(reloadKey, null, null);
         }
 
         return this::showDashboardInternal;
@@ -763,7 +854,10 @@ public class MainShellController implements ShellNavigator {
     }
 
     private void updateBackButton() {
-        backNavBtn.setDisable(backStack.isEmpty());
+        boolean canGoBack = !backStack.isEmpty()
+                || (activeContentKey != null && !activeContentKey.isBlank()
+                && !activeContentKey.endsWith("-dashboard.fxml"));
+        backNavBtn.setDisable(!canGoBack);
     }
 
     private void wireDashboardController(Object controller) {
@@ -855,6 +949,7 @@ public class MainShellController implements ShellNavigator {
             activeContentKey = fxmlFile;
             pageTitleLabel.setText(APP_TITLE);
             setActiveNav(activeButton);
+            updateBackButton();
         } catch (Exception e) {
             showLoadError(fxmlFile, e);
         }

@@ -63,6 +63,29 @@ public class Question {
     public int getMarks() { return marks; }
     public void setMarks(int marks) { this.marks = marks; }
 
+    /** Summary of options for review tables (A. text ✓ | B. text …). */
+    public String getOptionsDisplay() {
+        StringBuilder sb = new StringBuilder();
+        appendOption(sb, "A", optionA, "A".equalsIgnoreCase(correctAnswer));
+        appendOption(sb, "B", optionB, "B".equalsIgnoreCase(correctAnswer));
+        appendOption(sb, "C", optionC, "C".equalsIgnoreCase(correctAnswer));
+        appendOption(sb, "D", optionD, "D".equalsIgnoreCase(correctAnswer));
+        return sb.toString();
+    }
+
+    private static void appendOption(StringBuilder sb, String letter, String text, boolean correct) {
+        if (text == null || text.isBlank()) {
+            return;
+        }
+        if (sb.length() > 0) {
+            sb.append("  |  ");
+        }
+        sb.append(letter).append(". ").append(text);
+        if (correct) {
+            sb.append(" ✓");
+        }
+    }
+
     public int getOptionAId() { return optionAId; }
     public void setOptionAId(int optionAId) { this.optionAId = optionAId; }
 

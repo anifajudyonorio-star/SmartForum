@@ -224,18 +224,25 @@ class QuizLifecycleAuthoringTest extends TestCase
             ->put(route('quizzes.update', $quiz), [
                 'title' => 'Safe metadata title',
                 'description' => 'Safe metadata description',
+                'duration' => 20,
+                'start_time' => now()->addDay()->format('Y-m-d\TH:i'),
+                'end_time' => now()->addDays(2)->format('Y-m-d\TH:i'),
             ])
             ->assertRedirect(route('quizzes.index'));
         $this->assertSame('Safe metadata title', $quiz->fresh()->title);
+        $this->assertSame(20, $quiz->fresh()->duration);
 
         $this->actingAs($lecturer)
             ->put(route('quizzes.update', $quiz), [
                 'title' => 'Unsafe',
                 'description' => 'Unsafe',
                 'duration' => 99,
+                'start_time' => now()->addDay()->format('Y-m-d\TH:i'),
+                'end_time' => now()->addDays(2)->format('Y-m-d\TH:i'),
+                'group_id' => $group->id,
             ])
             ->assertSessionHasErrors('quiz');
-        $this->assertSame(15, $quiz->fresh()->duration);
+        $this->assertSame(20, $quiz->fresh()->duration);
     }
 
     public function test_published_quiz_and_dependent_category_deletion_are_guarded(): void

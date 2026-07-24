@@ -12,6 +12,8 @@ public class QuizAttempt {
     private LocalDateTime deadlineAt;
     private String status;
     private String answers;
+    /** When >= 0, preferred over deadlineAt for the countdown (API remaining_seconds). */
+    private long remainingSeconds = -1;
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -31,4 +33,6 @@ public class QuizAttempt {
     public void setStatus(String status) { this.status = status; }
     public String getAnswers() { return answers; }
     public void setAnswers(String answers) { this.answers = answers; }
+    public long getRemainingSeconds() { return remainingSeconds; }
+    public void setRemainingSeconds(long remainingSeconds) { this.remainingSeconds = remainingSeconds; }
 }

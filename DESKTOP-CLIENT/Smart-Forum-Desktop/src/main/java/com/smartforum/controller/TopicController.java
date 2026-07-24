@@ -126,6 +126,14 @@ public class TopicController {
         return groupId;
     }
 
+    public int getTopicId() {
+        return topicId;
+    }
+
+    public boolean isCreating() {
+        return createPane != null && createPane.isVisible();
+    }
+
     public void setNavigator(ShellNavigator navigator) {
         this.navigator = navigator;
     }
@@ -288,7 +296,7 @@ public class TopicController {
     @FXML
     public void onBackToGroup(ActionEvent event) {
         if (navigator != null) {
-            navigator.showGroup(groupId);
+            navigator.reopenGroup(groupId);
         }
     }
 

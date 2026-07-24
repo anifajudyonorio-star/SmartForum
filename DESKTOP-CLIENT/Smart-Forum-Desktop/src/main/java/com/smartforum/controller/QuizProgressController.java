@@ -1,9 +1,14 @@
 package com.smartforum.controller;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.smartforum.api.ApiClient;
 import com.smartforum.dao.QuizResultDAO;
 import com.smartforum.model.ForumUser;
 import com.smartforum.model.QuizResult;
 import com.smartforum.service.AppSession;
+import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -259,8 +264,9 @@ public class QuizProgressController {
 
         Thread loader = new Thread(() -> {
             try {
-                List<QuizResult> results =
-                        quizResultDAO.getStudentProgress(currentUser.getId(), currentUser.getName());
+                List<QuizResult> results = ApiSupport.useApi()
+                        ? loadApiProgress()
+                        : quizResultDAO.getStudentProgress(currentUser.getId(), currentUser.getName());
                 Platform.runLater(() -> showQuizProgress(results));
             } catch (SQLException | RuntimeException e) {
                 Platform.runLater(() ->
@@ -269,6 +275,37 @@ public class QuizProgressController {
         }, "student-quiz-progress");
         loader.setDaemon(true);
         loader.start();
+    }
+
+    private List<QuizResult> loadApiProgress() {
+        return ApiClient.getStudentQuizProgress()
+                .map(json -> {
+                    List<QuizResult> results = new java.util.ArrayList<>();
+                    JsonArray array = json.getAsJsonArray("results");
+                    if (array == null) {
+                        return results;
+                    }
+                    for (JsonElement element : array) {
+                        JsonObject item = element.getAsJsonObject();
+                        QuizResult result = new QuizResult();
+                        result.setId(item.get("id").getAsInt());
+                        result.setQuizId(item.get("quiz_id").getAsInt());
+                        result.setQuizTitle(item.get("quiz_title").getAsString());
+                        result.setScore(item.get("score").getAsInt());
+                        result.setTotalMarks(item.get("total_marks").getAsInt());
+                        result.setParticipationMarks(item.get("participation_marks").getAsInt());
+                        result.setTotalScore(item.get("total_score").getAsInt());
+                        result.setFinalPossibleMarks(item.get("final_possible_marks").getAsInt());
+                        if (item.has("submitted_at") && !item.get("submitted_at").isJsonNull()) {
+                            result.setSubmittedAt(item.get("submitted_at").getAsString());
+                        }
+                        results.add(result);
+                    }
+                    // Chart expects oldest → newest; API returns newest first.
+                    java.util.Collections.reverse(results);
+                    return results;
+                })
+                .orElseGet(java.util.ArrayList::new);
     }
 
     private void showQuizProgress(List<QuizResult> results) {

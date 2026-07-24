@@ -81,8 +81,12 @@ public class QuizModalController {
         lblQuizTitle.setText(quiz.getTitle());
         lblDurationBadge.setText(quiz.getDuration() + " min  •  " + questions.size() + " questions");
 
-        secondsLeft = Math.max(0, java.time.Duration.between(
-            LocalDateTime.now(), attempt.getDeadlineAt()).getSeconds());
+        if (attempt.getRemainingSeconds() >= 0) {
+            secondsLeft = attempt.getRemainingSeconds();
+        } else {
+            secondsLeft = Math.max(0, java.time.Duration.between(
+                LocalDateTime.now(), attempt.getDeadlineAt()).getSeconds());
+        }
         updateTimerLabel();
 
         timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
@@ -214,41 +218,45 @@ public class QuizModalController {
     }
 
     private void submitViaApi(boolean timedOut) {
-        com.google.gson.JsonObject answerPayload = new com.google.gson.JsonObject();
-        answers.forEach((questionId, letter) -> {
-            Question question = questions.stream()
-                    .filter(item -> item.getId() == questionId)
-                    .findFirst()
-                    .orElse(null);
-            if (question != null) {
-                int optionId = question.optionIdForLetter(letter);
-                if (optionId > 0) {
-                    answerPayload.addProperty(String.valueOf(questionId), optionId);
+        new Thread(() -> {
+            com.google.gson.JsonObject answerPayload = new com.google.gson.JsonObject();
+            answers.forEach((questionId, letter) -> {
+                Question question = questions.stream()
+                        .filter(item -> item.getId() == questionId)
+                        .findFirst()
+                        .orElse(null);
+                if (question != null) {
+                    int optionId = question.optionIdForLetter(letter);
+                    if (optionId > 0) {
+                        answerPayload.addProperty(String.valueOf(questionId), optionId);
+                    }
                 }
-            }
-        });
+            });
 
-        com.smartforum.api.ApiClient.MutationResult result = com.smartforum.api.ApiClient.submitStudentQuiz(
-                quiz.getId(), attempt.getId(), answerPayload);
+            com.smartforum.api.ApiClient.MutationResult result = com.smartforum.api.ApiClient.submitStudentQuiz(
+                    quiz.getId(), attempt.getId(), answerPayload);
 
-        if (!result.success() || result.body() == null || !result.body().has("result")) {
-            submitting = false;
-            showError("Submission was not saved.\n" + (result.message().isBlank()
-                    ? "Please try again."
-                    : result.message()));
-            if (secondsLeft > 0) timer.play();
-            return;
-        }
+            javafx.application.Platform.runLater(() -> {
+                if (!result.success() || result.body() == null || !result.body().has("result")) {
+                    submitting = false;
+                    showError("Submission was not saved.\n" + (result.message().isBlank()
+                            ? "Please try again."
+                            : result.message()));
+                    if (secondsLeft > 0) timer.play();
+                    return;
+                }
 
-        com.google.gson.JsonObject resultJson = result.body().getAsJsonObject("result");
-        int score = resultJson.get("score").getAsInt();
-        int authoredTotal = resultJson.get("total_marks").getAsInt();
-        int participationMarks = resultJson.get("participation_marks").getAsInt();
-        int finalScore = resultJson.get("total_score").getAsInt();
-        int finalPossibleMarks = resultJson.get("final_possible_marks").getAsInt();
-        double pct = resultJson.get("percentage").getAsDouble();
+                com.google.gson.JsonObject resultJson = result.body().getAsJsonObject("result");
+                int score = resultJson.get("score").getAsInt();
+                int authoredTotal = resultJson.get("total_marks").getAsInt();
+                int participationMarks = resultJson.get("participation_marks").getAsInt();
+                int finalScore = resultJson.get("total_score").getAsInt();
+                int finalPossibleMarks = resultJson.get("final_possible_marks").getAsInt();
+                double pct = resultJson.get("percentage").getAsDouble();
 
-        showResultPane(score, authoredTotal, participationMarks, finalScore, finalPossibleMarks, pct, timedOut);
+                showResultPane(score, authoredTotal, participationMarks, finalScore, finalPossibleMarks, pct, timedOut);
+            });
+        }, "quiz-api-submit").start();
     }
 
     private void showResultPane(int score, int authoredTotal, int participationMarks, int finalScore,

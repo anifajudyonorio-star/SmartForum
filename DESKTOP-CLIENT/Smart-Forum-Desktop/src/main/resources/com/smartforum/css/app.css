@@ -1323,6 +1323,24 @@
     -fx-font-family: "Nunito", sans-serif;
 }
 
+.spinner {
+    -fx-background-color: white;
+    -fx-border-color: #d1fae5;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-font-family: "Nunito", sans-serif;
+}
+
+.spinner .text-field {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-font-family: "Nunito", sans-serif;
+}
+
+.spinner:focused {
+    -fx-border-color: #16a34a;
+}
+
 /* ── Topic chat (matches web wa-chat) ─────────────────── */
 .wa-chat {
     -fx-background-color: #e5ddd5;

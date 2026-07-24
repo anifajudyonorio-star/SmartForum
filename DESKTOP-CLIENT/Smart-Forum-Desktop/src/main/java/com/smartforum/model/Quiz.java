@@ -15,6 +15,7 @@ public class Quiz {
     private int questionsCount;
     private int maximumMarks;
     private String groupName;
+    private int groupId;
     private String lifecycleStatus;
     private String statusLabel;
     private boolean completed;
@@ -22,6 +23,9 @@ public class Quiz {
     private boolean canPublish;
     private boolean canDelete;
     private boolean published;
+    private boolean canEditQuestions;
+    private boolean canEditSchedule = true;
+    private boolean canEditAssignment = true;
 
     public Quiz() {}
 
@@ -78,6 +82,9 @@ public class Quiz {
     public String getGroupName() { return groupName; }
     public void setGroupName(String groupName) { this.groupName = groupName; }
 
+    public int getGroupId() { return groupId; }
+    public void setGroupId(int groupId) { this.groupId = groupId; }
+
     public String getLifecycleStatus() { return lifecycleStatus; }
     public void setLifecycleStatus(String lifecycleStatus) { this.lifecycleStatus = lifecycleStatus; }
 
@@ -98,6 +105,15 @@ public class Quiz {
 
     public boolean isPublished() { return published; }
     public void setPublished(boolean published) { this.published = published; }
+
+    public boolean isCanEditQuestions() { return canEditQuestions; }
+    public void setCanEditQuestions(boolean canEditQuestions) { this.canEditQuestions = canEditQuestions; }
+
+    public boolean isCanEditSchedule() { return canEditSchedule; }
+    public void setCanEditSchedule(boolean canEditSchedule) { this.canEditSchedule = canEditSchedule; }
+
+    public boolean isCanEditAssignment() { return canEditAssignment; }
+    public void setCanEditAssignment(boolean canEditAssignment) { this.canEditAssignment = canEditAssignment; }
 
     @Override
     public String toString() { return title; }

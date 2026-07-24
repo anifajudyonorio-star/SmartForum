@@ -17,6 +17,7 @@ import com.smartforum.model.QuizCategory;
 import com.smartforum.service.AppSession;
 import com.smartforum.service.QuizLaunchMonitor;
 import com.smartforum.service.QuizSubmissionService;
+import com.smartforum.util.ApiDateTimes;
 import com.smartforum.util.ApiSupport;
 import com.smartforum.util.QuizSchedule;
 
@@ -333,8 +334,11 @@ public class TakeQuizController {
 
     private boolean confirmPreview(JsonObject preview) {
         JsonObject quiz = preview.getAsJsonObject("quiz");
+        String description = quiz.has("description") && !quiz.get("description").isJsonNull()
+                ? quiz.get("description").getAsString()
+                : "";
         String message = quiz.get("title").getAsString() + "\n\n"
-                + (quiz.has("description") ? quiz.get("description").getAsString() : "") + "\n\n"
+                + description + "\n\n"
                 + "Scheduled: " + quiz.get("start_time").getAsString() + "\n"
                 + "Ends: " + quiz.get("end_time").getAsString() + "\n"
                 + "Duration: " + quiz.get("duration").getAsInt() + " min\n"
@@ -388,7 +392,10 @@ public class TakeQuizController {
             QuizAttempt attempt = new QuizAttempt();
             attempt.setId(attemptJson.get("id").getAsInt());
             attempt.setQuizId(quiz.getId());
-            attempt.setDeadlineAt(LocalDateTime.parse(attemptJson.get("deadline_at").getAsString()));
+            attempt.setDeadlineAt(ApiDateTimes.parseLocal(attemptJson.get("deadline_at").getAsString()));
+            if (attemptJson.has("remaining_seconds") && !attemptJson.get("remaining_seconds").isJsonNull()) {
+                attempt.setRemainingSeconds(attemptJson.get("remaining_seconds").getAsLong());
+            }
 
             ForumUser user = AppSession.getInstance().getCurrentUser();
             openQuizModal(quiz, questions, user, attempt, true);

@@ -110,29 +110,30 @@ class QuizController extends Controller
         }
 
         if (! $quiz->isDraft() || $quiz->hasAssessmentActivity()) {
+            // Lecturers may still reschedule (start/end/duration) and update metadata.
             if ($request->hasAny([
                 'category_id',
                 'group_id',
-                'duration',
                 'participation_marks',
-                'start_time',
-                'end_time',
                 'status',
             ])) {
                 throw ValidationException::withMessages([
-                    'quiz' => 'Published quiz assignment, schedule, duration, marks, and lifecycle status are immutable.',
+                    'quiz' => 'Published quiz assignment, participation marks, and lifecycle status are locked. You can still update the title, description, duration, and schedule.',
                 ]);
             }
 
             $validated = $request->validate([
                 'title' => ['required', 'string', 'max:255'],
                 'description' => ['required', 'string'],
+                'duration' => ['required', 'integer', 'min:1'],
+                'start_time' => ['required', 'date'],
+                'end_time' => ['required', 'date', 'after:start_time'],
             ]);
 
             $quiz->update($validated);
 
             return redirect()->route('quizzes.index')
-                ->with('success', 'Quiz metadata updated successfully.');
+                ->with('success', 'Quiz schedule and details updated successfully.');
         }
 
         $request->validate([

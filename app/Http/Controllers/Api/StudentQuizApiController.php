@@ -55,6 +55,60 @@ class StudentQuizApiController extends Controller
         ]);
     }
 
+    public function launchPoll()
+    {
+        $this->authorize('viewAvailable', Quiz::class);
+
+        $user = Auth::user();
+        $now = now();
+
+        $completedQuizIds = QuizResult::where('user_id', $user->id)
+            ->pluck('quiz_id')
+            ->all();
+
+        $openAttemptQuizIds = QuizAttempt::query()
+            ->where('user_id', $user->id)
+            ->where('status', QuizAttempt::STATUS_IN_PROGRESS)
+            ->pluck('quiz_id')
+            ->all();
+
+        $quizzes = Quiz::query()
+            ->withCount('questions')
+            ->accessibleToStudent($user)
+            ->where('end_time', '>=', $now)
+            ->whereHas('questions')
+            ->orderBy('start_time')
+            ->get()
+            ->filter(fn (Quiz $quiz) => $quiz->isVisibleToStudents()
+                && ! in_array($quiz->id, $completedQuizIds, true))
+            ->values()
+            ->map(function (Quiz $quiz) use ($now, $openAttemptQuizIds) {
+                $status = $quiz->lifecycleStatus();
+                $secondsUntilStart = max(0, $quiz->start_time->getTimestamp() - $now->getTimestamp());
+                $secondsUntilEnd = max(0, $quiz->end_time->getTimestamp() - $now->getTimestamp());
+                $hasOpenAttempt = in_array($quiz->id, $openAttemptQuizIds, true);
+
+                return [
+                    'id' => $quiz->id,
+                    'title' => $quiz->title,
+                    'description' => $quiz->description,
+                    'duration_minutes' => (int) $quiz->duration,
+                    'questions_count' => (int) $quiz->questions_count,
+                    'status' => $status,
+                    'start_time' => $quiz->start_time?->toIso8601String(),
+                    'end_time' => $quiz->end_time?->toIso8601String(),
+                    'seconds_until_start' => (int) $secondsUntilStart,
+                    'seconds_until_end' => (int) $secondsUntilEnd,
+                    'has_open_attempt' => $hasOpenAttempt,
+                ];
+            });
+
+        return response()->json([
+            'server_now' => $now->toIso8601String(),
+            'quizzes' => $quizzes,
+        ]);
+    }
+
     public function enroll(Request $request)
     {
         $this->authorize('viewAvailable', Quiz::class);
@@ -219,6 +273,41 @@ class StudentQuizApiController extends Controller
                 'final_possible_marks' => (int) $result->maximum_total_score,
                 'percentage' => $result->finalPercentage(),
             ],
+        ]);
+    }
+
+    public function progress()
+    {
+        $this->authorize('viewAvailable', Quiz::class);
+
+        $user = Auth::user();
+        $results = QuizResult::query()
+            ->with('quiz')
+            ->where('user_id', $user->id)
+            ->orderByDesc('graded_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (QuizResult $result) {
+                $percentage = $result->finalPercentage();
+
+                return [
+                    'id' => $result->id,
+                    'quiz_id' => $result->quiz_id,
+                    'quiz_title' => $result->quiz?->title ?? 'Deleted quiz',
+                    'score' => (int) $result->score,
+                    'total_marks' => (int) $result->maximum_score,
+                    'participation_marks' => (int) $result->participation_marks,
+                    'total_score' => (int) $result->total_score,
+                    'final_possible_marks' => (int) $result->maximum_total_score,
+                    'percentage' => $percentage,
+                    'submitted_at' => $result->graded_at?->toIso8601String(),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'results' => $results,
+            'count' => $results->count(),
         ]);
     }
 

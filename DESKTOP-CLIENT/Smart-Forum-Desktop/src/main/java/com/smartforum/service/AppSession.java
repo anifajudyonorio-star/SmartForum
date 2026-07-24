@@ -22,6 +22,10 @@ public final class AppSession {
         this.currentUser = currentUser;
     }
 
+    public void clear() {
+        this.currentUser = new ForumUser(0, "Guest", "", "student");
+    }
+
     public boolean isSystemAdmin() {
         return "admin".equalsIgnoreCase(currentUser.getSystemRole());
     }

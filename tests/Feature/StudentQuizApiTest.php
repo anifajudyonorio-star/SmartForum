@@ -45,6 +45,39 @@ class StudentQuizApiTest extends TestCase
             ->assertJsonPath('can_start', true);
     }
 
+    public function test_student_launch_poll_returns_active_quiz_via_api(): void
+    {
+        [$lecturer, $student, $quiz, $category] = $this->studentQuizFixture();
+        Sanctum::actingAs($lecturer);
+        $this->patchJson('/api/quizzes/'.$quiz->id.'/publish')->assertOk();
+
+        Sanctum::actingAs($student);
+        $this->postJson('/api/student/quizzes/enroll', ['category_id' => $category->id])
+            ->assertCreated();
+
+        $this->getJson('/api/student/quizzes/launch-poll')
+            ->assertOk()
+            ->assertJsonPath('quizzes.0.id', $quiz->id)
+            ->assertJsonPath('quizzes.0.status', Quiz::STATUS_ACTIVE)
+            ->assertJsonPath('quizzes.0.has_open_attempt', false);
+    }
+
+    public function test_student_progress_endpoint_returns_results_via_api(): void
+    {
+        [$lecturer, $student, $quiz, $category] = $this->studentQuizFixture();
+        Sanctum::actingAs($lecturer);
+        $this->patchJson('/api/quizzes/'.$quiz->id.'/publish')->assertOk();
+
+        Sanctum::actingAs($student);
+        $this->postJson('/api/student/quizzes/enroll', ['category_id' => $category->id])
+            ->assertCreated();
+
+        $this->getJson('/api/student/quizzes/progress')
+            ->assertOk()
+            ->assertJsonPath('count', 0)
+            ->assertJsonCount(0, 'results');
+    }
+
     public function test_lecturer_can_list_publish_and_delete_quizzes_via_api(): void
     {
         [$lecturer, , $quiz] = $this->studentQuizFixture();
@@ -53,7 +86,8 @@ class StudentQuizApiTest extends TestCase
         $this->getJson('/api/quizzes')
             ->assertOk()
             ->assertJsonPath('count', 1)
-            ->assertJsonPath('quizzes.0.can_publish', true);
+            ->assertJsonPath('quizzes.0.can_publish', true)
+            ->assertJsonStructure(['categories', 'groups']);
 
         $this->patchJson('/api/quizzes/'.$quiz->id.'/publish')
             ->assertOk()
@@ -76,6 +110,71 @@ class StudentQuizApiTest extends TestCase
             ->assertOk();
 
         $this->assertDatabaseMissing('quizzes', ['id' => $draft->id]);
+    }
+
+    public function test_lecturer_can_create_quiz_via_api(): void
+    {
+        [$lecturer, , $quiz, $category] = $this->studentQuizFixture();
+        Sanctum::actingAs($lecturer);
+
+        $this->postJson('/api/quizzes', [
+            'category_id' => $category->id,
+            'group_id' => $quiz->group_id,
+            'title' => 'Created Via API',
+            'description' => 'Desktop create flow',
+            'duration' => 20,
+            'participation_marks' => 2,
+            'start_time' => now()->addHour()->format('Y-m-d\TH:i'),
+            'end_time' => now()->addHours(2)->format('Y-m-d\TH:i'),
+        ])
+            ->assertCreated()
+            ->assertJsonPath('quiz.title', 'Created Via API')
+            ->assertJsonPath('quiz.lifecycle_status', Quiz::STATUS_DRAFT);
+
+        $this->assertDatabaseHas('quizzes', [
+            'title' => 'Created Via API',
+            'created_by' => $lecturer->id,
+            'status' => Quiz::STATUS_DRAFT,
+        ]);
+    }
+
+    public function test_lecturer_can_review_quiz_with_questions_via_api(): void
+    {
+        [$lecturer, , $quiz] = $this->studentQuizFixture();
+        Sanctum::actingAs($lecturer);
+
+        $this->getJson('/api/quizzes/'.$quiz->id)
+            ->assertOk()
+            ->assertJsonPath('quiz.id', $quiz->id)
+            ->assertJsonPath('quiz.title', $quiz->title)
+            ->assertJsonPath('questions.0.correct_answer', 'A')
+            ->assertJsonStructure([
+                'quiz' => ['id', 'title', 'questions_count'],
+                'questions' => [['id', 'question', 'options', 'options_display', 'correct_answer']],
+                'can_edit_questions',
+            ]);
+    }
+
+    public function test_lecturer_can_create_question_via_api(): void
+    {
+        [$lecturer, , $quiz] = $this->studentQuizFixture();
+        Sanctum::actingAs($lecturer);
+
+        $this->postJson('/api/questions', [
+            'quiz_id' => $quiz->id,
+            'question' => 'What is 2 + 2?',
+            'question_type' => 'Multiple Choice',
+            'marks' => 5,
+            'options' => ['4', '3', '5', '6'],
+            'correct_option' => 0,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('question.quiz_id', $quiz->id)
+            ->assertJsonPath('question.correct_answer', 'A');
+
+        $this->getJson('/api/questions')
+            ->assertOk()
+            ->assertJsonFragment(['question' => 'What is 2 + 2?']);
     }
 
     /**
