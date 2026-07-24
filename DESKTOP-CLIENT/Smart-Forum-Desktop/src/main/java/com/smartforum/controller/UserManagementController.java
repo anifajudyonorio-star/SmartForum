@@ -235,9 +235,6 @@ public class UserManagementController {
                 }
             });
         }).start();
-                }
-            });
-        }).start();
     }
 
     @FXML
@@ -261,7 +258,5 @@ public class UserManagementController {
             case "lecturer" -> "Lecturer";
             default -> "Student";
         };
-    }
-}
     }
 }

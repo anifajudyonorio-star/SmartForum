@@ -107,6 +107,9 @@ public class TopicController {
     private String currentGroupName = "";
     private final List<Post> pendingPosts = new ArrayList<>();
 
+    // Maps pending post ID -> tick Label, so we can update in-place after sync
+    private final Map<Integer, Label> pendingTickLabels = new HashMap<>();
+
     private final PostController postController = new PostController();
     private final GroupService groupService = GroupService.getInstance();
     private final TopicService topicService = TopicService.getInstance();
@@ -209,13 +212,23 @@ public class TopicController {
         hideExcludePanel();
         clearExcludeSelections(excludeCheckboxes);
 
-        // Reload chat after offline sync so pending posts are replaced with real ones
+        // Update tick labels in-place when sync succeeds, then reload to get real IDs
         SyncStatusService.getInstance().setOnSyncSuccess(() -> {
             if (this.topicId != topicId) return;
+            if (!pendingTickLabels.isEmpty()) {
+                // Immediately flip all visible pending ticks to blue double tick
+                for (Label tickLabel : pendingTickLabels.values()) {
+                    tickLabel.setText("\u2713\u2713");
+                    tickLabel.getStyleClass().remove("msg-tick-pending");
+                    tickLabel.getStyleClass().add("msg-tick-sent");
+                }
+                pendingTickLabels.clear();
+            }
+            pendingPosts.clear();
+            // Reload in background to replace local IDs with real server IDs
             new Thread(() -> {
                 List<Post> posts = postController.loadPosts(topicId);
                 Platform.runLater(() -> {
-                    pendingPosts.clear(); // sync done, real posts are now on server
                     currentPosts = posts;
                     Group g = groupService.getGroup(groupId).orElse(null);
                     loadMessages(topic, g != null ? g.getName() : "Group");
@@ -497,6 +510,7 @@ public class TopicController {
 
         messagesBox.getChildren().clear();
         messageNodesById.clear();
+        pendingTickLabels.clear();
 
         if (posts.isEmpty()) {
             VBox empty = new VBox(8);
@@ -600,6 +614,7 @@ public class TopicController {
             boolean isPending = pendingPosts.stream().anyMatch(p -> p.getId() == post.getId());
             Label tick = new Label(isPending ? "\u2713" : "\u2713\u2713");
             tick.getStyleClass().add(isPending ? "msg-tick-pending" : "msg-tick-sent");
+            if (isPending) pendingTickLabels.put(post.getId(), tick);
             meta.getChildren().add(tick);
         }
 

@@ -60,8 +60,6 @@ public class MainShellController implements ShellNavigator {
     @FXML private Button statisticsNavBtn;
     @FXML private Button participationNavBtn;
     @FXML private Button quizNavBtn;
-    @FXML private VBox superAdminSection;
-    @FXML private Button userManagementNavBtn;
     @FXML private Label topBarUserAvatar;
     @FXML private Label syncStatusLabel;
     @FXML private Label offlineBanner;
@@ -93,11 +91,8 @@ public class MainShellController implements ShellNavigator {
 
         navButtons.addAll(List.of(
                 dashboardNavBtn, groupsNavBtn, topicSearchNavBtn, notificationsNavBtn,
-        navButtons.addAll(List.of(
-                dashboardNavBtn, groupsNavBtn, topicSearchNavBtn, notificationsNavBtn,
                 quizzesNavBtn, announcementsNavBtn, quizProgressNavBtn, lecturerQuizzesNavBtn, lecturerAnnouncementsNavBtn, quizReportsNavBtn,
                 statisticsNavBtn, participationNavBtn, quizNavBtn, userManagementNavBtn
-        ));
         ));
 
         var user = AppSession.getInstance().getCurrentUser();
@@ -348,7 +343,6 @@ public class MainShellController implements ShellNavigator {
     private Button activeAnnouncementsNavBtn() {
         return AppSession.getInstance().isStudent() ? announcementsNavBtn : lecturerAnnouncementsNavBtn;
     }
-    }
 
     private void setupSidebarNavIcons() {
         setNavIcon(dashboardNavBtn, BootstrapIcons.SPEEDOMETER2);
@@ -359,9 +353,6 @@ public class MainShellController implements ShellNavigator {
         setNavIcon(quizProgressNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(lecturerQuizzesNavBtn, BootstrapIcons.PATCH_QUESTION_FILL);
         setNavIcon(lecturerAnnouncementsNavBtn, BootstrapIcons.MEGAPHONE_FILL);
-        setNavIcon(quizReportsNavBtn, BootstrapIcons.GRAPH_UP);
-        setNavIcon(statisticsNavBtn, BootstrapIcons.GRAPH_UP);
-        setNavIcon(participationNavBtn, BootstrapIcons.BAR_CHART_FILL);
         setNavIcon(quizReportsNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(statisticsNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(participationNavBtn, BootstrapIcons.BAR_CHART_FILL);

@@ -11,7 +11,12 @@ import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class ChatController {
 
@@ -31,6 +36,8 @@ public class ChatController {
     private Topic selectedTopic;
     private final TopicService topicService = TopicService.getInstance();
     private final PostService postService = PostService.getInstance();
+    private final Map<String, Label> pendingTicks = new HashMap<>();
+    private ScheduledExecutorService messagePoller;
 
     @FXML
     public void initialize() {
@@ -60,15 +67,33 @@ public class ChatController {
     private void openTopic(Topic topic) {
         selectedTopic = topic;
         topicTitleLabel.setText(topic.getTitle());
+        pendingTicks.clear();
         loadMessages();
+        startMessagePolling();
+    }
+
+    private void startMessagePolling() {
+        if (messagePoller != null && !messagePoller.isShutdown()) messagePoller.shutdownNow();
+        messagePoller = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r);
+            t.setDaemon(true);
+            return t;
+        });
+        messagePoller.scheduleAtFixedRate(() -> {
+            if (selectedTopic == null || !pendingTicks.isEmpty()) return;
+            List<Post> posts = postService.getPosts(selectedTopic.getId());
+            Platform.runLater(() -> renderMessages(posts));
+        }, 5, 5, TimeUnit.SECONDS);
     }
 
     private void loadMessages() {
         if (selectedTopic == null) return;
+        renderMessages(postService.getPosts(selectedTopic.getId()));
+    }
+
+    private void renderMessages(List<Post> posts) {
         messagesBox.getChildren().clear();
-        for (Post post : postService.getPosts(selectedTopic.getId())) {
-            addBubble(post, "sent", null);
-        }
+        for (Post post : posts) addBubble(post, "sent", null);
         scrollToBottom();
     }
 
@@ -84,11 +109,13 @@ public class ChatController {
         tickLabel.getStyleClass().add("tick-pending");
         HBox bubbleRow = addBubble(null, "pending", tickLabel);
         updatePendingBubble(bubbleRow, content);
+        pendingTicks.put(content, tickLabel);
 
         try {
             postService.store(selectedTopic.getId(), content, null, List.of());
             tickLabel.setText("✓✓");
             tickLabel.getStyleClass().setAll("tick-sent");
+            pendingTicks.remove(content);
             loadMessages();
         } catch (RuntimeException ex) {
             showBanner(ex.getMessage(), "danger");
