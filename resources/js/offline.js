@@ -212,7 +212,9 @@ async function flushQueue() {
                 }).catch(() => null);
 
                 if (postsRes && postsRes.ok) {
+                    const stillPending = [...exportArea.querySelectorAll('[data-pending-id]')];
                     exportArea.innerHTML = await postsRes.text();
+                    stillPending.forEach((el) => exportArea.appendChild(el));
                     if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
                 }
             }

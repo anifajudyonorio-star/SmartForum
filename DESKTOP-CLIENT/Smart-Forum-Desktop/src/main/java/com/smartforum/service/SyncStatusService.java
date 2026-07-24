@@ -131,8 +131,8 @@ public class SyncStatusService {
                 refresh();
                 if (announceResult) {
                     showBanner("Back online — offline actions synced!", "success");
-                    notifySyncSuccess();
                 }
+                notifySyncSuccess();
             }),
             () -> Platform.runLater(() -> {
                 flushing = false;

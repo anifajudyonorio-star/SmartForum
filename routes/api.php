@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AdminUserApiController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\GroupApiController;
@@ -55,15 +54,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/statistics', [StatisticsApiController::class, 'index']);
     Route::get('/statistics/groups/{group}', [StatisticsApiController::class, 'show']);
     Route::get('/participation', [ParticipationApiController::class, 'index']);
-
-    Route::middleware('role:admin')->group(function () {
-        Route::get('/admin/users', [AdminUserApiController::class, 'index']);
-        Route::post('/admin/users', [AdminUserApiController::class, 'store']);
-        Route::post('/admin/users/{user}/warn', [AdminUserApiController::class, 'warn']);
-        Route::post('/admin/users/{user}/promote', [AdminUserApiController::class, 'promote']);
-        Route::post('/admin/users/{user}/blacklist', [AdminUserApiController::class, 'blacklist']);
-        Route::post('/admin/users/{user}/unblacklist', [AdminUserApiController::class, 'unblacklist']);
-    });
 
     Route::get('/quiz-announcements', [QuizAnnouncementApiController::class, 'index']);
     Route::post('/quiz-announcements', [QuizAnnouncementApiController::class, 'store']);
