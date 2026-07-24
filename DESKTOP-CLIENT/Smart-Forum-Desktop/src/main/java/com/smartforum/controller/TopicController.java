@@ -11,6 +11,7 @@ import com.smartforum.service.SyncStatusService;
 import com.smartforum.service.TopicService;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -37,6 +38,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
+import com.smartforum.util.NetworkMonitor;
 import com.smartforum.util.TopicPdfExporter;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -53,6 +55,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javafx.util.Duration;
 
@@ -97,6 +102,7 @@ public class TopicController {
     private Integer replyToPostId;
     private ShellNavigator navigator;
     private Consumer<String> pageTitleUpdater;
+    private Consumer<Boolean> chatLayoutCallback;
     private Region rootNode;
 
     private final Map<Integer, CheckBox> excludeCheckboxes = new HashMap<>();
@@ -109,6 +115,9 @@ public class TopicController {
 
     // Maps pending post ID -> tick Label, so we can update in-place after sync
     private final Map<Integer, Label> pendingTickLabels = new HashMap<>();
+
+    private ScheduledExecutorService messagePoller;
+    private volatile int pollingTopicId;
 
     private final PostController postController = new PostController();
     private final GroupService groupService = GroupService.getInstance();
@@ -142,6 +151,10 @@ public class TopicController {
         this.pageTitleUpdater = pageTitleUpdater;
     }
 
+    public void setChatLayoutCallback(Consumer<Boolean> chatLayoutCallback) {
+        this.chatLayoutCallback = chatLayoutCallback;
+    }
+
     @FXML
     private void initialize() {
         if (messageInput != null) {
@@ -151,6 +164,12 @@ public class TopicController {
                     onSendMessage(null);
                 }
             });
+        }
+        if (messagesBox != null && messagesScroll != null) {
+            messagesBox.minHeightProperty().bind(Bindings.createDoubleBinding(
+                    () -> Math.max(0, messagesScroll.getViewportBounds().getHeight()),
+                    messagesScroll.viewportBoundsProperty(),
+                    messagesScroll.heightProperty()));
         }
     }
 
@@ -172,6 +191,7 @@ public class TopicController {
         descriptionField.clear();
         createGroupNameLabel.setText("Create Topic in " + group.getName());
         createGroupDescLabel.setText(group.getDescription());
+        stopMessagePolling();
         switchTo(createPane);
         updateTitle("Create Topic in " + group.getName());
         Platform.runLater(() -> {
@@ -506,6 +526,64 @@ public class TopicController {
         scrollMessagesToBottom();
     }
 
+    private void startMessagePolling() {
+        stopMessagePolling();
+        pollingTopicId = topicId;
+        messagePoller = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "topic-msg-poll");
+            t.setDaemon(true);
+            return t;
+        });
+        messagePoller.scheduleAtFixedRate(() -> {
+            if (pollingTopicId <= 0 || !NetworkMonitor.isOnline()) {
+                return;
+            }
+            if (!pendingPosts.isEmpty()) {
+                return;
+            }
+            int pollTopicId = topicService.resolveTopicId(pollingTopicId);
+            List<Post> fresh = postController.loadPosts(pollTopicId);
+            Platform.runLater(() -> {
+                if (pollingTopicId <= 0 || !showPane.isVisible()) {
+                    return;
+                }
+                if (postsChanged(currentPosts, fresh)) {
+                    Topic topic = topicService.getTopic(topicId).orElse(null);
+                    if (topic == null) {
+                        return;
+                    }
+                    Group group = groupService.getGroup(groupId).orElse(null);
+                    loadMessages(topic, group != null ? group.getName() : "Group");
+                    scrollMessagesToBottom();
+                }
+            });
+        }, 5, 5, TimeUnit.SECONDS);
+    }
+
+    private void stopMessagePolling() {
+        pollingTopicId = 0;
+        if (messagePoller != null && !messagePoller.isShutdown()) {
+            messagePoller.shutdownNow();
+        }
+        messagePoller = null;
+    }
+
+    private boolean postsChanged(List<Post> previous, List<Post> next) {
+        if (previous.size() != next.size()) {
+            return true;
+        }
+        for (int i = 0; i < previous.size(); i++) {
+            Post a = previous.get(i);
+            Post b = next.get(i);
+            if (a.getId() != b.getId()
+                    || !a.getContent().equals(b.getContent())
+                    || !a.getCreatedAt().equals(b.getCreatedAt())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void loadMessages(Topic topic, String groupName) {
         List<Post> posts = new ArrayList<>(postController.loadPosts(topicId));
         // Merge pending offline posts that aren't in the API response yet
@@ -527,6 +605,8 @@ public class TopicController {
             VBox empty = new VBox(8);
             empty.setAlignment(Pos.CENTER);
             empty.getStyleClass().add("wa-empty");
+            empty.setMaxHeight(Double.MAX_VALUE);
+            VBox.setVgrow(empty, Priority.ALWAYS);
             empty.getChildren().addAll(
                     new Label("💬"),
                     new Label("No messages yet. Start the conversation below.")
@@ -782,6 +862,12 @@ public class TopicController {
         boolean show = pane == showPane;
         boolean edit = pane == editPane;
 
+        if (!show) {
+            stopMessagePolling();
+        } else if (topicId > 0) {
+            startMessagePolling();
+        }
+
         createPane.setVisible(create);
         createPane.setManaged(create);
         showPane.setVisible(show);
@@ -790,7 +876,15 @@ public class TopicController {
         editPane.setManaged(edit);
 
         if (contentScroll != null) {
-            contentScroll.setVvalue(0);
+            contentScroll.setVisible(!show);
+            contentScroll.setManaged(!show);
+            if (!show) {
+                contentScroll.setVvalue(0);
+            }
+        }
+
+        if (chatLayoutCallback != null) {
+            chatLayoutCallback.accept(show);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.smartforum.service;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
 import com.smartforum.model.ForumUser;
@@ -125,16 +126,22 @@ public class PostService {
         }
 
         if (ApiSupport.useApi()) {
-            if (ApiClient.sendPost(topicId, content, parentPostId)) {
+            Topic topic = topics().getTopic(topicId)
+                    .orElseThrow(() -> new IllegalArgumentException("Topic not found."));
+            List<Integer> hiddenFrom = visibility().resolveExcludedUserIds(
+                    topic.getGroupId(),
+                    AppSession.getInstance().getCurrentUser().getId(),
+                    excludedUserIds);
+
+            if (NetworkMonitor.isOnline()
+                    && ApiClient.sendPost(topicId, content, parentPostId, hiddenFrom)) {
                 syncPostsForTopic(topicId);
                 List<Post> posts = getPosts(topicId);
                 return posts.isEmpty() ? null : posts.get(posts.size() - 1);
             }
-            if (!NetworkMonitor.isOnline()) {
-                queueOfflinePost(topicId, content, parentPostId);
-                return buildLocalPendingPost(topicId, content, parentPostId);
-            }
-            throw new IllegalStateException("Could not send post via API.");
+            queueOfflinePost(topicId, content, parentPostId, hiddenFrom);
+            NetworkMonitor.probeNow();
+            return buildLocalPendingPost(topicId, content, parentPostId, hiddenFrom);
         }
 
         Topic topic = topics().getTopic(topicId)
@@ -166,10 +173,15 @@ public class PostService {
         }
 
         if (ApiSupport.useApi()) {
-            if (!ApiClient.updatePost(postId, content)) {
+            Post existing = getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
+            List<Integer> hiddenFrom = visibility().resolveExcludedUserIds(
+                    topics().getTopic(existing.getTopicId()).orElseThrow().getGroupId(),
+                    existing.getAuthorId(),
+                    excludedUserIds);
+
+            if (!ApiClient.updatePost(postId, content, hiddenFrom)) {
                 throw new IllegalStateException("Could not update post via API.");
             }
-            Post existing = getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
             syncPostsForTopic(existing.getTopicId());
             return getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
         }
@@ -231,7 +243,21 @@ public class PostService {
     }
 
     private void syncPostsForTopic(int topicId) {
-        postsByTopic.put(topicId, new ArrayList<>(ApiClient.fetchPosts(topicId)));
+        if (!NetworkMonitor.isOnline()) {
+            return;
+        }
+
+        int resolvedId = topics().resolveTopicId(topicId);
+        Optional<List<Post>> fetched = ApiClient.tryFetchPosts(resolvedId);
+        if (fetched.isEmpty()) {
+            return;
+        }
+
+        List<Post> posts = new ArrayList<>(fetched.get());
+        postsByTopic.put(topicId, posts);
+        if (resolvedId != topicId) {
+            postsByTopic.put(resolvedId, new ArrayList<>(posts));
+        }
     }
 
     private void syncAllCachedTopicsPosts() {
@@ -257,18 +283,31 @@ public class PostService {
         }
     }
 
-    private void queueOfflinePost(int topicId, String content, Integer parentPostId) {
+    private void queueOfflinePost(
+            int topicId,
+            String content,
+            Integer parentPostId,
+            List<Integer> excludedUserIds) {
         JsonObject payload = new JsonObject();
         payload.addProperty("topic_id", topicId);
         payload.addProperty("content", content);
         if (parentPostId != null) {
             payload.addProperty("parent_post_id", parentPostId);
         }
+        if (excludedUserIds != null && !excludedUserIds.isEmpty()) {
+            JsonArray excluded = new JsonArray();
+            excludedUserIds.forEach(excluded::add);
+            payload.add("excluded_users", excluded);
+        }
         OfflineQueue.add("create_post", payload);
         Platform.runLater(() -> SyncStatusService.getInstance().refreshNow());
     }
 
-    private Post buildLocalPendingPost(int topicId, String content, Integer parentPostId) {
+    private Post buildLocalPendingPost(
+            int topicId,
+            String content,
+            Integer parentPostId,
+            List<Integer> hiddenFrom) {
         ForumUser author = AppSession.getInstance().getCurrentUser();
         return new Post(
                 nextPostId++,
@@ -278,7 +317,7 @@ public class PostService {
                 author.getName(),
                 content,
                 LocalDateTime.now(),
-                List.of()
+                hiddenFrom == null ? List.of() : hiddenFrom
         );
     }
 }

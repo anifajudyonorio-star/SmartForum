@@ -1,5 +1,7 @@
 // WhatsApp-style chat interactions
 
+import { isStableOnline } from './offline';
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -122,6 +124,13 @@ export function buildMessageHtml(post) {
         form?.querySelectorAll('.exclude-user-checkbox:checked').forEach((cb) => { cb.checked = false; });
         if (excludePanel) excludePanel.classList.add('d-none');
         if (excludeToggle) excludeToggle.classList.remove('active');
+    }
+
+    function collectExcludedUsers() {
+        if (!form) return [];
+        return [...form.querySelectorAll('.exclude-user-checkbox:checked')]
+            .map((cb) => Number(cb.value))
+            .filter((id) => Number.isInteger(id) && id > 0);
     }
 
     function copyTextSync(text) {
@@ -277,6 +286,96 @@ export function buildMessageHtml(post) {
         });
     }
 
+    function getMessageIdsFrom(scope) {
+        return [...scope.querySelectorAll('.wa-msg[data-msg-id]')]
+            .map((el) => el.dataset.msgId)
+            .filter(Boolean);
+    }
+
+    function updateMessageCount(count) {
+        const subtitle = chat.querySelector('.wa-chat-subtitle');
+        if (!subtitle) return;
+        const parts = subtitle.textContent.split('•');
+        if (parts.length < 2) return;
+        subtitle.textContent = `${parts[0].trim()} • ${count} messages`;
+    }
+
+    async function refreshMessagesFromServer() {
+        if (!isStableOnline()) return;
+
+        const topicId = chat.dataset.topicId;
+        const exportArea = document.getElementById('chatExportArea');
+        const messagesEl = document.getElementById('chatMessages');
+        if (!topicId || !exportArea) return;
+
+        if (exportArea.querySelector('[data-pending-id]')) return;
+
+        const previousIds = getMessageIdsFrom(exportArea).join(',');
+
+        try {
+            const postsRes = await fetch(`/topics/${topicId}/posts-fragment`, {
+                headers: {
+                    'Accept': 'text/html',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!postsRes.ok) return;
+
+            const html = await postsRes.text();
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            const newIds = getMessageIdsFrom(temp);
+            if (newIds.join(',') === previousIds) return;
+
+            const scrollNearBottom = messagesEl
+                && (messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80);
+
+            if (newIds.length === 0) {
+                exportArea.innerHTML = `
+                    <div class="wa-empty" id="chatEmpty">
+                        <i class="bi bi-chat-dots"></i>
+                        <p class="mb-0">No messages yet. Start the conversation below.</p>
+                    </div>`;
+            } else {
+                exportArea.innerHTML = html;
+                bindReplyButtons(exportArea);
+                bindQuoteScroll(exportArea);
+            }
+
+            updateMessageCount(newIds.length);
+
+            if (scrollNearBottom) scrollToBottom();
+        } catch {
+            // ignore transient network errors during polling
+        }
+    }
+
+    let messagePollTimer = null;
+
+    function startMessagePolling() {
+        if (messagePollTimer) return;
+        messagePollTimer = window.setInterval(refreshMessagesFromServer, 5000);
+    }
+
+    function stopMessagePolling() {
+        if (!messagePollTimer) return;
+        window.clearInterval(messagePollTimer);
+        messagePollTimer = null;
+    }
+
+    startMessagePolling();
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stopMessagePolling();
+            return;
+        }
+        refreshMessagesFromServer();
+        startMessagePolling();
+    });
+    window.addEventListener('focus', refreshMessagesFromServer);
+
     if (input) {
         input.addEventListener('input', () => autoGrow(input));
         input.addEventListener('keydown', (e) => {
@@ -316,31 +415,46 @@ export function buildMessageHtml(post) {
         }
     }
 
+    function queuePendingPost(content) {
+        const topicId = chat.dataset.topicId;
+        const parentId = parentInput?.value || null;
+        const excludedUsers = collectExcludedUsers();
+
+        const exportArea = document.getElementById('chatExportArea');
+        const empty = document.getElementById('chatEmpty');
+        if (empty) empty.remove();
+
+        const bubble = buildPendingBubble(content, 'tmp');
+        exportArea?.appendChild(bubble);
+        scrollToBottom();
+
+        const payload = {
+            topic_id: Number(topicId),
+            content,
+            parent_post_id: parentId ? Number(parentId) : null,
+        };
+        if (excludedUsers.length > 0) {
+            payload.excluded_users = excludedUsers;
+        }
+
+        const pendingId = window.queueAction('create_post', payload, bubble);
+        bubble.dataset.pendingId = pendingId;
+
+        input.value = '';
+        autoGrow(input);
+        clearReply();
+        clearExcludeSelections();
+    }
+
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const isOffline = window._networkForced === false || !navigator.onLine;
+            const isOffline = !isStableOnline();
 
             if (isOffline) {
                 const content = input?.value?.trim();
                 if (!content) return;
-                const topicId = chat.dataset.topicId;
-                const parentId = parentInput?.value || null;
-
-                const exportArea = document.getElementById('chatExportArea');
-                const empty = document.getElementById('chatEmpty');
-                if (empty) empty.remove();
-
-                const bubble = buildPendingBubble(content, 'tmp');
-                exportArea?.appendChild(bubble);
-                scrollToBottom();
-
-                const pendingId = window.queueAction('create_post', { topic_id: topicId, content, parent_post_id: parentId }, bubble);
-                bubble.dataset.pendingId = pendingId;
-
-                input.value = '';
-                autoGrow(input);
-                clearReply();
+                queuePendingPost(content);
                 return;
             }
 
@@ -361,7 +475,10 @@ export function buildMessageHtml(post) {
                     body: formData,
                 });
 
-                if (!res.ok) throw new Error('Send failed');
+                if (!res.ok) {
+                    queuePendingPost(content);
+                    return;
+                }
 
                 const data = await res.json();
                 const exportArea = document.getElementById('chatExportArea');
@@ -382,7 +499,7 @@ export function buildMessageHtml(post) {
                 clearExcludeSelections();
                 scrollToBottom();
             } catch {
-                // fetch failed — do nothing
+                queuePendingPost(content);
             } finally {
                 sendBtn.disabled = false;
             }

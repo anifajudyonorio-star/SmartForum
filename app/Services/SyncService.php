@@ -292,6 +292,16 @@ class SyncService
             'Post_Content'   => $content,
         ]);
 
+        $author = User::find($action->user_id);
+        if ($author) {
+            PostVisibilityService::syncHiddenFrom(
+                $post,
+                $topic,
+                $p['excluded_users'] ?? [],
+                $author,
+            );
+        }
+
         $payload = $action->payload;
         $payload['server_post_id'] = $post->id;
         $action->update(['payload' => $payload]);
@@ -418,13 +428,15 @@ class SyncService
 
         $rules = match ($actionType) {
             'create_post' => [
-                'payload' => ['required', 'array:topic_id,parent_post_id,content'],
+                'payload' => ['required', 'array'],
                 'payload.topic_id' => ['required', 'integer', 'min:1'],
                 'payload.parent_post_id' => ['nullable', 'integer', 'min:1'],
                 'payload.content' => ['required', 'string', 'max:10000'],
+                'payload.excluded_users' => ['nullable', 'array'],
+                'payload.excluded_users.*' => ['integer', 'min:1'],
             ],
             'create_topic' => [
-                'payload' => ['required', 'array:group_id,title,description,client_topic_id'],
+                'payload' => ['required', 'array'],
                 'payload.group_id' => ['required', 'integer', 'min:1'],
                 'payload.title' => ['required', 'string', 'max:255'],
                 'payload.description' => ['nullable', 'string', 'max:5000'],
@@ -438,7 +450,7 @@ class SyncService
                 'payload.answers.*' => ['required', 'integer', 'min:1'],
             ],
             'view_topic' => [
-                'payload' => ['required', 'array:topic_id'],
+                'payload' => ['required', 'array'],
                 'payload.topic_id' => ['required', 'integer', 'min:1'],
             ],
             default => throw new \InvalidArgumentException("Unknown action type: {$actionType}"),

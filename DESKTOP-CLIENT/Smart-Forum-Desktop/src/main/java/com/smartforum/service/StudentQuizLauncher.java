@@ -10,6 +10,7 @@ import com.smartforum.model.Quiz;
 import com.smartforum.model.QuizAttempt;
 import com.smartforum.util.QuizSchedule;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -39,7 +40,7 @@ public final class StudentQuizLauncher {
         public QuizAttempt getAttempt() { return attempt; }
     }
 
-    public static LaunchRequest prepare(ForumUser user, Quiz selectedQuiz) {
+    public static LaunchRequest prepare(ForumUser user, Quiz selectedQuiz) throws SQLException {
         if (user == null) {
             throw new IllegalStateException("A signed-in student session is required.");
         }

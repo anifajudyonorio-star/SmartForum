@@ -1342,8 +1342,15 @@
 }
 
 /* ── Topic chat (matches web wa-chat) ─────────────────── */
+.topics-root {
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+}
+
 .wa-chat {
     -fx-background-color: #e5ddd5;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
 }
 
 .wa-chat-header {
@@ -1392,6 +1399,7 @@
     -fx-background-color: transparent;
     -fx-background: transparent;
     -fx-border-color: transparent;
+    -fx-max-height: infinity;
 }
 
 .wa-messages {
@@ -1534,6 +1542,7 @@
 .wa-empty {
     -fx-padding: 24;
     -fx-alignment: center;
+    -fx-max-height: infinity;
 }
 
 .wa-composer {

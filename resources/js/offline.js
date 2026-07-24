@@ -5,6 +5,92 @@
 const QUEUE_KEY = 'sf_offline_queue';
 const DEVICE_KEY = 'sf_device_id';
 
+const FAILURES_FOR_OFFLINE = 3;
+const ONLINE_PROBE_MS = 10000;
+const RECONNECT_PROBE_MS = 2000;
+
+window._sfStableOnline = true;
+let consecutiveFailures = 0;
+let connectivityProbeTimer = null;
+
+export function isStableOnline() {
+    if (window._networkForced === false) return false;
+    return window._sfStableOnline !== false;
+}
+
+async function probeServerReachable() {
+    if (!navigator.onLine) return false;
+    try {
+        const res = await fetch('/up', {
+            method: 'HEAD',
+            cache: 'no-store',
+            credentials: 'same-origin',
+            signal: AbortSignal.timeout(5000),
+        });
+        return res.ok;
+    } catch {
+        return false;
+    }
+}
+
+function applyStableConnectivity(reachable) {
+    const previous = window._sfStableOnline;
+
+    if (reachable) {
+        consecutiveFailures = 0;
+        if (!window._sfStableOnline) {
+            window._sfStableOnline = true;
+        }
+    } else {
+        consecutiveFailures += 1;
+        if (window._sfStableOnline && consecutiveFailures >= FAILURES_FOR_OFFLINE) {
+            window._sfStableOnline = false;
+        }
+    }
+
+    if (previous !== window._sfStableOnline) {
+        updateSyncStatus();
+        restartConnectivityProbe();
+        if (window._sfStableOnline) {
+            showBanner('Reconnected. Syncing…', 'info');
+            registerDevice().then(() => flushQueue()).catch(() => {});
+        } else {
+            showBanner("You're offline. Actions will be saved and synced when you reconnect.");
+        }
+    }
+}
+
+async function onNetworkMaybeBack() {
+    if (window._networkForced === false) return;
+    const reachable = await probeServerReachable();
+    const wasOffline = !window._sfStableOnline;
+    applyStableConnectivity(reachable);
+    if (reachable && getQueue().length > 0 && !wasOffline) {
+        await registerDevice();
+        await flushQueue();
+    }
+}
+
+async function runConnectivityProbe() {
+    if (window._networkForced === false) return;
+    applyStableConnectivity(await probeServerReachable());
+}
+
+function restartConnectivityProbe() {
+    if (connectivityProbeTimer) {
+        window.clearInterval(connectivityProbeTimer);
+        connectivityProbeTimer = null;
+    }
+    const interval = window._sfStableOnline ? ONLINE_PROBE_MS : RECONNECT_PROBE_MS;
+    connectivityProbeTimer = window.setInterval(runConnectivityProbe, interval);
+}
+
+function startConnectivityProbe() {
+    if (connectivityProbeTimer) return;
+    runConnectivityProbe();
+    restartConnectivityProbe();
+}
+
 async function ensureToken() {
     if (window._sfApiToken) return true;
     try {
@@ -150,6 +236,7 @@ async function flushQueue() {
     let queue = getQueue();
     if (!queue.length) return;
     if (window._networkForced === false) return; // forced offline
+    if (!isStableOnline()) return;
     if (!await ensureToken()) return;
 
     try {
@@ -272,16 +359,11 @@ function updateAcknowledgedMessages(previousQueue, remainingQueue) {
 }
 
 window.addEventListener('offline', () => {
-    showBanner("You're offline. Actions will be saved and synced when you reconnect.");
-    localStorage.setItem("last_sync_time", new Date());
-    updateSyncStatus();
+    onNetworkMaybeBack();
 });
 
-window.addEventListener('online', async () => {
-    showBanner('Reconnected. Syncing…', 'info');
-    updateSyncStatus();
-    await registerDevice();
-    await flushQueue();
+window.addEventListener('online', () => {
+    onNetworkMaybeBack();
 });
 
 export async function initOfflineSync() {
@@ -291,12 +373,13 @@ export async function initOfflineSync() {
     window._networkForced = stored === 'false' ? false : null;
 
     await registerDevice();
+    startConnectivityProbe();
 
-    if (window._networkForced !== false && navigator.onLine && getQueue().length) {
+    if (window._networkForced !== false && isStableOnline() && getQueue().length) {
         await flushQueue();
     }
 
-    if (!navigator.onLine) {
+    if (!isStableOnline()) {
         showBanner("You're offline. Actions will be saved and synced when you reconnect.");
     }
 
@@ -337,6 +420,8 @@ export async function initOfflineSync() {
             btn.classList.remove('active');
             icon.className = 'bi bi-wifi';
             if (text) text.textContent = 'Online';
+            window._sfStableOnline = true;
+            consecutiveFailures = 0;
             showBanner('Reconnected. Syncing…', 'info');
             updateSyncStatus();
             registerDevice().then(() => flushQueue());
@@ -352,7 +437,7 @@ function updateSyncStatus() {
     const pending = document.getElementById('pending-count');
     const lastSync = document.getElementById('last-sync');
 
-    const isOnline = window._networkForced !== false && navigator.onLine;
+    const isOnline = isStableOnline();
 
     if (status) {
         status.innerHTML = isOnline ? "🟢 Online" : "🔴 Offline";

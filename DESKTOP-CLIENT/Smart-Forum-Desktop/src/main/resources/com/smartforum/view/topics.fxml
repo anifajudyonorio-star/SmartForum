@@ -11,7 +11,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<StackPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.TopicController">
+<StackPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" styleClass="topics-root" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.TopicController">
    <ScrollPane fx:id="contentScroll" fitToWidth="true" hbarPolicy="NEVER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" style="-fx-background-color: transparent; -fx-background: transparent;" vbarPolicy="AS_NEEDED">
       <content>
          <VBox maxWidth="1.7976931348623157E308">
@@ -46,42 +46,6 @@
                </VBox>
             </VBox>
 
-            <VBox fx:id="showPane" managed="false" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="wa-chat" visible="false">
-               <HBox alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" spacing="12.0" styleClass="wa-chat-header">
-                  <Button mnemonicParsing="false" onAction="#onBackToGroup" styleClass="wa-chat-back" text="←" />
-                  <Label fx:id="chatAvatarLabel" styleClass="wa-chat-avatar" text="??" />
-                  <VBox spacing="2.0" HBox.hgrow="ALWAYS">
-                     <Label fx:id="chatTitleLabel" styleClass="wa-chat-title" text="Topic Title" />
-                     <Label fx:id="chatSubtitleLabel" styleClass="wa-chat-subtitle" text="Group • 0 messages" />
-                  </VBox>
-                  <Button mnemonicParsing="false" onAction="#onExportPdf" styleClass="btn-outline" text="📄 Export PDF" />
-               </HBox>
-               <ScrollPane fx:id="messagesScroll" fitToWidth="true" hbarPolicy="NEVER" styleClass="wa-messages-scroll" vbarPolicy="AS_NEEDED" VBox.vgrow="ALWAYS">
-                  <content>
-                     <VBox fx:id="messagesBox" maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="wa-messages" />
-                  </content>
-               </ScrollPane>
-               <VBox fx:id="composerBox" spacing="8.0" styleClass="wa-composer">
-                  <HBox fx:id="replyBar" alignment="CENTER_LEFT" managed="false" maxWidth="1.7976931348623157E308" spacing="8.0" styleClass="wa-reply-bar" visible="false">
-                     <VBox spacing="2.0" HBox.hgrow="ALWAYS">
-                        <Label fx:id="replyUserLabel" styleClass="wa-reply-user" text="Replying to" />
-                        <Label fx:id="replyTextLabel" styleClass="wa-reply-text" wrapText="true" />
-                     </VBox>
-                     <Button mnemonicParsing="false" onAction="#onCancelReply" styleClass="btn-outline" text="✕" />
-                  </HBox>
-                  <VBox fx:id="excludePanel" managed="false" spacing="6.0" styleClass="wa-exclude-panel" visible="false">
-                     <Label styleClass="wa-exclude-title" text="Hide this message from:" />
-                     <FlowPane fx:id="excludeList" hgap="6.0" maxWidth="1.7976931348623157E308" styleClass="wa-exclude-list" vgap="6.0" />
-                  </VBox>
-                  <HBox alignment="BOTTOM_CENTER" maxWidth="1.7976931348623157E308" spacing="8.0">
-                     <Button fx:id="excludeToggleBtn" managed="false" mnemonicParsing="false" onAction="#onToggleExclude" styleClass="wa-exclude-toggle" text="👁" visible="false" />
-                     <TextArea fx:id="messageInput" maxWidth="1.7976931348623157E308" prefRowCount="2" promptText="Type a message (Enter to send, Shift+Enter for new line)" styleClass="wa-textarea" wrapText="true" HBox.hgrow="ALWAYS" />
-                     <Button mnemonicParsing="false" onAction="#onSendMessage" styleClass="wa-send-btn" text="➤" />
-                  </HBox>
-                  <Label fx:id="readOnlyLabel" managed="false" maxWidth="1.7976931348623157E308" styleClass="restriction-alert" text="You can read this topic but cannot post until a group admin reinstates you." visible="false" wrapText="true" />
-               </VBox>
-            </VBox>
-
             <VBox fx:id="editPane" managed="false" maxWidth="1.7976931348623157E308" spacing="14.0" styleClass="dashboard-content" visible="false">
                <VBox maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="dashboard-card">
                   <HBox styleClass="dashboard-card-header">
@@ -108,4 +72,40 @@
          </VBox>
       </content>
    </ScrollPane>
+
+   <VBox fx:id="showPane" managed="false" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="wa-chat" visible="false">
+      <HBox alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" spacing="12.0" styleClass="wa-chat-header">
+         <Button mnemonicParsing="false" onAction="#onBackToGroup" styleClass="wa-chat-back" text="←" />
+         <Label fx:id="chatAvatarLabel" styleClass="wa-chat-avatar" text="??" />
+         <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+            <Label fx:id="chatTitleLabel" styleClass="wa-chat-title" text="Topic Title" />
+            <Label fx:id="chatSubtitleLabel" styleClass="wa-chat-subtitle" text="Group • 0 messages" />
+         </VBox>
+         <Button mnemonicParsing="false" onAction="#onExportPdf" styleClass="btn-outline" text="📄 Export PDF" />
+      </HBox>
+      <ScrollPane fx:id="messagesScroll" fitToWidth="true" hbarPolicy="NEVER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" styleClass="wa-messages-scroll" vbarPolicy="AS_NEEDED" VBox.vgrow="ALWAYS">
+         <content>
+            <VBox fx:id="messagesBox" maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="wa-messages" />
+         </content>
+      </ScrollPane>
+      <VBox fx:id="composerBox" spacing="8.0" styleClass="wa-composer">
+         <HBox fx:id="replyBar" alignment="CENTER_LEFT" managed="false" maxWidth="1.7976931348623157E308" spacing="8.0" styleClass="wa-reply-bar" visible="false">
+            <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+               <Label fx:id="replyUserLabel" styleClass="wa-reply-user" text="Replying to" />
+               <Label fx:id="replyTextLabel" styleClass="wa-reply-text" wrapText="true" />
+            </VBox>
+            <Button mnemonicParsing="false" onAction="#onCancelReply" styleClass="btn-outline" text="✕" />
+         </HBox>
+         <VBox fx:id="excludePanel" managed="false" spacing="6.0" styleClass="wa-exclude-panel" visible="false">
+            <Label styleClass="wa-exclude-title" text="Hide this message from:" />
+            <FlowPane fx:id="excludeList" hgap="6.0" maxWidth="1.7976931348623157E308" styleClass="wa-exclude-list" vgap="6.0" />
+         </VBox>
+         <HBox alignment="BOTTOM_CENTER" maxWidth="1.7976931348623157E308" spacing="8.0">
+            <Button fx:id="excludeToggleBtn" managed="false" mnemonicParsing="false" onAction="#onToggleExclude" styleClass="wa-exclude-toggle" text="👁" visible="false" />
+            <TextArea fx:id="messageInput" maxWidth="1.7976931348623157E308" prefRowCount="2" promptText="Type a message (Enter to send, Shift+Enter for new line)" styleClass="wa-textarea" wrapText="true" HBox.hgrow="ALWAYS" />
+            <Button mnemonicParsing="false" onAction="#onSendMessage" styleClass="wa-send-btn" text="➤" />
+         </HBox>
+         <Label fx:id="readOnlyLabel" managed="false" maxWidth="1.7976931348623157E308" styleClass="restriction-alert" text="You can read this topic but cannot post until a group admin reinstates you." visible="false" wrapText="true" />
+      </VBox>
+   </VBox>
 </StackPane>

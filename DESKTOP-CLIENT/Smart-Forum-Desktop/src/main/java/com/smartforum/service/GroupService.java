@@ -10,6 +10,7 @@ import com.smartforum.model.GroupStats;
 import com.smartforum.model.Post;
 import com.smartforum.model.Topic;
 import com.smartforum.util.ApiSupport;
+import com.smartforum.util.NetworkMonitor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -163,6 +164,9 @@ public class GroupService {
             }
             if (context != null) {
                 return context.canParticipate;
+            }
+            if (!NetworkMonitor.isOnline()) {
+                return false;
             }
         }
 

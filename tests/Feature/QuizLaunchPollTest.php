@@ -65,6 +65,17 @@ class QuizLaunchPollTest extends TestCase
             ->assertJsonCount(0, 'quizzes');
     }
 
+    public function test_api_launch_poll_returns_active_quiz_for_desktop_client(): void
+    {
+        [$student, $quiz] = $this->studentWithQuiz(now()->subMinute(), now()->addHour());
+
+        $this->actingAs($student, 'sanctum')
+            ->getJson('/api/student/quizzes/launch-poll')
+            ->assertOk()
+            ->assertJsonPath('quizzes.0.id', $quiz->id)
+            ->assertJsonPath('quizzes.0.status', Quiz::STATUS_ACTIVE);
+    }
+
     /**
      * @return array{0: User, 1: Quiz}
      */

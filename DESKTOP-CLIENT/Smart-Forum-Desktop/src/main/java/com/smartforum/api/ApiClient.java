@@ -2,18 +2,25 @@ package com.smartforum.api;
 
 import com.google.gson.*;
 import com.smartforum.model.*;
+import com.smartforum.util.ApiConfig;
 import com.smartforum.util.SessionManager;
 import com.smartforum.UserSession;
 
 import java.net.URI;
 import java.net.http.*;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class ApiClient {
-    public static final String BASE_URL = "http://127.0.0.1:8000";
-    private static final HttpClient HTTP = HttpClient.newHttpClient();
+    public static String getBaseUrl() {
+        return ApiConfig.baseUrl();
+    }
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(20);
+    private static final HttpClient HTTP = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
 
     private ApiClient() {
     }
@@ -24,7 +31,8 @@ public class ApiClient {
             token = UserSession.getInstance().getToken();
         }
         HttpRequest.Builder b = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + path))
+                .uri(URI.create(getBaseUrl() + path))
+                .timeout(REQUEST_TIMEOUT)
                 .header("Accept", "application/json")
                 .header("Content-Type", "application/json");
         if (token != null && !token.isBlank()) {
@@ -75,13 +83,13 @@ public class ApiClient {
             HttpResponse<String> res = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
             JsonObject parsed = parseBody(res.body());
             boolean ok = res.statusCode() >= 200 && res.statusCode() < 300;
-            String message = extractMessage(parsed, ok);
+            String message = ok ? extractMessage(parsed, true) : describeHttpFailure(res.statusCode(), parsed);
             return new MutationResult(ok, res.statusCode(), message, parsed);
         } catch (Exception e) {
             e.printStackTrace();
             JsonObject err = new JsonObject();
             err.addProperty("message", "Could not reach the server.");
-            return new MutationResult(false, 0, err.get("message").getAsString(), err);
+            return new MutationResult(false, 0, describeHttpFailure(0, err), err);
         }
     }
 
@@ -121,6 +129,28 @@ public class ApiClient {
             }
         }
         return ok ? "Success" : "Request failed";
+    }
+
+    public static String describeHttpFailure(int statusCode, JsonObject json) {
+        if (statusCode == 401) {
+            return "Session expired — sign in again to sync.";
+        }
+        if (statusCode == 403) {
+            return "Not allowed to perform this action on the server.";
+        }
+        if (statusCode == 404) {
+            return "The topic or group no longer exists.";
+        }
+        if (statusCode == 422) {
+            String fieldError = firstFieldError(json, "actions.0.payload.content");
+            if (fieldError != null) {
+                return fieldError;
+            }
+        }
+        if (statusCode == 0) {
+            return "Could not reach the server. Make sure Laravel is running on " + getBaseUrl() + ".";
+        }
+        return extractMessage(json, false);
     }
 
     public static String firstFieldError(JsonObject json, String field) {
@@ -166,7 +196,7 @@ public class ApiClient {
 
             HttpResponse<String> res = HTTP.send(
                     HttpRequest.newBuilder()
-                            .uri(URI.create(BASE_URL + "/api/login"))
+                            .uri(URI.create(ApiConfig.apiBaseUrl() + "/login"))
                             .header("Accept", "application/json")
                             .header("Content-Type", "application/json")
                             .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
@@ -230,6 +260,26 @@ public class ApiClient {
 
     public static Optional<JsonObject> getAdminUsers() {
         return getJson("/api/admin/users");
+    }
+
+    public static MutationResult fetchAdminUsers() {
+        try {
+            HttpResponse<String> res = HTTP.send(
+                    builder("/api/admin/users").GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            JsonObject parsed = parseBody(res.body());
+            boolean ok = res.statusCode() >= 200 && res.statusCode() < 300;
+            String message = extractMessage(parsed, ok);
+            if (!ok && (message == null || message.isBlank() || "Request failed".equals(message))) {
+                message = "Request failed (HTTP " + res.statusCode() + ").";
+            }
+            return new MutationResult(ok, res.statusCode(), message, parsed);
+        } catch (Exception e) {
+            e.printStackTrace();
+            JsonObject err = new JsonObject();
+            err.addProperty("message", "Could not reach the server.");
+            return new MutationResult(false, 0, err.get("message").getAsString(), err);
+        }
     }
 
     public static MutationResult createAdminUser(String fname, String lname, String email, String password, String confirmation) {
@@ -458,22 +508,22 @@ public class ApiClient {
     // ΓöÇΓöÇ Posts ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
     public static List<Post> fetchPosts(int topicId) {
+        return tryFetchPosts(topicId).orElseGet(ArrayList::new);
+    }
+
+    /** Empty optional when the API is unreachable or returns a non-success response. */
+    public static Optional<List<Post>> tryFetchPosts(int topicId) {
         try {
             HttpResponse<String> res = HTTP.send(
                     builder("/api/topics/" + topicId).GET().build(),
                     HttpResponse.BodyHandlers.ofString());
             if (res.statusCode() != 200) {
-                return new ArrayList<>();
+                return Optional.empty();
             }
             JsonObject json = JsonParser.parseString(res.body()).getAsJsonObject();
             JsonArray arr = json.has("posts") ? json.getAsJsonArray("posts") : new JsonArray();
             List<Post> posts = ApiMapper.toPosts(arr);
-            for (Post post : posts) {
-                if (post.getTopicId() == 0) {
-                    // ApiMapper creates posts without topic id from array ΓÇö re-wrap if needed
-                }
-            }
-            return posts.stream()
+            return Optional.of(posts.stream()
                     .map(post -> new Post(
                             post.getId(),
                             topicId,
@@ -483,10 +533,10 @@ public class ApiClient {
                             post.getContent(),
                             post.getCreatedAt(),
                             post.getHiddenFromUserIds()))
-                    .toList();
+                    .toList());
         } catch (Exception e) {
             e.printStackTrace();
-            return new ArrayList<>();
+            return Optional.empty();
         }
     }
 
@@ -495,18 +545,55 @@ public class ApiClient {
     }
  
     public static boolean sendPost(int topicId, String content, Integer parentPostId) {
+        return sendPostResult(topicId, content, parentPostId, List.of()).success();
+    }
+
+    public static boolean sendPost(int topicId, String content, Integer parentPostId, List<Integer> excludedUserIds) {
+        return sendPostResult(topicId, content, parentPostId, excludedUserIds).success();
+    }
+
+    public static MutationResult sendPostResult(int topicId, String content, Integer parentPostId) {
+        return sendPostResult(topicId, content, parentPostId, List.of());
+    }
+
+    public static MutationResult sendPostResult(
+            int topicId,
+            String content,
+            Integer parentPostId,
+            List<Integer> excludedUserIds) {
         JsonObject body = new JsonObject();
         body.addProperty("Post_Content", content);
         if (parentPostId != null) {
             body.addProperty("Parent_Post_ID", parentPostId);
         }
-        return sendJson("POST", "/api/topics/" + topicId + "/posts", body);
+        addExcludedUsers(body, excludedUserIds);
+        return mutateJson("POST", "/api/topics/" + topicId + "/posts", body);
     }
 
     public static boolean updatePost(int postId, String content) {
+        return updatePost(postId, content, List.of());
+    }
+
+    public static boolean updatePost(int postId, String content, List<Integer> excludedUserIds) {
         JsonObject body = new JsonObject();
         body.addProperty("Post_Content", content);
+        addExcludedUsers(body, excludedUserIds);
         return sendJson("PUT", "/api/posts/" + postId, body);
+    }
+
+    private static void addExcludedUsers(JsonObject body, List<Integer> excludedUserIds) {
+        if (excludedUserIds == null || excludedUserIds.isEmpty()) {
+            return;
+        }
+        JsonArray arr = new JsonArray();
+        for (Integer id : excludedUserIds) {
+            if (id != null && id > 0) {
+                arr.add(id);
+            }
+        }
+        if (!arr.isEmpty()) {
+            body.add("excluded_users", arr);
+        }
     }
 
     public static boolean deletePost(int postId) {
@@ -551,15 +638,6 @@ public class ApiClient {
         return mutateJson("PATCH", "/api/notifications/" + notificationId + "/read", null);
     }
 
-    // Legacy aliases used by ChatController
-    public static List<Topic> getTopics() {
-        return fetchTopics();
-    }
-
-    public static List<Post> getPosts(int topicId) {
-        return fetchPosts(topicId);
-    }
-
     // ── Admin user management ──────────────────────────────────────────────────
 
     public static MutationResult adminWarnUser(int userId, String reason) {
@@ -597,11 +675,15 @@ public class ApiClient {
     // ── Offline sync (mirrors web offline.js) ────────────────────────────────
 
     public static boolean registerSyncDevice(String deviceId) {
+        return registerSyncDeviceResult(deviceId).success();
+    }
+
+    public static MutationResult registerSyncDeviceResult(String deviceId) {
         JsonObject body = new JsonObject();
         body.addProperty("device_id", deviceId);
         body.addProperty("device_name", System.getProperty("os.name", "Desktop"));
         body.addProperty("device_type", "desktop");
-        return mutateJson("POST", "/api/sync/device", body).success();
+        return mutateJson("POST", "/api/sync/device", body);
     }
 
     public static MutationResult uploadSyncActions(JsonArray actions) {
@@ -617,11 +699,28 @@ public class ApiClient {
     }
 
     public static boolean pingServer() {
+        for (int attempt = 0; attempt < 2; attempt++) {
+            if (pingServerOnce()) {
+                return true;
+            }
+            if (attempt == 0) {
+                try {
+                    Thread.sleep(350);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean pingServerOnce() {
         try {
             HttpResponse<String> res = HTTP.send(
                     HttpRequest.newBuilder()
-                            .uri(URI.create(BASE_URL + "/up"))
-                            .timeout(java.time.Duration.ofMillis(1500))
+                            .uri(URI.create(getBaseUrl() + "/up"))
+                            .timeout(java.time.Duration.ofMillis(4500))
                             .GET()
                             .build(),
                     HttpResponse.BodyHandlers.ofString());

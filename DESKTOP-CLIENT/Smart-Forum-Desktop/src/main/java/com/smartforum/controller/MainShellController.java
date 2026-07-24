@@ -8,6 +8,7 @@ import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Node;
@@ -39,6 +40,7 @@ import java.util.function.Consumer;
 public class MainShellController implements ShellNavigator {
 
     private static final String APP_TITLE = "Smart Discussion";
+    private static final Insets CONTENT_PADDING = new Insets(16, 20, 16, 20);
 
     @FXML private StackPane contentArea;
     @FXML private Label pageTitleLabel;
@@ -314,6 +316,10 @@ public class MainShellController implements ShellNavigator {
         stopNotificationPolling();
         QuizLaunchMonitor.getInstance().stop();
         SyncStatusService.getInstance().stop();
+        if (notificationPoller != null && !notificationPoller.isShutdown()) {
+            notificationPoller.shutdownNow();
+            notificationPoller = null;
+        }
         com.smartforum.util.SessionManager.getInstance().clear();
         com.smartforum.UserSession.getInstance().clear();
         AppSession.getInstance().clear();
@@ -552,10 +558,6 @@ public class MainShellController implements ShellNavigator {
     @FXML
     private void showParticipationFromNav() {
         navigateWithBack(this::showParticipationInternal);
-    }
-
-    private void showQuizManagementInternal() {
-        loadView("quiz-management.fxml", activeQuizzesNavBtn(), null);
     }
 
     @FXML
@@ -885,6 +887,7 @@ public class MainShellController implements ShellNavigator {
             contentArea.getChildren().setAll(groupController.getRootNode());
             fillContentArea(groupController.getRootNode());
         }
+        resetContentPadding();
         activeContentKey = "groups.fxml";
         setActiveNav(groupsNavBtn);
         action.accept(groupController);
@@ -916,6 +919,12 @@ public class MainShellController implements ShellNavigator {
 
     private void wireTopicController(TopicController controller) {
         controller.setNavigator(this);
+        controller.setChatLayoutCallback(inChat ->
+                contentArea.setPadding(inChat ? Insets.EMPTY : CONTENT_PADDING));
+    }
+
+    private void resetContentPadding() {
+        contentArea.setPadding(CONTENT_PADDING);
     }
 
     private void wireTopicSearchController(TopicSearchController controller) {
@@ -939,6 +948,7 @@ public class MainShellController implements ShellNavigator {
                     group.setRootNode(region);
                 } else if ("topics.fxml".equals(fxmlFile) && loader.getController() instanceof TopicController topic) {
                     topic.setRootNode(region);
+                    wireTopicController(topic);
                 } else if ("topic-search.fxml".equals(fxmlFile)
                         && loader.getController() instanceof TopicSearchController search) {
                     search.setRootNode(region);
@@ -946,6 +956,9 @@ public class MainShellController implements ShellNavigator {
             }
             fillContentArea(view);
             contentArea.getChildren().setAll(view);
+            if (!"topics.fxml".equals(fxmlFile)) {
+                resetContentPadding();
+            }
             activeContentKey = fxmlFile;
             pageTitleLabel.setText(APP_TITLE);
             setActiveNav(activeButton);
@@ -962,6 +975,8 @@ public class MainShellController implements ShellNavigator {
         unbindSize(region);
         region.maxWidthProperty().bind(contentArea.widthProperty());
         region.maxHeightProperty().bind(contentArea.heightProperty());
+        region.prefWidthProperty().bind(contentArea.widthProperty());
+        region.prefHeightProperty().bind(contentArea.heightProperty());
     }
 
     private void unbindSize(Region region) {
@@ -970,6 +985,12 @@ public class MainShellController implements ShellNavigator {
         }
         if (region.maxHeightProperty().isBound()) {
             region.maxHeightProperty().unbind();
+        }
+        if (region.prefWidthProperty().isBound()) {
+            region.prefWidthProperty().unbind();
+        }
+        if (region.prefHeightProperty().isBound()) {
+            region.prefHeightProperty().unbind();
         }
     }
 
