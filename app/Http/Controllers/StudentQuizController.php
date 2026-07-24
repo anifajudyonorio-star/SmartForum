@@ -209,6 +209,62 @@ class StudentQuizController extends Controller
         ));
     }
 
+    public function launchPoll()
+    {
+        $this->authorize('viewAvailable', Quiz::class);
+
+        $user = auth()->user();
+        $now = now();
+
+        $completedQuizIds = QuizResult::where('user_id', $user->id)
+            ->pluck('quiz_id')
+            ->all();
+
+        $openAttemptQuizIds = QuizAttempt::query()
+            ->where('user_id', $user->id)
+            ->where('status', QuizAttempt::STATUS_IN_PROGRESS)
+            ->pluck('quiz_id')
+            ->all();
+
+        $quizzes = Quiz::query()
+            ->withCount('questions')
+            ->accessibleToStudent($user)
+            ->where('end_time', '>=', $now)
+            ->whereHas('questions')
+            ->orderBy('start_time')
+            ->get()
+            ->filter(fn (Quiz $quiz) => $quiz->isVisibleToStudents()
+                && ! in_array($quiz->id, $completedQuizIds, true))
+            ->values()
+            ->map(function (Quiz $quiz) use ($now, $openAttemptQuizIds) {
+                $status = $quiz->lifecycleStatus();
+                $secondsUntilStart = max(0, $quiz->start_time->getTimestamp() - $now->getTimestamp());
+                $secondsUntilEnd = max(0, $quiz->end_time->getTimestamp() - $now->getTimestamp());
+                $hasOpenAttempt = in_array($quiz->id, $openAttemptQuizIds, true);
+
+                return [
+                    'id' => $quiz->id,
+                    'title' => $quiz->title,
+                    'description' => $quiz->description,
+                    'duration_minutes' => (int) $quiz->duration,
+                    'questions_count' => (int) $quiz->questions_count,
+                    'status' => $status,
+                    'start_time' => $quiz->start_time?->toIso8601String(),
+                    'end_time' => $quiz->end_time?->toIso8601String(),
+                    'seconds_until_start' => (int) $secondsUntilStart,
+                    'seconds_until_end' => (int) $secondsUntilEnd,
+                    'has_open_attempt' => $hasOpenAttempt,
+                    'start_url' => route('student.quiz.show', ['quiz' => $quiz, 'start' => 1]),
+                    'preview_url' => route('student.quiz.show', $quiz),
+                ];
+            });
+
+        return response()->json([
+            'server_now' => $now->toIso8601String(),
+            'quizzes' => $quizzes,
+        ]);
+    }
+
     public function show(Request $request, Quiz $quiz)
     {
         $this->authorize('take', $quiz);

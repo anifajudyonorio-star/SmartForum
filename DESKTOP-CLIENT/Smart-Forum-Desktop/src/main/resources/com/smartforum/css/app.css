@@ -1082,6 +1082,40 @@
     -fx-padding: 40 16 40 16;
 }
 
+/* ── Quiz launch popup (desktop parity with Laravel) ───── */
+.quiz-launch-dialog {
+    -fx-background-color: white;
+    -fx-border-color: #d1fae5;
+    -fx-border-width: 1;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+}
+
+.quiz-launch-eyebrow {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #15803d;
+}
+
+.quiz-launch-timer-wrap {
+    -fx-background-color: #dcfce7;
+    -fx-border-color: #d1fae5;
+    -fx-border-width: 1;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-padding: 14 16 14 16;
+}
+
+.quiz-launch-timer {
+    -fx-font-size: 34px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #15803d;
+}
+
+.quiz-launch-timer.is-urgent {
+    -fx-text-fill: #ef4444;
+}
+
 .empty-label {
     -fx-font-size: 12px;
     -fx-text-fill: #9ca3af;

@@ -2121,3 +2121,38 @@ body.chat-page {
     &--pending { color: #9ca3af; }   // one grey tick
     &--sent    { color: #53bdeb; }   // two blue ticks
 }
+
+// ── Quiz launch popup (student) ─────────────────────────────
+.quiz-launch-modal {
+    border: 1px solid #d1fae5;
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.quiz-launch-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--primary-dark);
+}
+
+.quiz-launch-timer-wrap {
+    background: var(--primary-muted);
+    border: 1px solid #d1fae5;
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    text-align: center;
+}
+
+.quiz-launch-timer {
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--primary-dark);
+    font-variant-numeric: tabular-nums;
+}
+
+.quiz-launch-timer.is-urgent {
+    color: #dc2626;
+}

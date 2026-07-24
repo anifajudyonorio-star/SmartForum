@@ -15,6 +15,7 @@ import com.smartforum.model.Quiz;
 import com.smartforum.model.QuizAttempt;
 import com.smartforum.model.QuizCategory;
 import com.smartforum.service.AppSession;
+import com.smartforum.service.QuizLaunchMonitor;
 import com.smartforum.service.QuizSubmissionService;
 import com.smartforum.util.ApiSupport;
 import com.smartforum.util.QuizSchedule;
@@ -442,6 +443,7 @@ public class TakeQuizController {
             }
 
             QuizModalController modal = loader.getController();
+            QuizLaunchMonitor.setQuizWindowOpen(true);
             modal.setup(quiz, questions, user, attempt, apiMode);
 
             Stage stage = new Stage();
@@ -457,8 +459,10 @@ public class TakeQuizController {
                 event.consume();
                 alert("Quiz In Progress", "Use Submit Quiz to finish this attempt.");
             });
+            stage.setOnHidden(event -> QuizLaunchMonitor.setQuizWindowOpen(false));
             stage.showAndWait();
         } catch (Exception e) {
+            QuizLaunchMonitor.setQuizWindowOpen(false);
             alert("Error", "Failed to open quiz window: " + e.getMessage());
         }
     }

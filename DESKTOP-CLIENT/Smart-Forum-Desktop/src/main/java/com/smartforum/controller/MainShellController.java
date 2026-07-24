@@ -2,6 +2,7 @@ package com.smartforum.controller;
 
 import com.smartforum.api.ApiClient;
 import com.smartforum.service.AppSession;
+import com.smartforum.service.QuizLaunchMonitor;
 import com.smartforum.service.SyncStatusService;
 import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
@@ -123,6 +124,16 @@ public class MainShellController implements ShellNavigator {
         sync.start();
 
         startNotificationPolling();
+
+        if (AppSession.getInstance().isStudent()) {
+            // Defer until the scene/window exists so the launch dialog can own it.
+            javafx.application.Platform.runLater(() -> {
+                if (contentArea.getScene() != null && contentArea.getScene().getWindow() != null) {
+                    QuizLaunchMonitor.getInstance().start(contentArea.getScene().getWindow());
+                }
+            });
+        }
+
         showDashboard();
     }
 
@@ -276,6 +287,7 @@ public class MainShellController implements ShellNavigator {
     @FXML
     private void handleLogout() {
         hideProfileMenu();
+        QuizLaunchMonitor.getInstance().stop();
         SyncStatusService.getInstance().stop();
         com.smartforum.util.SessionManager.getInstance().clear();
         com.smartforum.UserSession.getInstance().clear();

@@ -93,6 +93,11 @@
                                             <span class="badge bg-success">Completed</span>
                                         @elseif($quiz->lifecycleStatus() === \App\Models\Quiz::STATUS_SCHEDULED)
                                             <span class="badge bg-warning text-dark">Upcoming</span>
+                                            <div class="small text-muted mt-1"
+                                                 data-quiz-starts-in
+                                                 data-start-at="{{ $quiz->start_time->timestamp }}">
+                                                Starts soon…
+                                            </div>
                                         @else
                                             <span class="badge bg-primary">Available</span>
                                         @endif
@@ -101,9 +106,9 @@
                                         @if($completedQuizIds->contains($quiz->id))
                                             <span class="text-muted small">Already taken</span>
                                         @elseif($quiz->lifecycleStatus() === \App\Models\Quiz::STATUS_SCHEDULED)
-                                            <span class="text-muted small">Not open yet</span>
+                                            <span class="text-muted small">Opens at {{ $quiz->start_time->format('g:i A') }}</span>
                                         @else
-                                            <a href="{{ route('student.quiz.show', $quiz) }}" class="btn btn-primary btn-sm">Start Quiz</a>
+                                            <a href="{{ route('student.quiz.show', $quiz) }}?start=1" class="btn btn-primary btn-sm">Start Quiz</a>
                                         @endif
                                     </td>
                                 </tr>
@@ -140,7 +145,7 @@
                         @elseif($quiz->lifecycleStatus() === \App\Models\Quiz::STATUS_SCHEDULED)
                             <span class="badge bg-warning text-dark">Coming Soon</span>
                         @else
-                            <a href="{{ route('student.quiz.show', $quiz) }}" class="btn btn-primary btn-sm w-100">Start Quiz</a>
+                            <a href="{{ route('student.quiz.show', $quiz) }}?start=1" class="btn btn-primary btn-sm w-100">Start Quiz</a>
                         @endif
                     </div>
                 </div>
@@ -156,4 +161,31 @@
     </div>
 
 </div>
+
+@push('scripts')
+<script>
+(function () {
+    const pads = (n) => String(n).padStart(2, '0');
+    function tickStartsIn() {
+        const now = Math.floor(Date.now() / 1000);
+        document.querySelectorAll('[data-quiz-starts-in]').forEach((el) => {
+            const startAt = Number(el.dataset.startAt || 0);
+            const remaining = Math.max(0, startAt - now);
+            if (remaining <= 0) {
+                el.textContent = 'Open now — refresh or wait for popup';
+                return;
+            }
+            const h = Math.floor(remaining / 3600);
+            const m = Math.floor((remaining % 3600) / 60);
+            const s = remaining % 60;
+            el.textContent = h > 0
+                ? `Starts in ${pads(h)}:${pads(m)}:${pads(s)}`
+                : `Starts in ${pads(m)}:${pads(s)}`;
+        });
+    }
+    tickStartsIn();
+    setInterval(tickStartsIn, 1000);
+})();
+</script>
+@endpush
 @endsection

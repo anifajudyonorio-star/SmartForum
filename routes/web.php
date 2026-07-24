@@ -115,6 +115,8 @@ Route::middleware('auth')->group(function () {
             ->name('student.quizzes.unenroll');
         Route::get('/student/quizzes/progress', [StudentQuizController::class, 'progress'])
             ->name('student.quizzes.progress');
+        Route::get('/student/quizzes/launch-poll', [StudentQuizController::class, 'launchPoll'])
+            ->name('student.quizzes.launch-poll');
         Route::get('/student/announcements', [QuizAnnouncementController::class, 'studentIndex'])
             ->name('student.announcements');
         Route::get('/student/quizzes/{quiz}', [StudentQuizController::class, 'show'])->name('student.quiz.show');
