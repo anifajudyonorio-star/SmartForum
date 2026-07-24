@@ -162,4 +162,65 @@ class SyncApiTest extends TestCase
         ], $this->apiHeaders($tokenB))
             ->assertNotFound();
     }
+
+    public function test_sync_resolves_client_topic_id_for_offline_post(): void
+    {
+        $user = User::factory()->create(['role' => 'student']);
+        $token = $this->actingAsApi($user);
+
+        $group = Group::factory()->create();
+        GroupMember::create([
+            'Group_ID' => $group->id,
+            'User_ID' => $user->id,
+            'Member_Status' => 'active',
+            'Member_Role' => 'member',
+        ]);
+
+        $deviceId = 'desktop-test-001';
+        $this->postJson('/api/sync/device', [
+            'device_id' => $deviceId,
+            'device_name' => 'Desktop Test',
+            'device_type' => 'desktop',
+        ], $this->apiHeaders($token));
+
+        $clientTopicId = 42;
+        $this->postJson('/api/sync/upload', [
+            'actions' => [
+                [
+                    'action_uuid' => '10000000-0000-4000-8000-000000000010',
+                    'action_type' => 'create_topic',
+                    'payload' => [
+                        'group_id' => $group->id,
+                        'title' => 'Offline topic',
+                        'description' => 'Created offline',
+                        'client_topic_id' => $clientTopicId,
+                    ],
+                ],
+                [
+                    'action_uuid' => '10000000-0000-4000-8000-000000000011',
+                    'action_type' => 'create_post',
+                    'payload' => [
+                        'topic_id' => $clientTopicId,
+                        'content' => 'Offline reply',
+                    ],
+                ],
+            ],
+        ], $this->apiHeaders($token));
+
+        $response = $this->postJson('/api/sync', [
+            'device_id' => $deviceId,
+        ], $this->apiHeaders($token));
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('synced_records', 2);
+
+        $topic = Topic::where('Title', 'Offline topic')->first();
+        $this->assertNotNull($topic);
+        $this->assertDatabaseHas('posts', [
+            'Topic_ID' => $topic->id,
+            'Post_Content' => 'Offline reply',
+            'Created_By' => $user->id,
+        ]);
+    }
 }

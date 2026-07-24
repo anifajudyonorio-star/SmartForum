@@ -2,17 +2,19 @@ package com.smartforum.util;
 
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
+import com.smartforum.api.ApiClient;
+import com.smartforum.service.PostService;
+import com.smartforum.service.TopicService;
 
-import java.io.*;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class OfflineQueue {
     private static final Path QUEUE_FILE = Paths.get(System.getProperty("user.home"), ".smartforum_queue.json");
     private static final Gson GSON = new Gson();
+    private static final Set<String> DONE_STATUSES = Set.of("succeeded", "duplicate");
 
     public static class QueueEntry {
         public String actionType;
@@ -74,41 +76,132 @@ public class OfflineQueue {
 
     public static void flush(Runnable onSuccess, Runnable onFailure) {
         List<QueueEntry> queue = getQueue();
-        if (queue.isEmpty()) { if (onSuccess != null) onSuccess.run(); return; }
+        if (queue.isEmpty()) {
+            if (onSuccess != null) onSuccess.run();
+            return;
+        }
 
         String token = SessionManager.getInstance().getToken();
-        if (token == null) { if (onFailure != null) onFailure.run(); return; }
+        if (token == null || token.isBlank()) {
+            if (onFailure != null) onFailure.run();
+            return;
+        }
 
-        new Thread(() -> {
-            try {
-                List<QueueEntry> remaining = new ArrayList<>();
-                for (QueueEntry entry : queue) {
-                    boolean ok = false;
-                    if ("create_post".equals(entry.actionType)) {
-                        int topicId = entry.payload.get("topic_id").getAsInt();
-                        String content = entry.payload.get("content").getAsString();
-                        Integer parentId = entry.payload.has("parent_post_id")
-                                ? entry.payload.get("parent_post_id").getAsInt() : null;
-                        ok = com.smartforum.api.ApiClient.sendPost(topicId, content, parentId);
-                    } else if ("create_topic".equals(entry.actionType)) {
-                        int groupId = entry.payload.get("group_id").getAsInt();
-                        String title = entry.payload.get("title").getAsString();
-                        String desc = entry.payload.has("description")
-                                ? entry.payload.get("description").getAsString() : "";
-                        ok = com.smartforum.api.ApiClient.createTopic(groupId, title, desc);
-                    }
-                    if (!ok) remaining.add(entry);
-                }
-                saveQueue(remaining);
-                if (remaining.isEmpty()) {
-                    if (onSuccess != null) onSuccess.run();
-                } else {
+        try {
+            String deviceId = DeviceIdStore.getDeviceId();
+            if (!ApiClient.registerSyncDevice(deviceId)) {
+                if (onFailure != null) onFailure.run();
+                return;
+            }
+
+            JsonArray uploadActions = buildUploadPayload(queue);
+            ApiClient.MutationResult upload = ApiClient.uploadSyncActions(uploadActions);
+            if (!upload.success()) {
+                if (onFailure != null) onFailure.run();
+                return;
+            }
+
+            Map<Integer, Integer> remaps = new HashMap<>();
+            collectTopicRemaps(queue, upload.body(), remaps);
+            queue = mergeActionResults(queue, upload.body());
+            saveQueue(queue);
+
+            if (!queue.isEmpty()) {
+                ApiClient.MutationResult sync = ApiClient.runSync(deviceId);
+                if (!sync.success()) {
                     if (onFailure != null) onFailure.run();
+                    return;
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+                collectTopicRemaps(queue, sync.body(), remaps);
+                queue = mergeActionResults(queue, sync.body());
+                saveQueue(queue);
+            }
+
+            if (!remaps.isEmpty()) {
+                TopicService.getInstance().remapTopicIds(remaps);
+                PostService.getInstance().remapTopicIds(remaps);
+            }
+
+            if (queue.isEmpty()) {
+                if (onSuccess != null) onSuccess.run();
+            } else {
                 if (onFailure != null) onFailure.run();
             }
-        }).start();
+        } catch (Exception e) {
+            e.printStackTrace();
+            if (onFailure != null) onFailure.run();
+        }
+    }
+
+    private static JsonArray buildUploadPayload(List<QueueEntry> queue) {
+        JsonArray actions = new JsonArray();
+        for (QueueEntry entry : queue) {
+            JsonObject action = new JsonObject();
+            action.addProperty("action_uuid", entry.actionUuid);
+            action.addProperty("action_type", entry.actionType);
+            action.add("payload", entry.payload);
+            actions.add(action);
+        }
+        return actions;
+    }
+
+    private static List<QueueEntry> mergeActionResults(List<QueueEntry> queue, JsonObject response) {
+        if (response == null || !response.has("actions") || !response.get("actions").isJsonArray()) {
+            return queue;
+        }
+
+        Map<String, JsonObject> byUuid = new HashMap<>();
+        for (JsonElement element : response.getAsJsonArray("actions")) {
+            if (!element.isJsonObject()) continue;
+            JsonObject result = element.getAsJsonObject();
+            if (result.has("action_uuid")) {
+                byUuid.put(result.get("action_uuid").getAsString(), result);
+            }
+        }
+
+        List<QueueEntry> remaining = new ArrayList<>();
+        for (QueueEntry entry : queue) {
+            JsonObject result = byUuid.get(entry.actionUuid);
+            if (result != null && result.has("status")
+                    && DONE_STATUSES.contains(result.get("status").getAsString())) {
+                continue;
+            }
+            remaining.add(entry);
+        }
+        return remaining;
+    }
+
+    private static void collectTopicRemaps(
+            List<QueueEntry> queue,
+            JsonObject response,
+            Map<Integer, Integer> remaps) {
+        if (response == null || !response.has("actions") || !response.get("actions").isJsonArray()) {
+            return;
+        }
+
+        Map<String, QueueEntry> byUuid = new HashMap<>();
+        for (QueueEntry entry : queue) {
+            byUuid.put(entry.actionUuid, entry);
+        }
+
+        for (JsonElement element : response.getAsJsonArray("actions")) {
+            if (!element.isJsonObject()) continue;
+            JsonObject result = element.getAsJsonObject();
+            if (!result.has("status") || !DONE_STATUSES.contains(result.get("status").getAsString())) {
+                continue;
+            }
+            if (!result.has("action_uuid") || !result.has("action_type")) continue;
+            if (!"create_topic".equals(result.get("action_type").getAsString())) continue;
+            if (!result.has("resource_id")) continue;
+
+            QueueEntry entry = byUuid.get(result.get("action_uuid").getAsString());
+            if (entry == null || entry.payload == null || !entry.payload.has("client_topic_id")) {
+                continue;
+            }
+
+            int clientId = entry.payload.get("client_topic_id").getAsInt();
+            int serverId = result.get("resource_id").getAsInt();
+            remaps.put(clientId, serverId);
+        }
     }
 }

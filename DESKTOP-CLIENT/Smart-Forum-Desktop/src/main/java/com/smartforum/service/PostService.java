@@ -240,6 +240,23 @@ public class PostService {
         }
     }
 
+    public void remapTopicIds(Map<Integer, Integer> remaps) {
+        if (remaps == null || remaps.isEmpty()) {
+            return;
+        }
+
+        for (Map.Entry<Integer, Integer> entry : remaps.entrySet()) {
+            int clientId = entry.getKey();
+            int serverId = entry.getValue();
+            List<Post> posts = postsByTopic.remove(clientId);
+            if (posts != null) {
+                postsByTopic.put(serverId, posts);
+            } else {
+                initTopicPosts(serverId);
+            }
+        }
+    }
+
     private void queueOfflinePost(int topicId, String content, Integer parentPostId) {
         JsonObject payload = new JsonObject();
         payload.addProperty("topic_id", topicId);

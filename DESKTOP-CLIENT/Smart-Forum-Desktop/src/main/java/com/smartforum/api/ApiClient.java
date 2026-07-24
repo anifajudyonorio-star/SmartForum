@@ -495,10 +495,6 @@ public class ApiClient {
 
     // ── Admin user management ──────────────────────────────────────────────────
 
-    public static Optional<JsonObject> getAdminUsers() {
-        return getJson("/api/admin/users");
-    }
-
     public static MutationResult adminWarnUser(int userId, String reason) {
         JsonObject body = new JsonObject();
         if (reason != null && !reason.isBlank()) body.addProperty("reason", reason);
@@ -529,5 +525,42 @@ public class ApiClient {
         body.addProperty("password", password);
         body.addProperty("password_confirmation", password);
         return mutateJson("POST", "/api/admin/users", body);
+    }
+
+    // ── Offline sync (mirrors web offline.js) ────────────────────────────────
+
+    public static boolean registerSyncDevice(String deviceId) {
+        JsonObject body = new JsonObject();
+        body.addProperty("device_id", deviceId);
+        body.addProperty("device_name", System.getProperty("os.name", "Desktop"));
+        body.addProperty("device_type", "desktop");
+        return mutateJson("POST", "/api/sync/device", body).success();
+    }
+
+    public static MutationResult uploadSyncActions(JsonArray actions) {
+        JsonObject body = new JsonObject();
+        body.add("actions", actions);
+        return mutateJson("POST", "/api/sync/upload", body);
+    }
+
+    public static MutationResult runSync(String deviceId) {
+        JsonObject body = new JsonObject();
+        body.addProperty("device_id", deviceId);
+        return mutateJson("POST", "/api/sync", body);
+    }
+
+    public static boolean pingServer() {
+        try {
+            HttpResponse<String> res = HTTP.send(
+                    HttpRequest.newBuilder()
+                            .uri(URI.create(BASE_URL + "/up"))
+                            .timeout(java.time.Duration.ofMillis(1500))
+                            .GET()
+                            .build(),
+                    HttpResponse.BodyHandlers.ofString());
+            return res.statusCode() >= 200 && res.statusCode() < 300;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

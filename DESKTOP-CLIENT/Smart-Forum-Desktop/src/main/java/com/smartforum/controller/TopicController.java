@@ -212,13 +212,16 @@ public class TopicController {
         // Reload chat after offline sync so pending posts are replaced with real ones
         SyncStatusService.getInstance().setOnSyncSuccess(() -> {
             if (this.topicId != topicId) return;
+            int reloadTopicId = topicService.resolveTopicId(topicId);
+            this.topicId = reloadTopicId;
             new Thread(() -> {
-                List<Post> posts = postController.loadPosts(topicId);
+                List<Post> posts = postController.loadPosts(reloadTopicId);
                 Platform.runLater(() -> {
                     pendingPosts.clear(); // sync done, real posts are now on server
                     currentPosts = posts;
                     Group g = groupService.getGroup(groupId).orElse(null);
-                    loadMessages(topic, g != null ? g.getName() : "Group");
+                    Optional<Topic> refreshed = topicService.getTopic(reloadTopicId);
+                    loadMessages(refreshed.orElse(topic), g != null ? g.getName() : "Group");
                     scrollMessagesToBottom();
                 });
             }, "sync-reload").start();

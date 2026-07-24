@@ -83,7 +83,11 @@ public class UserManagementController {
         if (u.blacklisted()) card.getStyleClass().add("um-user-card-blacklisted");
 
         // Top row: avatar + info
-        Label avatar = new Label(u.fname().substring(0, 1).toUpperCase());
+        Label avatar = new Label(
+                u.fname() == null || u.fname().isBlank()
+                        ? "?"
+                        : u.fname().substring(0, 1).toUpperCase()
+        );
         avatar.getStyleClass().add("um-avatar");
 
         Label name = new Label(u.fname() + " " + u.lname());
@@ -235,9 +239,6 @@ public class UserManagementController {
                 }
             });
         }).start();
-                }
-            });
-        }).start();
     }
 
     @FXML
@@ -261,7 +262,5 @@ public class UserManagementController {
             case "lecturer" -> "Lecturer";
             default -> "Student";
         };
-    }
-}
     }
 }

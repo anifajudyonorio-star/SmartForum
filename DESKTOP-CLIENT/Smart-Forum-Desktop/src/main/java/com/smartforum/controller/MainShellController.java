@@ -59,9 +59,6 @@ public class MainShellController implements ShellNavigator {
     @FXML private VBox groupAdminSection;
     @FXML private Button statisticsNavBtn;
     @FXML private Button participationNavBtn;
-    @FXML private Button quizNavBtn;
-    @FXML private VBox superAdminSection;
-    @FXML private Button userManagementNavBtn;
     @FXML private Label topBarUserAvatar;
     @FXML private Label syncStatusLabel;
     @FXML private Label offlineBanner;
@@ -93,11 +90,9 @@ public class MainShellController implements ShellNavigator {
 
         navButtons.addAll(List.of(
                 dashboardNavBtn, groupsNavBtn, topicSearchNavBtn, notificationsNavBtn,
-        navButtons.addAll(List.of(
-                dashboardNavBtn, groupsNavBtn, topicSearchNavBtn, notificationsNavBtn,
-                quizzesNavBtn, announcementsNavBtn, quizProgressNavBtn, lecturerQuizzesNavBtn, lecturerAnnouncementsNavBtn, quizReportsNavBtn,
-                statisticsNavBtn, participationNavBtn, quizNavBtn, userManagementNavBtn
-        ));
+                quizzesNavBtn, announcementsNavBtn, quizProgressNavBtn, lecturerQuizzesNavBtn,
+                lecturerAnnouncementsNavBtn, quizReportsNavBtn, statisticsNavBtn, participationNavBtn,
+                userManagementNavBtn
         ));
 
         var user = AppSession.getInstance().getCurrentUser();
@@ -348,7 +343,6 @@ public class MainShellController implements ShellNavigator {
     private Button activeAnnouncementsNavBtn() {
         return AppSession.getInstance().isStudent() ? announcementsNavBtn : lecturerAnnouncementsNavBtn;
     }
-    }
 
     private void setupSidebarNavIcons() {
         setNavIcon(dashboardNavBtn, BootstrapIcons.SPEEDOMETER2);
@@ -362,14 +356,13 @@ public class MainShellController implements ShellNavigator {
         setNavIcon(quizReportsNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(statisticsNavBtn, BootstrapIcons.GRAPH_UP);
         setNavIcon(participationNavBtn, BootstrapIcons.BAR_CHART_FILL);
-        setNavIcon(quizReportsNavBtn, BootstrapIcons.GRAPH_UP);
-        setNavIcon(statisticsNavBtn, BootstrapIcons.GRAPH_UP);
-        setNavIcon(participationNavBtn, BootstrapIcons.BAR_CHART_FILL);
-        setNavIcon(quizNavBtn, BootstrapIcons.PATCH_QUESTION);
         setNavIcon(userManagementNavBtn, BootstrapIcons.PEOPLE);
     }
 
     private void setNavIcon(Button button, BootstrapIcons icon) {
+        if (button == null) {
+            return;
+        }
         FontIcon fontIcon = FontIcon.of(icon);
         fontIcon.getStyleClass().add("sidebar-nav-icon");
         button.setGraphic(fontIcon);
@@ -908,6 +901,9 @@ public class MainShellController implements ShellNavigator {
 
     private void setActiveNav(Button activeButton) {
         for (Button button : navButtons) {
+            if (button == null) {
+                continue;
+            }
             button.getStyleClass().remove("active");
         }
         if (activeButton != null) {

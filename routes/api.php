@@ -19,7 +19,6 @@ use App\Http\Controllers\SyncController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\TopicController;
 use App\Http\Controllers\RecommendationController;
-use App\Http\Controllers\Api\AdminUserApiController;
 
 // Desktop client auth
 Route::post('/login', [AuthApiController::class, 'login']);

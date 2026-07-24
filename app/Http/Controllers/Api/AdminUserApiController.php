@@ -131,6 +131,23 @@ class AdminUserApiController extends Controller
         ]);
     }
 
+    public function promote(Request $request, User $user)
+    {
+        abort_unless(Auth::user()->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'role' => ['required', 'in:student,lecturer,admin'],
+        ]);
+
+        $oldRole = $user->role;
+        $user->update(['role' => $validated['role']]);
+
+        return response()->json([
+            'message' => "{$user->Fname}'s role changed from {$oldRole} to {$validated['role']}.",
+            'user' => $this->serializeUser($user->fresh()),
+        ]);
+    }
+
     private function serializeUser(User $user): array
     {
         return [

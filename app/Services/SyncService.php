@@ -42,7 +42,8 @@ class SyncService
     {
         $query = SyncQueue::where('user_id', $userId)
             ->where('is_synced', false)
-            ->orderBy('created_at');
+            ->orderBy('created_at')
+            ->orderBy('id');
 
         return ($lockForUpdate ? $query->lockForUpdate() : $query)->get();
     }
@@ -263,7 +264,7 @@ class SyncService
     {
         $p = $action->payload;
 
-        $topicId  = (int) ($p['topic_id'] ?? 0);
+        $topicId  = $this->resolveTopicId((int) $action->user_id, (int) ($p['topic_id'] ?? 0));
         $content  = strip_tags((string) ($p['content'] ?? ''));
         $parentId = isset($p['parent_post_id']) ? (int) $p['parent_post_id'] : null;
 
@@ -284,12 +285,16 @@ class SyncService
             throw new ConflictException('You are no longer a member of this group.');
         }
 
-        Post::create([
+        $post = Post::create([
             'Topic_ID'       => $topicId,
             'Parent_Post_ID' => $parentId,
             'Created_By'     => $action->user_id,
             'Post_Content'   => $content,
         ]);
+
+        $payload = $action->payload;
+        $payload['server_post_id'] = $post->id;
+        $action->update(['payload' => $payload]);
     }
 
     private function processCreateTopic(SyncQueue $action): void
@@ -317,17 +322,24 @@ class SyncService
             throw new ConflictException('You are no longer a member of this group.');
         }
 
-        Topic::create([
+        $topic = Topic::create([
             'Title'             => $title,
             'Topic_Description' => $description,
             'Group_ID'          => $groupId,
             'Created_By'        => $action->user_id,
         ]);
+
+        $payload = $action->payload;
+        $payload['server_topic_id'] = $topic->id;
+        $action->update(['payload' => $payload]);
     }
 
     private function processViewTopic(SyncQueue $action): void
     {
-        $topicId = (int) ($action->payload['topic_id'] ?? 0);
+        $topicId = $this->resolveTopicId(
+            (int) $action->user_id,
+            (int) ($action->payload['topic_id'] ?? 0),
+        );
         if ($topicId <= 0) {
             throw new ConflictException('Invalid topic view payload.');
         }
@@ -412,10 +424,11 @@ class SyncService
                 'payload.content' => ['required', 'string', 'max:10000'],
             ],
             'create_topic' => [
-                'payload' => ['required', 'array:group_id,title,description'],
+                'payload' => ['required', 'array:group_id,title,description,client_topic_id'],
                 'payload.group_id' => ['required', 'integer', 'min:1'],
                 'payload.title' => ['required', 'string', 'max:255'],
                 'payload.description' => ['nullable', 'string', 'max:5000'],
+                'payload.client_topic_id' => ['nullable', 'integer', 'min:1'],
             ],
             'submit_quiz' => [
                 'payload' => ['required', 'array:quiz_id,attempt_id,answers'],
@@ -517,13 +530,56 @@ class SyncService
         string $status,
         ?string $reason = null,
     ): array {
-        return [
+        $ack = [
             'action_id' => $action->id,
             'action_uuid' => $action->action_uuid,
             'action_type' => $action->action_type,
             'status' => $status,
             'reason' => $reason,
         ];
+
+        $resourceId = $this->resourceIdForAction($action);
+        if ($resourceId !== null) {
+            $ack['resource_id'] = $resourceId;
+        }
+
+        return $ack;
+    }
+
+    private function resourceIdForAction(SyncQueue $action): ?int
+    {
+        $payload = $action->payload ?? [];
+
+        return match ($action->action_type) {
+            'create_topic' => isset($payload['server_topic_id']) ? (int) $payload['server_topic_id'] : null,
+            'create_post' => isset($payload['server_post_id']) ? (int) $payload['server_post_id'] : null,
+            default => null,
+        };
+    }
+
+    private function resolveTopicId(int $userId, int $topicId): int
+    {
+        if ($topicId <= 0) {
+            return 0;
+        }
+
+        if (Topic::find($topicId)) {
+            return $topicId;
+        }
+
+        $prior = SyncQueue::query()
+            ->where('user_id', $userId)
+            ->where('action_type', 'create_topic')
+            ->where('is_synced', true)
+            ->orderBy('synced_at')
+            ->get()
+            ->first(fn (SyncQueue $action) => (int) ($action->payload['client_topic_id'] ?? 0) === $topicId);
+
+        if ($prior && isset($prior->payload['server_topic_id'])) {
+            return (int) $prior->payload['server_topic_id'];
+        }
+
+        return $topicId;
     }
 
     private function actionFailureMessage(\Throwable $exception): string

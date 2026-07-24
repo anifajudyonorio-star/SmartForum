@@ -22,6 +22,7 @@ public class TopicService {
 
     private final Map<Integer, List<Topic>> topicsByGroup = new HashMap<>();
     private final Map<Integer, Topic> topicsById = new HashMap<>();
+    private final Map<Integer, Integer> clientToServerTopicIds = new HashMap<>();
     private int nextTopicId = 10;
 
     private TopicService() {
@@ -30,6 +31,7 @@ public class TopicService {
     public void clearCache() {
         topicsByGroup.clear();
         topicsById.clear();
+        clientToServerTopicIds.clear();
     }
 
     public static TopicService getInstance() {
@@ -84,8 +86,9 @@ public class TopicService {
                         .orElseThrow(() -> new IllegalStateException("Topic created but not returned by API."));
             }
             if (!NetworkMonitor.isOnline()) {
-                queueOfflineTopic(groupId, title, description);
-                return buildLocalPendingTopic(groupId, title, description);
+                Topic topic = buildLocalPendingTopic(groupId, title, description);
+                queueOfflineTopic(groupId, title, description, topic.getId());
+                return topic;
             }
             throw new IllegalStateException("Could not create topic via API.");
         }
@@ -195,10 +198,11 @@ public class TopicService {
                 .collect(Collectors.toList());
     }
 
-    private void queueOfflineTopic(int groupId, String title, String description) {
+    private void queueOfflineTopic(int groupId, String title, String description, int clientTopicId) {
         JsonObject payload = new JsonObject();
         payload.addProperty("group_id", groupId);
         payload.addProperty("title", title);
+        payload.addProperty("client_topic_id", clientTopicId);
         if (description != null) payload.addProperty("description", description);
         OfflineQueue.add("create_topic", payload);
         SyncStatusService.getInstance().refreshNow();
@@ -239,5 +243,47 @@ public class TopicService {
             PostService.getInstance().initTopicPosts(topic.getId());
             nextTopicId = Math.max(nextTopicId, topic.getId() + 1);
         }
+    }
+
+    public void remapTopicIds(Map<Integer, Integer> remaps) {
+        if (remaps == null || remaps.isEmpty()) {
+            return;
+        }
+
+        clientToServerTopicIds.putAll(remaps);
+
+        for (Map.Entry<Integer, Integer> entry : remaps.entrySet()) {
+            int clientId = entry.getKey();
+            int serverId = entry.getValue();
+            Topic topic = topicsById.remove(clientId);
+            if (topic == null) {
+                continue;
+            }
+
+            Topic remapped = new Topic(
+                    serverId,
+                    topic.getGroupId(),
+                    topic.getTitle(),
+                    topic.getDescription(),
+                    topic.getCreatedBy(),
+                    topic.getAuthorName()
+            );
+            topicsById.put(serverId, remapped);
+
+            List<Topic> groupTopics = topicsByGroup.get(topic.getGroupId());
+            if (groupTopics != null) {
+                for (int i = 0; i < groupTopics.size(); i++) {
+                    if (groupTopics.get(i).getId() == clientId) {
+                        groupTopics.set(i, remapped);
+                        break;
+                    }
+                }
+            }
+            nextTopicId = Math.max(nextTopicId, serverId + 1);
+        }
+    }
+
+    public int resolveTopicId(int topicId) {
+        return clientToServerTopicIds.getOrDefault(topicId, topicId);
     }
 }
