@@ -129,6 +129,7 @@ use Illuminate\Support\Facades\Auth;
 
     @auth
         <div id="notifToastStack" class="wa-notif-stack" aria-live="polite"></div>
+        @include('partials.quiz-launch-modal')
     @endauth
 
     {{-- Inline charts call themeColor before the Vite module finishes loading --}}

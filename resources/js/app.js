@@ -2,6 +2,7 @@ import './bootstrap';
 import './theme';
 import './chat';
 import './notifications';
+import './quiz-launch';
 import { initOfflineSync, queueAction, isStableOnline } from './offline';
 import { initPushNotifications } from './push';
 
