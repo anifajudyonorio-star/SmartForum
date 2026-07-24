@@ -519,6 +519,77 @@ h5 { font-size: 1rem; }
     background: var(--primary) !important;
 }
 
+// ── User Management ───────────────────────────────────────────
+.um-user-card {
+    background: #fff;
+    border: 1px solid #d1fae5;
+    border-radius: 0.65rem;
+    padding: 1rem;
+    transition: box-shadow 0.15s ease;
+
+    &:hover { box-shadow: 0 2px 8px rgba(22,101,52,0.08); }
+}
+
+.um-user-card-blacklisted {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.um-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--sidebar-bg);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.um-user-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.um-user-email {
+    font-size: 0.78rem;
+    color: #6b7280;
+}
+
+.um-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    display: inline-block;
+}
+
+.um-badge-role   { background: #e5e7eb; color: #374151; }
+.um-badge-success { background: var(--primary-muted); color: var(--primary-dark); }
+.um-badge-danger  { background: #fee2e2; color: #991b1b; }
+.um-badge-warning { background: #fef3c7; color: #92400e; }
+.um-badge-muted   { background: #f3f4f6; color: #374151; }
+
+.um-add-panel {
+    background: #fff;
+    border: 1px solid #d1fae5;
+    border-radius: 0.65rem;
+    padding: 1rem 1.25rem;
+}
+
+.um-dialog-warning {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+    border-radius: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+}
+
 // ── Auth / Login ───────────────────────────────────────────
 .auth-body {
     background: var(--primary-muted);
