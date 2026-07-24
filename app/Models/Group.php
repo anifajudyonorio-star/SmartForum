@@ -12,9 +12,24 @@ class Group extends Model
     protected $fillable = [
         'Group_Name',
         'Description',
+        'join_rules',
         'Created_By',
         'Status',
+        'inactivity_monitoring_enabled',
+        'inactivity_threshold_days',
+        'inactivity_grace_days',
+        'inactivity_blacklist_days',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'inactivity_monitoring_enabled' => 'boolean',
+            'inactivity_threshold_days' => 'integer',
+            'inactivity_grace_days' => 'integer',
+            'inactivity_blacklist_days' => 'integer',
+        ];
+    }
 
     public function topics()
     {
@@ -30,7 +45,7 @@ class Group extends Model
     {
         return $this->belongsToMany(User::class, 'group_members', 'Group_ID', 'User_ID')
             ->withTimestamps()
-            ->withPivot(['Member_Status', 'Member_Role', 'warnings']);
+            ->withPivot(['Member_Status', 'Member_Role', 'warnings', 'last_activity_at', 'inactive_warning_sent_at', 'suspended_until', 'rules_accepted_at']);
     }
 
     public function memberships()

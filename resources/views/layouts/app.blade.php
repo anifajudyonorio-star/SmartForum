@@ -117,6 +117,10 @@ use Illuminate\Support\Facades\Auth;
                 </div>
             </nav>
 
+            @auth
+                @include('partials.offline-sync')
+            @endauth
+
             <main class="app-content">
                 @yield('content')
             </main>

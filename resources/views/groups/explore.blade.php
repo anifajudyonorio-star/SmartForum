@@ -61,18 +61,12 @@
                                     @endif
                                 </span>
 
-                                @if($joinStatus === 'pending')
-                                    <span class="badge bg-warning text-dark">Pending approval</span>
-                                @elseif($joinStatus === 'blocked')
-                                    <span class="badge bg-secondary">Cannot join</span>
-                                @else
-                                    <form action="{{ route('groups.join', $group) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="btn btn-primary btn-sm">
-                                            <i class="bi bi-person-plus me-1"></i> Request to Join
-                                        </button>
-                                    </form>
-                                @endif
+                                @include('groups.partials.join-request-button', [
+                                    'group' => $group,
+                                    'joinStatus' => $joinStatus,
+                                    'buttonLabel' => 'Request to Join',
+                                    'btnClass' => 'btn btn-primary btn-sm',
+                                ])
                             </div>
                         </div>
                     </div>

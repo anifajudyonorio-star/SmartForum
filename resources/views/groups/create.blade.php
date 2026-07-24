@@ -60,6 +60,13 @@
 
                 </div>
 
+                <div class="mb-3">
+                    <label class="form-label">Join rules (optional)</label>
+                    <textarea name="join_rules" rows="6" class="form-control"
+                              placeholder="Rules new members must accept before requesting to join...">{{ old('join_rules') }}</textarea>
+                    <div class="form-text">If provided, members must read and agree to these rules before sending a join request.</div>
+                </div>
+
                 <button type="submit" class="btn btn-primary">
                     Create Group
                 </button>

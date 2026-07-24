@@ -144,6 +144,8 @@ class GroupModerationController extends Controller
         $group->members()->updateExistingPivot($user->id, [
             'Member_Status' => GroupMember::STATUS_ACTIVE,
             'warnings' => 0,
+            'suspended_until' => null,
+            'inactive_warning_sent_at' => null,
         ]);
         $this->quizNotifications->notifyNewlyActiveMember($user, $group);
 

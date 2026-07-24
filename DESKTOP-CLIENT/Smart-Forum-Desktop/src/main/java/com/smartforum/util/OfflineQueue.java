@@ -216,6 +216,8 @@ public class OfflineQueue {
                 case "create_post" -> tryDirectCreatePost(entry);
                 case "create_topic" -> tryDirectCreateTopic(entry);
                 case "view_topic" -> tryDirectViewTopic(entry);
+                case "update_post" -> tryDirectUpdatePost(entry);
+                case "delete_post" -> tryDirectDeletePost(entry);
                 default -> false;
             };
         } catch (Exception e) {
@@ -272,6 +274,32 @@ public class OfflineQueue {
     private static boolean tryDirectViewTopic(QueueEntry entry) {
         int topicId = TopicService.getInstance().resolveTopicId(entry.payload.get("topic_id").getAsInt());
         return ApiClient.recordTopicView(topicId);
+    }
+
+    private static boolean tryDirectUpdatePost(QueueEntry entry) {
+        int postId = entry.payload.get("post_id").getAsInt();
+        String content = entry.payload.get("content").getAsString();
+        ApiClient.MutationResult result = ApiClient.updatePostResult(
+                postId,
+                content,
+                readExcludedUserIds(entry.payload));
+        if (result.success()) {
+            lastFlushMessage = "";
+            return true;
+        }
+        lastFlushMessage = result.message();
+        return isPermanentFailure(result.statusCode());
+    }
+
+    private static boolean tryDirectDeletePost(QueueEntry entry) {
+        int postId = entry.payload.get("post_id").getAsInt();
+        ApiClient.MutationResult result = ApiClient.deletePostResult(postId);
+        if (result.success()) {
+            lastFlushMessage = "";
+            return true;
+        }
+        lastFlushMessage = result.message();
+        return isPermanentFailure(result.statusCode()) || result.statusCode() == 404;
     }
 
     private static String resolveToken() {

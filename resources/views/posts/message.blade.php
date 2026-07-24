@@ -17,6 +17,11 @@
                         title="Reply">
                     <i class="bi bi-reply-fill"></i>
                 </button>
+                <button type="button" class="wa-action-btn share-btn"
+                        data-post="{{ $post->id }}"
+                        title="Share to social media">
+                    <i class="bi bi-share-fill"></i>
+                </button>
                 @if(!$mine)
                     <button type="button" class="wa-action-btn report-btn"
                             data-post="{{ $post->id }}"
@@ -29,6 +34,7 @@
                         <i class="bi bi-pencil-fill"></i>
                     </a>
                     <form action="{{ route('posts.destroy', $post) }}" method="POST" class="d-inline"
+                          data-post-delete="{{ $post->id }}"
                           onsubmit="return confirm('Delete this message?')">
                         @csrf
                         @method('DELETE')

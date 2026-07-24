@@ -16,6 +16,8 @@ import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -35,6 +37,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -364,15 +367,7 @@ public class GroupController {
             actionLabel.setText("Cannot join");
         } else {
             actionLabel.setText("Request to Join");
-            card.setOnMouseClicked(event -> {
-                if (groupService.requestJoinGroup(group.getId())) {
-                    showAlert(Alert.AlertType.INFORMATION, "Request sent",
-                            "Your request to join \"" + group.getName() + "\" was sent for admin approval.");
-                    refreshExploreGroups();
-                } else {
-                    showAlert(Alert.AlertType.ERROR, "Request failed", "Could not send your join request.");
-                }
-            });
+            card.setOnMouseClicked(event -> handleExploreJoinRequest(group));
         }
 
         if (card.getChildren().size() >= 5 && card.getChildren().get(4) instanceof HBox footer) {
@@ -380,6 +375,35 @@ public class GroupController {
         }
 
         return card;
+    }
+
+    private void handleExploreJoinRequest(Group group) {
+        boolean acceptedRules = true;
+        if (group.hasJoinRules()) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Group rules");
+            alert.setHeaderText("Accept rules to join \"" + group.getName() + "\"");
+            TextArea rulesArea = new TextArea(group.getJoinRules());
+            rulesArea.setEditable(false);
+            rulesArea.setWrapText(true);
+            rulesArea.setPrefRowCount(10);
+            rulesArea.setMaxWidth(Double.MAX_VALUE);
+            alert.getDialogPane().setContent(rulesArea);
+            ButtonType accept = new ButtonType("Accept & request", ButtonBar.ButtonData.OK_DONE);
+            alert.getButtonTypes().setAll(ButtonType.CANCEL, accept);
+            Optional<ButtonType> choice = alert.showAndWait();
+            if (choice.isEmpty() || choice.get() != accept) {
+                return;
+            }
+        }
+
+        if (groupService.requestJoinGroup(group.getId(), acceptedRules)) {
+            showAlert(Alert.AlertType.INFORMATION, "Request sent",
+                    "Your request to join \"" + group.getName() + "\" was sent for admin approval.");
+            refreshExploreGroups();
+        } else {
+            showAlert(Alert.AlertType.ERROR, "Request failed", "Could not send your join request.");
+        }
     }
 
     private VBox buildGroupCard(Group group) {

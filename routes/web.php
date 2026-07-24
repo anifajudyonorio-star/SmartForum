@@ -105,6 +105,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/participation', [ParticipationController::class, 'index'])->name('participation.index');
     Route::get('/groups/{group}/participation', [ParticipationController::class, 'group'])->name('participation.group');
+    Route::put('/groups/{group}/participation/criteria', [ParticipationController::class, 'updateSettings'])->name('participation.criteria.update');
+    Route::patch('/groups/{group}/participation/grades/{user}', [ParticipationController::class, 'updateGrade'])->name('participation.grades.update');
 
     // Student quizzes
     Route::middleware('role:student')->group(function () {

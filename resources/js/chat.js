@@ -1,6 +1,7 @@
 // WhatsApp-style chat interactions
 
 import { isStableOnline } from './offline';
+import { bindShareButtons } from './share';
 
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -65,6 +66,9 @@ export function buildMessageHtml(post) {
                                 title="Reply">
                             <i class="bi bi-reply-fill"></i>
                         </button>
+                        <button type="button" class="wa-action-btn share-btn" data-post="${post.id}" title="Share">
+                            <i class="bi bi-share-fill"></i>
+                        </button>
                         ${actions}
                     </div>
                     ${nameBlock}
@@ -97,6 +101,8 @@ export function buildMessageHtml(post) {
     const excludePanel = document.getElementById('excludePanel');
     const storeUrl = chat.dataset.storeUrl;
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+    const topicTitle = chat.dataset.topicTitle || 'Discussion';
+    const topicUrl = chat.dataset.topicUrl || window.location.href.split('#')[0];
 
     function scrollToBottom() {
         if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -286,10 +292,14 @@ export function buildMessageHtml(post) {
         });
     }
 
-    function getMessageIdsFrom(scope) {
+    function getMessageFingerprint(scope) {
         return [...scope.querySelectorAll('.wa-msg[data-msg-id]')]
-            .map((el) => el.dataset.msgId)
-            .filter(Boolean);
+            .map((el) => {
+                const id = el.dataset.msgId;
+                const text = el.querySelector('.wa-bubble-text')?.textContent?.trim() ?? '';
+                return `${id}:${text}`;
+            })
+            .join('|');
     }
 
     function updateMessageCount(count) {
@@ -308,9 +318,7 @@ export function buildMessageHtml(post) {
         const messagesEl = document.getElementById('chatMessages');
         if (!topicId || !exportArea) return;
 
-        if (exportArea.querySelector('[data-pending-id]')) return;
-
-        const previousIds = getMessageIdsFrom(exportArea).join(',');
+        const previousFingerprint = getMessageFingerprint(exportArea);
 
         try {
             const postsRes = await fetch(`/topics/${topicId}/posts-fragment`, {
@@ -326,8 +334,11 @@ export function buildMessageHtml(post) {
             const html = await postsRes.text();
             const temp = document.createElement('div');
             temp.innerHTML = html;
-            const newIds = getMessageIdsFrom(temp);
-            if (newIds.join(',') === previousIds) return;
+            const newIds = [...temp.querySelectorAll('.wa-msg[data-msg-id]')].map((el) => el.dataset.msgId);
+            const newFingerprint = [...temp.querySelectorAll('.wa-msg[data-msg-id]')]
+                .map((el) => `${el.dataset.msgId}:${el.querySelector('.wa-bubble-text')?.textContent?.trim() ?? ''}`)
+                .join('|');
+            if (newFingerprint === previousFingerprint) return;
 
             const scrollNearBottom = messagesEl
                 && (messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80);
@@ -341,6 +352,7 @@ export function buildMessageHtml(post) {
             } else {
                 exportArea.innerHTML = html;
                 bindReplyButtons(exportArea);
+                bindShareButtons(exportArea, topicTitle, topicUrl);
                 bindQuoteScroll(exportArea);
             }
 
@@ -399,6 +411,8 @@ export function buildMessageHtml(post) {
     bindReplyButtons();
     bindReportButtons();
     bindCopyButtons();
+    bindShareButtons(chat, topicTitle, topicUrl);
+    bindDeleteForms(chat);
     bindQuoteScroll();
     scrollToBottom();
 
@@ -413,6 +427,21 @@ export function buildMessageHtml(post) {
                 setTimeout(() => { target.style.background = ''; }, 1200);
             }, 150);
         }
+    }
+
+    function bindDeleteForms(scope) {
+        scope.querySelectorAll('form[data-post-delete]').forEach((form) => {
+            if (form.dataset.deleteBound === '1') return;
+            form.dataset.deleteBound = '1';
+            form.addEventListener('submit', (event) => {
+                if (isStableOnline()) return;
+                event.preventDefault();
+                if (!confirm('Delete this message?')) return;
+                const postId = Number(form.dataset.postDelete);
+                queueAction('delete_post', { post_id: postId });
+                form.closest('.wa-msg')?.remove();
+            });
+        });
     }
 
     function queuePendingPost(content) {
@@ -491,6 +520,7 @@ export function buildMessageHtml(post) {
                 exportArea?.appendChild(msgEl);
 
                 bindReplyButtons(msgEl);
+                bindShareButtons(msgEl, topicTitle, topicUrl);
                 bindQuoteScroll(msgEl);
 
                 input.value = '';

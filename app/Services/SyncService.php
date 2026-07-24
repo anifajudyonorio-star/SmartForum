@@ -74,7 +74,7 @@ class SyncService
             'actions.*.action_uuid' => ['required', 'uuid'],
             'actions.*.action_type' => [
                 'required',
-                Rule::in(['create_post', 'create_topic', 'submit_quiz', 'view_topic']),
+                Rule::in(['create_post', 'create_topic', 'submit_quiz', 'view_topic', 'update_post', 'delete_post']),
             ],
             'actions.*.payload' => ['required', 'array'],
         ]);
@@ -256,6 +256,8 @@ class SyncService
             'create_topic' => $this->processCreateTopic($action),
             'submit_quiz' => $this->processSubmitQuiz($action),
             'view_topic' => $this->processViewTopic($action),
+            'update_post' => $this->processUpdatePost($action),
+            'delete_post' => $this->processDeletePost($action),
             default => throw new \InvalidArgumentException("Unknown action type: {$action->action_type}"),
         };
     }
@@ -305,6 +307,76 @@ class SyncService
         $payload = $action->payload;
         $payload['server_post_id'] = $post->id;
         $action->update(['payload' => $payload]);
+
+        if ($author && $topic->group) {
+            app(InactiveMemberService::class)->recordActivity($topic->group, $author);
+        }
+    }
+
+    private function processUpdatePost(SyncQueue $action): void
+    {
+        $p = $action->payload;
+        $postId = (int) ($p['post_id'] ?? 0);
+        $content = strip_tags((string) ($p['content'] ?? ''));
+
+        $post = Post::find($postId);
+        if (! $post) {
+            throw new ConflictException('This message no longer exists.');
+        }
+
+        $post->loadMissing('topic.group');
+        $user = User::find($action->user_id);
+        if (! $user || ! $this->canManagePostForSync($user, $post)) {
+            throw new ConflictException('You are not allowed to edit this message.');
+        }
+
+        $post->update(['Post_Content' => $content]);
+
+        PostVisibilityService::syncHiddenFrom(
+            $post,
+            $post->topic,
+            $p['excluded_users'] ?? [],
+            $user,
+        );
+
+        $payload = $action->payload;
+        $payload['server_post_id'] = $post->id;
+        $action->update(['payload' => $payload]);
+    }
+
+    private function processDeletePost(SyncQueue $action): void
+    {
+        $postId = (int) ($action->payload['post_id'] ?? 0);
+        $post = Post::find($postId);
+
+        if (! $post) {
+            return;
+        }
+
+        $post->loadMissing('topic.group');
+        $user = User::find($action->user_id);
+        if (! $user || ! $this->canManagePostForSync($user, $post)) {
+            throw new ConflictException('You are not allowed to delete this message.');
+        }
+
+        $post->delete();
+
+        $payload = $action->payload;
+        $payload['server_post_id'] = $postId;
+        $action->update(['payload' => $payload]);
+    }
+
+    private function canManagePostForSync(User $user, Post $post): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        if ((int) $post->Created_By === (int) $user->id) {
+            return true;
+        }
+
+        return $post->topic?->group && $user->canManageGroup($post->topic->group);
     }
 
     private function processCreateTopic(SyncQueue $action): void
@@ -452,6 +524,17 @@ class SyncService
             'view_topic' => [
                 'payload' => ['required', 'array'],
                 'payload.topic_id' => ['required', 'integer', 'min:1'],
+            ],
+            'update_post' => [
+                'payload' => ['required', 'array'],
+                'payload.post_id' => ['required', 'integer', 'min:1'],
+                'payload.content' => ['required', 'string', 'max:10000'],
+                'payload.excluded_users' => ['nullable', 'array'],
+                'payload.excluded_users.*' => ['integer', 'min:1'],
+            ],
+            'delete_post' => [
+                'payload' => ['required', 'array'],
+                'payload.post_id' => ['required', 'integer', 'min:1'],
             ],
             default => throw new \InvalidArgumentException("Unknown action type: {$actionType}"),
         };

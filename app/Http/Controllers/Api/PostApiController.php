@@ -8,6 +8,7 @@ use App\Models\Post;
 use App\Models\Topic;
 use App\Services\NotificationService;
 use App\Services\PostVisibilityService;
+use App\Services\InactiveMemberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -67,6 +68,10 @@ class PostApiController extends Controller
             NotificationService::notifyReply($post);
         }
 
+        if ($topic->group) {
+            app(InactiveMemberService::class)->recordActivity($topic->group, Auth::user());
+        }
+
         return response()->json([
             'success' => true,
             'post' => $this->formatPost($post),
@@ -124,6 +129,8 @@ class PostApiController extends Controller
 
     public function formatPost(Post $post): array
     {
+        $post->loadMissing('topic');
+
         return [
             'id' => $post->id,
             'topic_id' => $post->Topic_ID,
@@ -133,6 +140,10 @@ class PostApiController extends Controller
             'author_name' => $post->user->name ?? 'User',
             'created_at' => $post->created_at?->toIso8601String(),
             'hidden_from_user_ids' => $post->hiddenFromUsers()->pluck('users.id')->values()->all(),
+            'share_url' => $post->topic
+                ? route('topics.show', $post->topic).'#msg-'.$post->id
+                : null,
+            'topic_title' => $post->topic->Title ?? 'Discussion',
         ];
     }
 

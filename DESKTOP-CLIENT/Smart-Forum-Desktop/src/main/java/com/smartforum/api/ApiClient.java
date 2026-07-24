@@ -428,7 +428,15 @@ public class ApiClient {
     }
 
     public static boolean requestJoinGroup(int groupId) {
-        return sendJson("POST", "/api/groups/" + groupId + "/join", new JsonObject());
+        return requestJoinGroup(groupId, false);
+    }
+
+    public static boolean requestJoinGroup(int groupId, boolean acceptedRules) {
+        JsonObject body = new JsonObject();
+        if (acceptedRules) {
+            body.addProperty("accepted_rules", true);
+        }
+        return sendJson("POST", "/api/groups/" + groupId + "/join", body);
     }
 
     public static Optional<JsonObject> fetchGroupDetail(int groupId) {
@@ -575,10 +583,14 @@ public class ApiClient {
     }
 
     public static boolean updatePost(int postId, String content, List<Integer> excludedUserIds) {
+        return updatePostResult(postId, content, excludedUserIds).success();
+    }
+
+    public static MutationResult updatePostResult(int postId, String content, List<Integer> excludedUserIds) {
         JsonObject body = new JsonObject();
         body.addProperty("Post_Content", content);
         addExcludedUsers(body, excludedUserIds);
-        return sendJson("PUT", "/api/posts/" + postId, body);
+        return mutateJson("PUT", "/api/posts/" + postId, body);
     }
 
     private static void addExcludedUsers(JsonObject body, List<Integer> excludedUserIds) {
@@ -597,7 +609,11 @@ public class ApiClient {
     }
 
     public static boolean deletePost(int postId) {
-        return sendJson("DELETE", "/api/posts/" + postId, null);
+        return deletePostResult(postId).success();
+    }
+
+    public static MutationResult deletePostResult(int postId) {
+        return mutateJson("DELETE", "/api/posts/" + postId, null);
     }
 
     public static MutationResult reportPost(int postId, String reason) {

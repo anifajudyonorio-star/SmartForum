@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Group;
 use App\Models\Topic;
+use App\Services\InactiveMemberService;
 use App\Models\Post;
 use App\Models\TopicView;
 use App\Services\MachineLearningService;
@@ -36,12 +37,14 @@ class TopicController extends Controller
             'Topic_Description' => 'required',
         ]);
 
-        Topic::create([
+        $topic = Topic::create([
             'Group_ID' => $group->id,
             'Title' => $request->Title,
             'Topic_Description' => $request->Topic_Description,
             'Created_By' => Auth::id(),
         ]);
+
+        app(InactiveMemberService::class)->recordActivity($group, Auth::user());
 
         return redirect()
             ->route('groups.show', $group)

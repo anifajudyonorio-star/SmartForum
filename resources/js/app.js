@@ -22,7 +22,13 @@ initPushNotifications();
         const title = form.querySelector('input[name="Title"]')?.value.trim();
         const description = form.querySelector('textarea[name="Topic_Description"]')?.value.trim();
         if (!title) return;
-        queueAction('create_topic', { group_id: groupId, title, description });
+        const clientTopicId = -Math.floor(Date.now() / 1000);
+        queueAction('create_topic', {
+            group_id: Number(groupId),
+            title,
+            description,
+            client_topic_id: clientTopicId,
+        });
         alert('You\'re offline. Your topic will be created when you reconnect.');
     });
 })();
@@ -58,6 +64,28 @@ initPushNotifications();
             'Your quiz submission is queued once. The server deadline is authoritative; '
             + 'if synchronization occurs after it, queued answer changes are ignored and the attempt times out.',
         );
+    });
+})();
+
+// Intercept post edit form when offline
+(function () {
+    const form = document.getElementById('postEditForm');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        if (isStableOnline()) return;
+        e.preventDefault();
+        const postId = Number(form.dataset.postId);
+        const content = form.querySelector('textarea[name="Post_Content"]')?.value.trim();
+        if (!postId || !content) return;
+        const excludedUsers = [...form.querySelectorAll('input[name="excluded_users[]"]:checked')]
+            .map((input) => Number(input.value));
+        const payload = { post_id: postId, content };
+        if (excludedUsers.length > 0) {
+            payload.excluded_users = excludedUsers;
+        }
+        queueAction('update_post', payload);
+        alert('You\'re offline. Your edit will sync when you reconnect.');
+        window.location.href = form.dataset.topicUrl || document.referrer || '/';
     });
 })();
 

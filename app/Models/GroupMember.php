@@ -40,12 +40,20 @@ class GroupMember extends Model
         'Member_Status',
         'Member_Role',
         'warnings',
+        'last_activity_at',
+        'inactive_warning_sent_at',
+        'suspended_until',
+        'rules_accepted_at',
     ];
 
     protected function casts(): array
     {
         return [
             'warnings' => 'integer',
+            'last_activity_at' => 'datetime',
+            'inactive_warning_sent_at' => 'datetime',
+            'suspended_until' => 'datetime',
+            'rules_accepted_at' => 'datetime',
         ];
     }
 

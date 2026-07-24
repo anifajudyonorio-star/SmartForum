@@ -23,7 +23,11 @@
             </div>
         @endif
 
-        <form action="{{ route('posts.update', $post) }}" method="POST">
+        <form id="postEditForm"
+              action="{{ route('posts.update', $post) }}"
+              method="POST"
+              data-post-id="{{ $post->id }}"
+              data-topic-url="{{ route('topics.show', $post->topic) }}">
             @csrf
             @method('PUT')
 

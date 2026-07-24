@@ -43,15 +43,9 @@ class GroupApiController extends Controller
         ]);
     }
 
-    public function requestJoin(Group $group)
+    public function requestJoin(Request $request, Group $group)
     {
-        try {
-            GroupJoinService::requestJoin(Auth::user(), $group);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => $e->validator->errors()->first('group'),
-            ], 422);
-        }
+        GroupJoinService::requestJoin(Auth::user(), $group, $request->boolean('accepted_rules'));
 
         return response()->json(['success' => true], 201);
     }
@@ -218,6 +212,8 @@ class GroupApiController extends Controller
             'id' => $group->id,
             'name' => $group->Group_Name,
             'description' => $group->Description,
+            'join_rules' => $group->join_rules,
+            'join_status' => GroupJoinService::joinStatusFor($user, $group),
             'status' => $group->Status,
             'created_by' => $group->Created_By,
             'creator_name' => $group->user->name ?? '',

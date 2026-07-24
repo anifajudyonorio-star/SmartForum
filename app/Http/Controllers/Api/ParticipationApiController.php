@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Group;
 use App\Models\User;
+use App\Services\ParticipationService;
 use App\Services\StatisticsScopeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -12,13 +13,15 @@ use Illuminate\Support\Facades\Auth;
 
 class ParticipationApiController extends Controller
 {
+    public function __construct(private readonly ParticipationService $participation) {}
+
     public function index(Request $request)
     {
         $user = Auth::user();
 
         abort_unless($user->canViewParticipation(), 403);
 
-        $availableGroups = $this->availableGroupsFor($user);
+        $availableGroups = StatisticsScopeService::participationGroupsFor($user);
 
         $groupId = $request->query('group');
         $selectedGroup = null;
@@ -30,92 +33,77 @@ class ParticipationApiController extends Controller
             $selectedGroup = $availableGroups->first();
         }
 
-        [$participants, $highestScore] = $this->buildParticipants($user, $selectedGroup, $availableGroups);
+        [$participants, $highestScore, $settings] = $this->participation->buildParticipants(
+            $user,
+            $selectedGroup,
+            $availableGroups
+        );
 
         return response()->json([
-            'participants' => $participants->map(fn ($p) => [
-                'name' => $p->name,
-                'topics_count' => $p->topics_count,
-                'posts_count' => $p->posts_count,
-                'replies_count' => $p->replies_count,
-                'score' => $p->score,
-                'rank' => $p->rank,
-            ])->values(),
+            'participants' => $participants
+                ->map(fn ($participant) => $this->participation->formatParticipant($participant, $settings))
+                ->values(),
             'highest_score' => $highestScore,
-            'available_groups' => $availableGroups->map(fn ($g) => [
-                'id' => $g->id,
-                'name' => $g->Group_Name,
+            'criteria' => $this->participation->formatSettings($settings),
+            'available_groups' => $availableGroups->map(fn ($group) => [
+                'id' => $group->id,
+                'name' => $group->Group_Name,
             ])->values(),
             'selected_group' => $selectedGroup ? [
                 'id' => $selectedGroup->id,
                 'name' => $selectedGroup->Group_Name,
             ] : null,
+            'can_manage' => $selectedGroup ? $user->canManageGroup($selectedGroup) : false,
         ]);
     }
 
-    private function availableGroupsFor(User $user): Collection
+    public function updateSettings(Request $request, Group $group)
     {
-        return StatisticsScopeService::participationGroupsFor($user);
+        abort_unless(Auth::user()->canManageGroup($group), 403);
+
+        $validated = $request->validate([
+            'topic_points' => ['required', 'integer', 'min:0', 'max:100'],
+            'post_points' => ['required', 'integer', 'min:0', 'max:100'],
+            'reply_points' => ['required', 'integer', 'min:0', 'max:100'],
+            'gold_min' => ['required', 'integer', 'min:1', 'max:1000'],
+            'silver_min' => ['required', 'integer', 'min:1', 'max:1000'],
+            'bronze_min' => ['required', 'integer', 'min:1', 'max:1000'],
+            'manual_marks_max' => ['required', 'integer', 'min:0', 'max:100'],
+        ]);
+
+        $settings = $this->participation->updateSettings($group, $validated);
+
+        return response()->json([
+            'message' => 'Participation criteria updated.',
+            'criteria' => $this->participation->formatSettings($settings),
+        ]);
     }
 
-    /**
-     * @return array{0: Collection, 1: int}
-     */
-    private function buildParticipants(User $viewer, ?Group $selectedGroup, Collection $availableGroups): array
+    public function updateGrade(Request $request, Group $group, User $user)
     {
-        if ($selectedGroup) {
-            $group = $selectedGroup;
-            $topicIds = $group->topics()->pluck('id');
+        abort_unless(Auth::user()->canManageGroup($group), 403);
+        abort_unless($group->isMember($user->id), 404);
 
-            $participants = $group->members()
-                ->withCount([
-                    'topics as topics_count' => fn ($q) => $q->where('Group_ID', $group->id),
-                    'posts as posts_count' => fn ($q) => $q->whereIn('Topic_ID', $topicIds),
-                    'posts as replies_count' => function ($q) use ($topicIds) {
-                        $q->whereIn('Topic_ID', $topicIds)->whereNotNull('Parent_Post_ID');
-                    },
-                ])
-                ->get();
-        } else {
-            $groupIds = $availableGroups->pluck('id');
+        $validated = $request->validate([
+            'manual_marks' => ['required', 'integer', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
 
-            $query = User::query()->where(function ($q) {
-                $q->whereNull('role')->orWhere('role', 'student');
-            });
+        $grade = $this->participation->updateManualGrade(
+            $group,
+            $user,
+            Auth::user(),
+            (int) $validated['manual_marks'],
+            $validated['notes'] ?? null
+        );
 
-            if ($groupIds->isNotEmpty()) {
-                $query->whereHas('groups', function ($q) use ($groupIds) {
-                    $q->whereIn('groups.id', $groupIds);
-                });
-            } elseif (! $viewer->isAdmin()) {
-                $query->whereRaw('1 = 0');
-            }
-
-            $participants = $query->withCount([
-                'topics',
-                'posts',
-                'posts as replies_count' => function ($q) {
-                    $q->whereNotNull('Parent_Post_ID');
-                },
-            ])->get();
-        }
-
-        foreach ($participants as $participant) {
-            $participant->score =
-                $participant->topics_count +
-                $participant->posts_count +
-                $participant->replies_count;
-
-            $participant->rank = match (true) {
-                $participant->score >= 50 => '🥇 Gold',
-                $participant->score >= 30 => '🥈 Silver',
-                $participant->score >= 15 => '🥉 Bronze',
-                default => '⭐ Beginner',
-            };
-        }
-
-        $highestScore = max(1, (int) $participants->max('score'));
-
-        return [$participants->sortByDesc('score'), $highestScore];
+        return response()->json([
+            'message' => 'Participation marks saved.',
+            'grade' => [
+                'user_id' => $grade->user_id,
+                'manual_marks' => $grade->manual_marks,
+                'notes' => $grade->notes,
+            ],
+        ]);
     }
 }

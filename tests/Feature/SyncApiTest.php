@@ -264,4 +264,96 @@ class SyncApiTest extends TestCase
         $this->assertNotNull($post);
         $this->assertTrue($post->hiddenFromUsers()->where('users.id', $otherMember->id)->exists());
     }
+
+    public function test_sync_processes_update_post_action(): void
+    {
+        $user = User::factory()->create(['role' => 'student']);
+        $token = $this->actingAsApi($user);
+
+        $group = Group::factory()->create();
+        GroupMember::create([
+            'Group_ID' => $group->id,
+            'User_ID' => $user->id,
+            'Member_Status' => 'active',
+            'Member_Role' => 'member',
+        ]);
+        $topic = Topic::factory()->create(['Group_ID' => $group->id, 'Created_By' => $user->id]);
+        $post = Post::create([
+            'Topic_ID' => $topic->id,
+            'Created_By' => $user->id,
+            'Post_Content' => 'Original content',
+        ]);
+
+        $deviceId = 'browser-update-test';
+        $this->postJson('/api/sync/device', [
+            'device_id' => $deviceId,
+            'device_name' => 'Test Browser',
+        ], $this->apiHeaders($token));
+
+        $this->postJson('/api/sync/upload', [
+            'actions' => [
+                [
+                    'action_uuid' => '10000000-0000-4000-8000-000000000030',
+                    'action_type' => 'update_post',
+                    'payload' => [
+                        'post_id' => $post->id,
+                        'content' => 'Updated offline',
+                    ],
+                ],
+            ],
+        ], $this->apiHeaders($token));
+
+        $this->postJson('/api/sync', [
+            'device_id' => $deviceId,
+        ], $this->apiHeaders($token))->assertOk();
+
+        $this->assertDatabaseHas('posts', [
+            'id' => $post->id,
+            'Post_Content' => 'Updated offline',
+        ]);
+    }
+
+    public function test_sync_processes_delete_post_action(): void
+    {
+        $user = User::factory()->create(['role' => 'student']);
+        $token = $this->actingAsApi($user);
+
+        $group = Group::factory()->create();
+        GroupMember::create([
+            'Group_ID' => $group->id,
+            'User_ID' => $user->id,
+            'Member_Status' => 'active',
+            'Member_Role' => 'member',
+        ]);
+        $topic = Topic::factory()->create(['Group_ID' => $group->id, 'Created_By' => $user->id]);
+        $post = Post::create([
+            'Topic_ID' => $topic->id,
+            'Created_By' => $user->id,
+            'Post_Content' => 'Delete me',
+        ]);
+
+        $deviceId = 'browser-delete-test';
+        $this->postJson('/api/sync/device', [
+            'device_id' => $deviceId,
+            'device_name' => 'Test Browser',
+        ], $this->apiHeaders($token));
+
+        $this->postJson('/api/sync/upload', [
+            'actions' => [
+                [
+                    'action_uuid' => '10000000-0000-4000-8000-000000000031',
+                    'action_type' => 'delete_post',
+                    'payload' => [
+                        'post_id' => $post->id,
+                    ],
+                ],
+            ],
+        ], $this->apiHeaders($token));
+
+        $this->postJson('/api/sync', [
+            'device_id' => $deviceId,
+        ], $this->apiHeaders($token))->assertOk();
+
+        $this->assertNull(Post::find($post->id));
+    }
 }

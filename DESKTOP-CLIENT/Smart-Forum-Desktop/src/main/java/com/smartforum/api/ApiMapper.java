@@ -29,6 +29,9 @@ public final class ApiMapper {
         if (json.has("join_status")) {
             group.setJoinStatus(json.get("join_status").getAsString());
         }
+        if (json.has("join_rules") && !json.get("join_rules").isJsonNull()) {
+            group.setJoinRules(json.get("join_rules").getAsString());
+        }
         return group;
     }
 

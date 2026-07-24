@@ -57,6 +57,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/statistics', [StatisticsApiController::class, 'index']);
     Route::get('/statistics/groups/{group}', [StatisticsApiController::class, 'show']);
     Route::get('/participation', [ParticipationApiController::class, 'index']);
+    Route::put('/groups/{group}/participation/criteria', [ParticipationApiController::class, 'updateSettings']);
+    Route::patch('/groups/{group}/participation/grades/{user}', [ParticipationApiController::class, 'updateGrade']);
 
     Route::get('/quiz-announcements', [QuizAnnouncementApiController::class, 'index']);
     Route::post('/quiz-announcements', [QuizAnnouncementApiController::class, 'store']);

@@ -60,6 +60,53 @@
 
                 </div>
 
+                <div class="mb-3">
+                    <label class="form-label">Join rules (optional)</label>
+                    <textarea name="join_rules" rows="6" class="form-control"
+                              placeholder="Rules new members must accept before requesting to join...">{{ old('join_rules', $group->join_rules) }}</textarea>
+                    <div class="form-text">If provided, members must read and agree to these rules before sending a join request.</div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header py-2">
+                        <strong>Inactivity monitoring</strong>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-3">
+                            Automatically warn members who stop posting, then temporarily suspend them if they remain inactive after two warnings.
+                        </p>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="inactivity_monitoring_enabled" value="1" id="inactivityEnabled"
+                                @checked(old('inactivity_monitoring_enabled', $group->inactivity_monitoring_enabled ?? true))>
+                            <label class="form-check-label" for="inactivityEnabled">
+                                Enable automatic inactivity warnings
+                            </label>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label small">Days without posting before 1st warning</label>
+                                <input type="number" min="1" max="365" class="form-control"
+                                       name="inactivity_threshold_days"
+                                       value="{{ old('inactivity_threshold_days', $group->inactivity_threshold_days ?? 14) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small">Grace days after each warning</label>
+                                <input type="number" min="1" max="90" class="form-control"
+                                       name="inactivity_grace_days"
+                                       value="{{ old('inactivity_grace_days', $group->inactivity_grace_days ?? 7) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small">Suspension duration (days)</label>
+                                <input type="number" min="1" max="365" class="form-control"
+                                       name="inactivity_blacklist_days"
+                                       value="{{ old('inactivity_blacklist_days', $group->inactivity_blacklist_days ?? 30) }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn btn-primary">
                     Update Group
                 </button>

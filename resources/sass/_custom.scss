@@ -1138,6 +1138,47 @@ body.chat-page {
     }
 }
 
+.wa-share-menu {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    z-index: 20;
+    min-width: 180px;
+    background: #fff;
+    border: 1px solid #d1d7db;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    padding: 0.35rem 0;
+}
+
+.wa-share-menu-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #667781;
+    padding: 0.35rem 0.75rem 0.25rem;
+}
+
+.wa-share-option {
+    width: 100%;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.82rem;
+    color: #111b21;
+    cursor: pointer;
+
+    i {
+        color: var(--primary-dark);
+    }
+
+    &:hover {
+        background: #f0f2f5;
+    }
+}
+
 .wa-composer {
     flex-shrink: 0;
     background: #f0f2f5;
@@ -2108,6 +2149,18 @@ body.chat-page {
     @media (min-width: 768px) {
         bottom: 1.5rem;
         left: calc(var(--sidebar-width) + 50%);
+    }
+}
+
+.sync-status-card {
+    margin: 0 0 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(22, 163, 74, 0.18);
+    border-radius: 0.75rem;
+    background: rgba(22, 163, 74, 0.06);
+
+    &.d-none {
+        display: none !important;
     }
 }
 

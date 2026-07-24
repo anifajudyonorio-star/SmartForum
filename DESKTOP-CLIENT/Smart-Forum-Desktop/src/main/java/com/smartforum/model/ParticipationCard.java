@@ -8,8 +8,30 @@ public class ParticipationCard {
     private final int score;
     private final String rank;
     private final int progress;
+    private final int autoScore;
+    private final int manualMarks;
 
-    public ParticipationCard(String name, int topics, int posts, int replies, int score, String rank, int progress) {
+    public ParticipationCard(
+            String name,
+            int topics,
+            int posts,
+            int replies,
+            int score,
+            String rank,
+            int progress) {
+        this(name, topics, posts, replies, score, rank, progress, score, 0);
+    }
+
+    public ParticipationCard(
+            String name,
+            int topics,
+            int posts,
+            int replies,
+            int score,
+            String rank,
+            int progress,
+            int autoScore,
+            int manualMarks) {
         this.name = name;
         this.topics = topics;
         this.posts = posts;
@@ -17,6 +39,8 @@ public class ParticipationCard {
         this.score = score;
         this.rank = rank;
         this.progress = progress;
+        this.autoScore = autoScore;
+        this.manualMarks = manualMarks;
     }
 
     public String getName() {
@@ -45,6 +69,14 @@ public class ParticipationCard {
 
     public int getProgress() {
         return progress;
+    }
+
+    public int getAutoScore() {
+        return autoScore;
+    }
+
+    public int getManualMarks() {
+        return manualMarks;
     }
 
     public String getInitials() {

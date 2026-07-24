@@ -850,6 +850,9 @@ public class MainShellController implements ShellNavigator {
         return this::showDashboardInternal;
     }
 
+    private void showQuizManagementInternal() {
+    }
+
     private void resetBackStack() {
         backStack.clear();
         updateBackButton();

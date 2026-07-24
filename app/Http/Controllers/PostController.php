@@ -7,6 +7,7 @@ use App\Models\Topic;
 use App\Models\Notification;
 use App\Services\NotificationService;
 use App\Services\PostVisibilityService;
+use App\Services\InactiveMemberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -76,6 +77,10 @@ class PostController extends Controller
 
         if ($parentPostId) {
             NotificationService::notifyReply($post);
+        }
+
+        if ($topic->group) {
+            app(InactiveMemberService::class)->recordActivity($topic->group, Auth::user());
         }
 
         if ($request->wantsJson()) {
@@ -162,6 +167,7 @@ class PostController extends Controller
 
     private function formatPostForChat(Post $post): array
     {
+        $post->loadMissing('topic');
         $parent = null;
         if ($post->parent && $post->parent->isVisibleTo(Auth::user())) {
             $parent = [
@@ -181,6 +187,8 @@ class PostController extends Controller
             'is_mine' => (int) $post->Created_By === Auth::id(),
             'hidden_count' => $post->hiddenFromUsers()->count(),
             'parent' => $parent,
+            'share_url' => route('topics.show', $post->topic).'#msg-'.$post->id,
+            'topic_title' => $post->topic->Title ?? 'Discussion',
         ];
     }
 }

@@ -89,8 +89,12 @@ public class GroupService {
     }
 
     public boolean requestJoinGroup(int groupId) {
+        return requestJoinGroup(groupId, false);
+    }
+
+    public boolean requestJoinGroup(int groupId, boolean acceptedRules) {
         if (ApiSupport.useApi()) {
-            return ApiClient.requestJoinGroup(groupId);
+            return ApiClient.requestJoinGroup(groupId, acceptedRules);
         }
 
         ForumUser user = AppSession.getInstance().getCurrentUser();

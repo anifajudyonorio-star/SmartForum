@@ -177,4 +177,85 @@ class GroupJoinRequestTest extends TestCase
             $this->apiHeaders($member)
         )->assertForbidden();
     }
+
+    public function test_join_request_without_accepting_rules_is_rejected(): void
+    {
+        $requester = User::factory()->create(['role' => 'student']);
+        $admin = User::factory()->create(['role' => 'student']);
+        $group = Group::factory()->create([
+            'join_rules' => "1. Be respectful.\n2. No spam.",
+        ]);
+
+        $group->members()->attach($admin->id, [
+            'Member_Status' => GroupMember::STATUS_ACTIVE,
+            'Member_Role' => GroupMember::ROLE_ADMIN,
+            'warnings' => 0,
+        ]);
+
+        $this->postJson("/api/groups/{$group->id}/join", [], $this->apiHeaders($requester))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['accepted_rules']);
+
+        $this->assertDatabaseMissing('group_members', [
+            'User_ID' => $requester->id,
+            'Group_ID' => $group->id,
+        ]);
+    }
+
+    public function test_join_request_with_accepted_rules_creates_pending_member(): void
+    {
+        $requester = User::factory()->create(['role' => 'student']);
+        $admin = User::factory()->create(['role' => 'student']);
+        $group = Group::factory()->create([
+            'join_rules' => 'Follow group etiquette at all times.',
+        ]);
+
+        $group->members()->attach($admin->id, [
+            'Member_Status' => GroupMember::STATUS_ACTIVE,
+            'Member_Role' => GroupMember::ROLE_ADMIN,
+            'warnings' => 0,
+        ]);
+
+        $this->postJson(
+            "/api/groups/{$group->id}/join",
+            ['accepted_rules' => true],
+            $this->apiHeaders($requester)
+        )->assertCreated();
+
+        $this->assertDatabaseHas('group_members', [
+            'User_ID' => $requester->id,
+            'Group_ID' => $group->id,
+            'Member_Status' => GroupMember::STATUS_PENDING,
+        ]);
+
+        $this->assertNotNull(
+            GroupMember::where('User_ID', $requester->id)
+                ->where('Group_ID', $group->id)
+                ->value('rules_accepted_at')
+        );
+    }
+
+    public function test_web_join_request_requires_rule_acceptance(): void
+    {
+        $requester = User::factory()->create(['role' => 'student']);
+        $admin = User::factory()->create(['role' => 'student']);
+        $group = Group::factory()->create([
+            'join_rules' => 'No plagiarism.',
+        ]);
+
+        $group->members()->attach($admin->id, [
+            'Member_Status' => GroupMember::STATUS_ACTIVE,
+            'Member_Role' => GroupMember::ROLE_ADMIN,
+            'warnings' => 0,
+        ]);
+
+        $this->actingAs($requester)
+            ->post(route('groups.join', $group))
+            ->assertSessionHasErrors('accepted_rules');
+
+        $this->actingAs($requester)
+            ->post(route('groups.join', $group), ['accepted_rules' => '1'])
+            ->assertRedirect(route('groups.explore'))
+            ->assertSessionHas('success');
+    }
 }

@@ -7,6 +7,7 @@ use App\Models\GroupMember;
 use App\Models\User;
 use App\Services\GroupJoinService;
 use App\Services\GroupStatisticsService;
+use App\Services\InactiveMemberService;
 use App\Services\ReportService;
 use App\Services\QuizNotificationService;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ class GroupController extends Controller
     public function __construct(
         private readonly QuizNotificationService $quizNotifications,
         private readonly ReportService $reports,
+        private readonly InactiveMemberService $inactiveMembers,
     ) {}
 
     public function index()
@@ -44,11 +46,9 @@ class GroupController extends Controller
     public function requestJoin(Group $group)
     {
         try {
-            GroupJoinService::requestJoin(Auth::user(), $group);
+            GroupJoinService::requestJoin(Auth::user(), $group, request()->boolean('accepted_rules'));
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return redirect()
-                ->route('groups.explore')
-                ->with('error', $e->validator->errors()->first('group'));
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Throwable $e) {
             report($e);
 
@@ -90,11 +90,13 @@ class GroupController extends Controller
         $request->validate([
             'Group_Name' => 'required|max:255',
             'Description' => 'required',
+            'join_rules' => 'nullable|string|max:5000',
         ]);
 
         $group = Group::create([
             'Group_Name' => $request->Group_Name,
             'Description' => $request->Description,
+            'join_rules' => $request->join_rules,
             'Created_By' => Auth::id(),
             'Status' => 'Active',
         ]);
@@ -259,11 +261,21 @@ class GroupController extends Controller
         $request->validate([
             'Group_Name' => 'required|max:255',
             'Description' => 'required',
+            'join_rules' => 'nullable|string|max:5000',
+            'inactivity_monitoring_enabled' => 'nullable|boolean',
+            'inactivity_threshold_days' => 'nullable|integer|min:1|max:365',
+            'inactivity_grace_days' => 'nullable|integer|min:1|max:90',
+            'inactivity_blacklist_days' => 'nullable|integer|min:1|max:365',
         ]);
 
         $group->update([
             'Group_Name' => $request->Group_Name,
             'Description' => $request->Description,
+            'join_rules' => $request->join_rules,
+            'inactivity_monitoring_enabled' => $request->boolean('inactivity_monitoring_enabled'),
+            'inactivity_threshold_days' => $request->input('inactivity_threshold_days', $group->inactivity_threshold_days ?? 14),
+            'inactivity_grace_days' => $request->input('inactivity_grace_days', $group->inactivity_grace_days ?? 7),
+            'inactivity_blacklist_days' => $request->input('inactivity_blacklist_days', $group->inactivity_blacklist_days ?? 30),
         ]);
 
         return redirect()->route('groups.show', $group)

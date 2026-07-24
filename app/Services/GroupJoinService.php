@@ -50,11 +50,17 @@ class GroupJoinService
         return 'none';
     }
 
-    public static function requestJoin(User $user, Group $group): void
+    public static function requestJoin(User $user, Group $group, bool $acceptedRules = false): void
     {
         if (! $user->canRequestJoinGroup($group)) {
             throw ValidationException::withMessages([
                 'group' => ['You cannot request to join this group.'],
+            ]);
+        }
+
+        if (filled($group->join_rules) && ! $acceptedRules) {
+            throw ValidationException::withMessages([
+                'accepted_rules' => ['You must read and accept the group rules before requesting to join.'],
             ]);
         }
 
@@ -63,6 +69,7 @@ class GroupJoinService
                 'Member_Status' => GroupMember::STATUS_PENDING,
                 'Member_Role' => GroupMember::ROLE_MEMBER,
                 'warnings' => 0,
+                'rules_accepted_at' => filled($group->join_rules) ? now() : null,
             ]);
         });
 

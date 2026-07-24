@@ -39,18 +39,10 @@
                                         View recommendation
                                     </a>
                                 @elseif($topic->group)
-                                    @if($topic->join_status === 'pending')
-                                        <span class="badge bg-warning text-dark">Pending approval</span>
-                                    @elseif($topic->join_status === 'blocked')
-                                        <span class="badge bg-secondary">Cannot join</span>
-                                    @else
-                                        <form action="{{ route('groups.join', $topic->group) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-outline-primary btn-sm">
-                                                <i class="bi bi-person-plus me-1"></i> Request to join group
-                                            </button>
-                                        </form>
-                                    @endif
+                                    @include('groups.partials.join-request-button', [
+                                        'group' => $topic->group,
+                                        'joinStatus' => $topic->join_status ?? null,
+                                    ])
                                 @else
                                     <span class="text-muted small">Group details unavailable</span>
                                 @endif

@@ -196,6 +196,8 @@ class User extends Authenticatable
 
     public function canParticipateInGroup(Group $group): bool
     {
+        app(\App\Services\InactiveMemberService::class)->releaseIfExpired($group, $this);
+
         return $group->isActiveMember($this->id);
     }
 

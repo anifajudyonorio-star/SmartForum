@@ -86,7 +86,9 @@ public class ParticipationViewController {
                         participant.get("replies_count").getAsInt(),
                         score,
                         participant.get("rank").getAsString(),
-                        progress
+                        progress,
+                        participant.has("auto_score") ? participant.get("auto_score").getAsInt() : score,
+                        participant.has("manual_marks") ? participant.get("manual_marks").getAsInt() : 0
                 )));
             }
         }), () -> Platform.runLater(this::loadEmptyState))).start();
@@ -180,11 +182,15 @@ public class ParticipationViewController {
 
         scoreRow.getChildren().addAll(scorePrefix, scoreValue, spacer, percentLabel);
 
+        Label breakdown = new Label(
+                "Auto: " + card.getAutoScore() + " · Manual: " + card.getManualMarks() + " · Total: " + card.getScore());
+        breakdown.getStyleClass().add("participant-score-muted");
+
         ProgressBar progressBar = new ProgressBar(card.getProgress() / 100.0);
         progressBar.setMaxWidth(Double.MAX_VALUE);
         progressBar.getStyleClass().add("participant-progress");
 
-        cardBox.getChildren().addAll(top, stats, scoreRow, progressBar);
+        cardBox.getChildren().addAll(top, stats, scoreRow, breakdown, progressBar);
         return cardBox;
     }
 

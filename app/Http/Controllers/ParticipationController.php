@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Group;
 use App\Models\User;
+use App\Services\ParticipationService;
 use App\Services\StatisticsScopeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 
 class ParticipationController extends Controller
 {
+    public function __construct(private readonly ParticipationService $participation) {}
+
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -29,13 +32,21 @@ class ParticipationController extends Controller
             $selectedGroup = $availableGroups->first();
         }
 
-        [$participants, $highestScore] = $this->buildParticipants($user, $selectedGroup, $availableGroups);
+        [$participants, $highestScore, $settings] = $this->participation->buildParticipants(
+            $user,
+            $selectedGroup,
+            $availableGroups
+        );
+
+        $canManage = $selectedGroup && $user->canManageGroup($selectedGroup);
 
         return view('participation.index', compact(
             'participants',
             'highestScore',
             'availableGroups',
-            'selectedGroup'
+            'selectedGroup',
+            'settings',
+            'canManage'
         ));
     }
 
@@ -51,79 +62,65 @@ class ParticipationController extends Controller
 
         $availableGroups = collect([$group]);
         $selectedGroup = $group;
-        [$participants, $highestScore] = $this->buildParticipants($user, $selectedGroup, $availableGroups);
+        [$participants, $highestScore, $settings] = $this->participation->buildParticipants(
+            $user,
+            $selectedGroup,
+            $availableGroups
+        );
+        $canManage = $user->canManageGroup($group);
 
         return view('participation.index', compact(
             'participants',
             'highestScore',
             'availableGroups',
-            'selectedGroup'
+            'selectedGroup',
+            'settings',
+            'canManage'
         ));
+    }
+
+    public function updateSettings(Request $request, Group $group)
+    {
+        abort_unless(Auth::user()->canManageGroup($group), 403);
+
+        $validated = $request->validate([
+            'topic_points' => ['required', 'integer', 'min:0', 'max:100'],
+            'post_points' => ['required', 'integer', 'min:0', 'max:100'],
+            'reply_points' => ['required', 'integer', 'min:0', 'max:100'],
+            'gold_min' => ['required', 'integer', 'min:1', 'max:1000'],
+            'silver_min' => ['required', 'integer', 'min:1', 'max:1000'],
+            'bronze_min' => ['required', 'integer', 'min:1', 'max:1000'],
+            'manual_marks_max' => ['required', 'integer', 'min:0', 'max:100'],
+        ]);
+
+        $this->participation->updateSettings($group, $validated);
+
+        return back()->with('success', 'Participation criteria updated for this group.');
+    }
+
+    public function updateGrade(Request $request, Group $group, User $user)
+    {
+        abort_unless(Auth::user()->canManageGroup($group), 403);
+        abort_unless($group->isMember($user->id), 404);
+
+        $validated = $request->validate([
+            'manual_marks' => ['required', 'integer', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $this->participation->updateManualGrade(
+            $group,
+            $user,
+            Auth::user(),
+            (int) $validated['manual_marks'],
+            $validated['notes'] ?? null
+        );
+
+        return back()->with('success', 'Participation marks saved for '.$user->name.'.');
     }
 
     private function availableGroupsFor(User $user): Collection
     {
         return StatisticsScopeService::participationGroupsFor($user);
-    }
-
-    /**
-     * @return array{0: Collection, 1: int}
-     */
-    private function buildParticipants(User $viewer, ?Group $selectedGroup, Collection $availableGroups): array
-    {
-        if ($selectedGroup) {
-            $group = $selectedGroup;
-            $topicIds = $group->topics()->pluck('id');
-
-            $participants = $group->members()
-                ->withCount([
-                    'topics as topics_count' => fn ($q) => $q->where('Group_ID', $group->id),
-                    'posts as posts_count' => fn ($q) => $q->whereIn('Topic_ID', $topicIds),
-                    'posts as replies_count' => function ($q) use ($topicIds) {
-                        $q->whereIn('Topic_ID', $topicIds)->whereNotNull('Parent_Post_ID');
-                    },
-                ])
-                ->get();
-        } else {
-            $groupIds = $availableGroups->pluck('id');
-
-            $query = User::query()->where(function ($q) {
-                $q->whereNull('role')->orWhere('role', 'student');
-            });
-
-            if ($groupIds->isNotEmpty()) {
-                $query->whereHas('groups', function ($q) use ($groupIds) {
-                    $q->whereIn('groups.id', $groupIds);
-                });
-            } elseif (! $viewer->isAdmin()) {
-                $query->whereRaw('1 = 0');
-            }
-
-            $participants = $query->withCount([
-                'topics',
-                'posts',
-                'posts as replies_count' => function ($q) {
-                    $q->whereNotNull('Parent_Post_ID');
-                },
-            ])->get();
-        }
-
-        foreach ($participants as $participant) {
-            $participant->score =
-                $participant->topics_count +
-                $participant->posts_count +
-                $participant->replies_count;
-
-            $participant->rank = match (true) {
-                $participant->score >= 50 => '🥇 Gold',
-                $participant->score >= 30 => '🥈 Silver',
-                $participant->score >= 15 => '🥉 Bronze',
-                default => '⭐ Beginner',
-            };
-        }
-
-        $highestScore = max(1, (int) $participants->max('score'));
-
-        return [$participants->sortByDesc('score'), $highestScore];
     }
 }

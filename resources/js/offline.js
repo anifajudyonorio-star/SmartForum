@@ -196,6 +196,7 @@ export function queueAction(actionType, payload, pendingEl) {
     if (pendingEl) pendingEl.dataset.pendingId = pendingId;
     const count = queue.length;
     showBanner(`You're offline. ${count} action${count > 1 ? 's' : ''} queued — will sync when reconnected.`);
+    updateSyncStatus();
     return actionUuid;
 }
 
@@ -436,8 +437,14 @@ function updateSyncStatus() {
     const status = document.getElementById('sync-status');
     const pending = document.getElementById('pending-count');
     const lastSync = document.getElementById('last-sync');
+    const card = document.getElementById('syncStatusCard');
 
     const isOnline = isStableOnline();
+    const queueLength = getQueue().length;
+
+    if (card) {
+        card.classList.toggle('d-none', isOnline && queueLength === 0);
+    }
 
     if (status) {
         status.innerHTML = isOnline ? "🟢 Online" : "🔴 Offline";
@@ -445,12 +452,12 @@ function updateSyncStatus() {
     }
 
     if (pending) {
-        pending.innerHTML = getQueue().length;
+        pending.innerHTML = queueLength;
     }
 
     if (lastSync) {
         const time = localStorage.getItem("last_sync_time");
-        if (time) lastSync.innerHTML = new Date(time).toLocaleString();
+        lastSync.innerHTML = time ? `Last sync: ${new Date(time).toLocaleString()}` : 'Not synced yet';
     }
 }
 

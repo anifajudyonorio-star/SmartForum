@@ -27,6 +27,9 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.Tooltip;
+import com.smartforum.util.ApiConfig;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
@@ -47,13 +50,11 @@ import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.awt.Desktop;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -492,6 +493,78 @@ public class TopicController {
         showAlert(Alert.AlertType.INFORMATION, "Reported", result.message());
     }
 
+    private void sharePost(Post post, Button anchor) {
+        Topic topic = topicService.getTopic(topicId).orElse(null);
+        if (topic == null) {
+            return;
+        }
+
+        String shareUrl = ApiConfig.baseUrl() + "/topics/" + topicId + "#msg-" + post.getId();
+        String author = post.getAuthorName() != null ? post.getAuthorName() : "Member";
+        String content = post.getContent() != null ? post.getContent() : "";
+        String excerpt = content.length() > 180 ? content.substring(0, 180) + "…" : content;
+        String text = author + " in \"" + topic.getTitle() + "\": " + excerpt + "\n" + shareUrl;
+
+        ContextMenu menu = new ContextMenu();
+        menu.getItems().add(shareMenuItem("WhatsApp", whatsAppShareUrl(text)));
+        menu.getItems().add(shareMenuItem("Facebook", facebookShareUrl(shareUrl, text)));
+        menu.getItems().add(shareMenuItem("X / Twitter", twitterShareUrl(text)));
+        menu.getItems().add(shareMenuItem("LinkedIn", linkedInShareUrl(shareUrl)));
+        menu.getItems().add(shareMenuItem("Telegram", telegramShareUrl(shareUrl, text)));
+        menu.getItems().add(copyShareLinkItem(text));
+        menu.show(anchor, javafx.geometry.Side.TOP, 0, -4);
+    }
+
+    private MenuItem shareMenuItem(String label, String url) {
+        MenuItem item = new MenuItem(label);
+        item.setOnAction(event -> openExternalUrl(url));
+        return item;
+    }
+
+    private MenuItem copyShareLinkItem(String text) {
+        MenuItem item = new MenuItem("Copy link");
+        item.setOnAction(event -> {
+            ClipboardContent content = new ClipboardContent();
+            content.putString(text);
+            Clipboard.getSystemClipboard().setContent(content);
+        });
+        return item;
+    }
+
+    private void openExternalUrl(String url) {
+        try {
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(new URI(url));
+            }
+        } catch (Exception ex) {
+            showAlert(Alert.AlertType.WARNING, "Share failed", ex.getMessage());
+        }
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private String whatsAppShareUrl(String text) {
+        return "https://wa.me/?text=" + encode(text);
+    }
+
+    private String facebookShareUrl(String shareUrl, String text) {
+        return "https://www.facebook.com/sharer/sharer.php?u=" + encode(shareUrl) + "&quote=" + encode(text);
+    }
+
+    private String twitterShareUrl(String text) {
+        return "https://twitter.com/intent/tweet?text=" + encode(text);
+    }
+
+    private String linkedInShareUrl(String shareUrl) {
+        return "https://www.linkedin.com/sharing/share-offsite/?url=" + encode(shareUrl);
+    }
+
+    private String telegramShareUrl(String shareUrl, String text) {
+        return "https://t.me/share/url?url=" + encode(shareUrl) + "&text=" + encode(text);
+    }
+
     private void populateExcludeList(FlowPane container, Map<Integer, CheckBox> target, Set<Integer> preselected) {
         container.getChildren().clear();
         target.clear();
@@ -657,6 +730,7 @@ public class TopicController {
         actions.setPickOnBounds(true);
 
         actions.getChildren().add(copyActionButton(post.getContent()));
+        actions.getChildren().add(actionButton("⤴", "Share", event -> sharePost(post, (Button) event.getSource())));
 
         if (postController.canParticipate(topicId)) {
             actions.getChildren().add(actionButton("↩", "Reply", event -> startReply(post)));

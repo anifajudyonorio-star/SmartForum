@@ -11,6 +11,7 @@ public class Group {
     private int membersCount;
     private String myRole;
     private String joinStatus = "none";
+    private String joinRules;
 
     public Group(int id, String name, String description, String status, int createdBy,
                  String creatorName, int topicsCount, int membersCount, String myRole) {
@@ -87,6 +88,18 @@ public class Group {
 
     public void setJoinStatus(String joinStatus) {
         this.joinStatus = joinStatus == null ? "none" : joinStatus;
+    }
+
+    public String getJoinRules() {
+        return joinRules;
+    }
+
+    public void setJoinRules(String joinRules) {
+        this.joinRules = joinRules;
+    }
+
+    public boolean hasJoinRules() {
+        return joinRules != null && !joinRules.isBlank();
     }
 
     @Override

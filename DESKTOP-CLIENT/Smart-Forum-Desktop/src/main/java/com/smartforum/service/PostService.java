@@ -179,11 +179,26 @@ public class PostService {
                     existing.getAuthorId(),
                     excludedUserIds);
 
-            if (!ApiClient.updatePost(postId, content, hiddenFrom)) {
-                throw new IllegalStateException("Could not update post via API.");
+            if (NetworkMonitor.isOnline()
+                    && ApiClient.updatePost(postId, content, hiddenFrom)) {
+                syncPostsForTopic(existing.getTopicId());
+                return getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
             }
-            syncPostsForTopic(existing.getTopicId());
-            return getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
+
+            queueOfflineUpdate(postId, content, hiddenFrom);
+            Post updated = new Post(
+                    existing.getId(),
+                    existing.getTopicId(),
+                    existing.getParentPostId(),
+                    existing.getAuthorId(),
+                    existing.getAuthorName(),
+                    content,
+                    existing.getCreatedAt(),
+                    hiddenFrom
+            );
+            replacePost(updated);
+            Platform.runLater(() -> SyncStatusService.getInstance().refreshNow());
+            return updated;
         }
 
         Post existing = getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
@@ -216,10 +231,17 @@ public class PostService {
         Post post = getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
 
         if (ApiSupport.useApi()) {
-            if (!ApiClient.deletePost(postId)) {
-                throw new IllegalStateException("Could not delete post via API.");
+            if (NetworkMonitor.isOnline() && ApiClient.deletePost(postId)) {
+                syncPostsForTopic(post.getTopicId());
+                return;
             }
-            syncPostsForTopic(post.getTopicId());
+
+            queueOfflineDelete(postId);
+            List<Post> posts = postsByTopic.get(post.getTopicId());
+            if (posts != null) {
+                posts.removeIf(item -> item.getId() == postId);
+            }
+            Platform.runLater(() -> SyncStatusService.getInstance().refreshNow());
             return;
         }
 
@@ -300,6 +322,26 @@ public class PostService {
             payload.add("excluded_users", excluded);
         }
         OfflineQueue.add("create_post", payload);
+        Platform.runLater(() -> SyncStatusService.getInstance().refreshNow());
+    }
+
+    private void queueOfflineUpdate(int postId, String content, List<Integer> excludedUserIds) {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("post_id", postId);
+        payload.addProperty("content", content);
+        if (excludedUserIds != null && !excludedUserIds.isEmpty()) {
+            JsonArray excluded = new JsonArray();
+            excludedUserIds.forEach(excluded::add);
+            payload.add("excluded_users", excluded);
+        }
+        OfflineQueue.add("update_post", payload);
+        Platform.runLater(() -> SyncStatusService.getInstance().refreshNow());
+    }
+
+    private void queueOfflineDelete(int postId) {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("post_id", postId);
+        OfflineQueue.add("delete_post", payload);
         Platform.runLater(() -> SyncStatusService.getInstance().refreshNow());
     }
 
