@@ -2,7 +2,7 @@ import './bootstrap';
 import './theme';
 import './chat';
 import './notifications';
-import { initOfflineSync, queueAction } from './offline';
+import { initOfflineSync, queueAction, isStableOnline } from './offline';
 import { initPushNotifications } from './push';
 
 window.queueAction = queueAction;
@@ -14,7 +14,7 @@ initPushNotifications();
     const form = document.getElementById('topicCreateForm');
     if (!form) return;
     form.addEventListener('submit', function (e) {
-        const isOffline = window._networkForced === false || !navigator.onLine;
+        const isOffline = !isStableOnline();
         if (!isOffline) return;
         e.preventDefault();
         const groupId = form.dataset.groupId;
@@ -31,7 +31,7 @@ initPushNotifications();
     const form = document.getElementById('quizForm');
     if (!form) return;
     form.addEventListener('submit', function (e) {
-        const isOffline = window._networkForced === false || !navigator.onLine;
+        const isOffline = !isStableOnline();
         if (!isOffline) return;
         e.preventDefault();
         if (form.dataset.offlineQueued === 'true') return;

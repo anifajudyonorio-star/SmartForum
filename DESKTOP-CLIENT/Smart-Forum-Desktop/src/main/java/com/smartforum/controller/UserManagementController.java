@@ -42,26 +42,69 @@ public class UserManagementController {
     private void loadUsers() {
         statusLabel.setText("Loading…");
         userListBox.getChildren().clear();
-        new Thread(() -> ApiClient.getAdminUsers().ifPresentOrElse(json -> {
-            JsonArray arr = json.getAsJsonArray("users");
-            users.clear();
-            for (var el : arr) {
-                JsonObject u = el.getAsJsonObject();
-                users.add(new UserRow(
-                        u.get("id").getAsInt(),
-                        u.get("Fname").getAsString(),
-                        u.get("Lname").getAsString(),
-                        u.get("email").getAsString(),
-                        u.get("role").getAsString(),
-                        u.get("warnings").getAsInt(),
-                        u.get("is_blacklisted").getAsBoolean()
-                ));
+        new Thread(() -> {
+            try {
+                ApiClient.MutationResult result = ApiClient.fetchAdminUsers();
+                if (!result.success()) {
+                    Platform.runLater(() -> statusLabel.setText(
+                            result.message() != null ? result.message() : "Failed to load users."));
+                    return;
+                }
+
+                JsonObject json = result.body();
+                if (json == null || !json.has("users") || !json.get("users").isJsonArray()) {
+                    Platform.runLater(() -> statusLabel.setText("Invalid response from server."));
+                    return;
+                }
+
+                JsonArray arr = json.getAsJsonArray("users");
+                users.clear();
+                for (var el : arr) {
+                    if (!el.isJsonObject()) continue;
+                    JsonObject u = el.getAsJsonObject();
+                    users.add(parseUserRow(u));
+                }
+                Platform.runLater(() -> {
+                    statusLabel.setText("");
+                    renderUsers();
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> statusLabel.setText("Failed to load users: " + e.getMessage()));
             }
-            Platform.runLater(() -> {
-                statusLabel.setText("");
-                renderUsers();
-            });
-        }, () -> Platform.runLater(() -> statusLabel.setText("Failed to load users.")))).start();
+        }).start();
+    }
+
+    private UserRow parseUserRow(JsonObject u) {
+        String fname = textField(u, "Fname", "name");
+        String lname = textField(u, "Lname", "");
+        int warnings = u.has("warnings") && !u.get("warnings").isJsonNull()
+                ? u.get("warnings").getAsInt() : 0;
+        boolean blacklisted = u.has("is_blacklisted") && u.get("is_blacklisted").getAsBoolean();
+        return new UserRow(
+                u.get("id").getAsInt(),
+                fname,
+                lname,
+                u.get("email").getAsString(),
+                u.has("role") ? u.get("role").getAsString() : "student",
+                warnings,
+                blacklisted
+        );
+    }
+
+    private String textField(JsonObject u, String primary, String fallback) {
+        if (u.has(primary) && !u.get(primary).isJsonNull()) {
+            return u.get(primary).getAsString();
+        }
+        if (fallback != null && !fallback.isBlank() && u.has(fallback) && !u.get(fallback).isJsonNull()) {
+            String name = u.get(fallback).getAsString();
+            if ("name".equals(fallback) && (primary.equals("Fname"))) {
+                int space = name.indexOf(' ');
+                return space > 0 ? name.substring(0, space) : name;
+            }
+            return name;
+        }
+        return "";
     }
 
     private void renderUsers() {

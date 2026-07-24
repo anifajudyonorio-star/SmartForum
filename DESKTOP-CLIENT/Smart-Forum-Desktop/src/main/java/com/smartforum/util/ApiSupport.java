@@ -14,10 +14,8 @@ public final class ApiSupport {
     private ApiSupport() {
     }
 
+    /** True when logged in with an API token — independent of current network reachability. */
     public static boolean useApi() {
-        if (!NetworkMonitor.isOnline()) {
-            return false;
-        }
         SessionManager session = SessionManager.getInstance();
         if (session.isLoggedIn()) {
             return true;

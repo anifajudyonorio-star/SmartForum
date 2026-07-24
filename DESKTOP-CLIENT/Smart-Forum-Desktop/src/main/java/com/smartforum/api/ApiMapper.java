@@ -89,8 +89,21 @@ public final class ApiMapper {
                 author,
                 content,
                 parseDateTime(text(json, "created_at", null)),
-                List.of()
+                parseHiddenFromUserIds(json)
         );
+    }
+
+    private static List<Integer> parseHiddenFromUserIds(JsonObject json) {
+        if (!json.has("hidden_from_user_ids") || !json.get("hidden_from_user_ids").isJsonArray()) {
+            return List.of();
+        }
+        List<Integer> ids = new ArrayList<>();
+        for (JsonElement element : json.getAsJsonArray("hidden_from_user_ids")) {
+            if (element != null && !element.isJsonNull()) {
+                ids.add(element.getAsInt());
+            }
+        }
+        return ids;
     }
 
     public static GroupStats toGroupStats(JsonObject stats) {

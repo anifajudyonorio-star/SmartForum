@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\Post;
 use App\Models\Topic;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -222,5 +223,45 @@ class SyncApiTest extends TestCase
             'Post_Content' => 'Offline reply',
             'Created_By' => $user->id,
         ]);
+    }
+
+    public function test_sync_applies_excluded_users_on_create_post(): void
+    {
+        $user = User::factory()->create(['role' => 'student']);
+        $otherMember = User::factory()->create(['role' => 'student']);
+        $token = $this->actingAsApi($user);
+
+        $group = Group::factory()->create();
+        GroupMember::create(['Group_ID' => $group->id, 'User_ID' => $user->id, 'Member_Status' => 'active', 'Member_Role' => 'member']);
+        GroupMember::create(['Group_ID' => $group->id, 'User_ID' => $otherMember->id, 'Member_Status' => 'active', 'Member_Role' => 'member']);
+        $topic = Topic::factory()->create(['Group_ID' => $group->id, 'Created_By' => $user->id]);
+
+        $deviceId = 'browser-exclude-test';
+        $this->postJson('/api/sync/device', [
+            'device_id' => $deviceId,
+            'device_name' => 'Test Browser',
+        ], $this->apiHeaders($token));
+
+        $this->postJson('/api/sync/upload', [
+            'actions' => [
+                [
+                    'action_uuid' => '10000000-0000-4000-8000-000000000020',
+                    'action_type' => 'create_post',
+                    'payload' => [
+                        'topic_id' => $topic->id,
+                        'content' => 'Hidden from member',
+                        'excluded_users' => [$otherMember->id],
+                    ],
+                ],
+            ],
+        ], $this->apiHeaders($token));
+
+        $this->postJson('/api/sync', [
+            'device_id' => $deviceId,
+        ], $this->apiHeaders($token))->assertOk();
+
+        $post = Post::where('Post_Content', 'Hidden from member')->first();
+        $this->assertNotNull($post);
+        $this->assertTrue($post->hiddenFromUsers()->where('users.id', $otherMember->id)->exists());
     }
 }

@@ -23,9 +23,9 @@ public class SyncStatusService {
 
     private BiConsumer<String, String> bannerCallback;
     private Runnable onSyncSuccessCallback;
-    private Boolean lastKnownOnline = null;
     private ScheduledExecutorService scheduler;
     private volatile boolean flushing = false;
+    private volatile boolean started = false;
 
     private SyncStatusService() {}
 
@@ -51,71 +51,78 @@ public class SyncStatusService {
     }
 
     public void start() {
+        if (started) return;
+        started = true;
+
+        NetworkMonitor.addStableStateListener(this::onStableConnectivityChanged);
+
         if (scheduler != null && !scheduler.isShutdown()) return;
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "sync-monitor");
             t.setDaemon(true);
             return t;
         });
-        scheduler.scheduleAtFixedRate(this::tick, 0, 5, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::tick, 10, 10, TimeUnit.SECONDS);
+        Platform.runLater(this::refresh);
     }
 
     public void stop() {
+        started = false;
+        NetworkMonitor.removeStableStateListener(this::onStableConnectivityChanged);
         if (scheduler != null) scheduler.shutdownNow();
     }
 
     public void refreshNow() {
-        Platform.runLater(() -> {
-            refresh();
-            if (NetworkMonitor.isOnline() && OfflineQueue.size() > 0) {
-                autoSync(false, false);
-            }
-        });
+        Platform.runLater(this::refresh);
+        if (NetworkMonitor.isOnline() && OfflineQueue.size() > 0) {
+            autoSync(false, false);
+        }
     }
 
     public void syncNow(Runnable onDone) {
+        NetworkMonitor.probeNow();
         new Thread(() -> OfflineQueue.flush(
             () -> Platform.runLater(() -> {
                 updateLastSync();
                 refresh();
+                PostService.getInstance().clearCache();
                 showBanner("Back online — offline actions synced!", "success");
                 notifySyncSuccess();
                 if (onDone != null) onDone.run();
             }),
             () -> Platform.runLater(() -> {
                 refresh();
-                showBanner("Sync failed. Will retry when connection is stable.", "danger");
+                String detail = OfflineQueue.getLastFlushMessage();
+                String message = detail == null || detail.isBlank()
+                        ? "Sync failed. Will retry when connection is stable."
+                        : detail;
+                showBanner(message, "danger");
                 if (onDone != null) onDone.run();
             })
         )).start();
     }
 
-    private void tick() {
-        boolean online = NetworkMonitor.isOnline();
+    private void onStableConnectivityChanged(boolean online) {
         int pending = OfflineQueue.size();
-
-        if (lastKnownOnline == null) {
-            if (!online) {
-                showBanner("You're offline. Actions will be saved and synced when you reconnect.", "warning");
-            } else if (pending > 0) {
-                autoSync(false, false);
-            }
-        } else if (!lastKnownOnline && online) {
+        if (!online) {
+            showBanner("You're offline. Actions will be saved and synced when you reconnect.", "warning");
+        } else {
             if (pending > 0) {
                 showBanner("Reconnected. Syncing…", "info");
-                autoSync(true, true);
-            } else {
-                showBanner("Back online!", "success");
             }
-        } else if (lastKnownOnline && !online) {
-            showBanner("You're offline. Actions will be saved and synced when you reconnect.", "warning");
-        } else if (online && pending > 0) {
+            autoSync(true, pending > 0);
+        }
+        Platform.runLater(this::refresh);
+    }
+
+    private void tick() {
+        if (!NetworkMonitor.isOnline()) {
+            NetworkMonitor.probeNow();
+            return;
+        }
+        if (OfflineQueue.size() > 0) {
             autoSync(false, false);
         }
-
-        lastKnownOnline = online;
-
-        Platform.runLater(this::refresh);
     }
 
     private void autoSync(boolean fromReconnect, boolean announceResult) {
@@ -124,11 +131,12 @@ public class SyncStatusService {
         }
 
         flushing = true;
-        OfflineQueue.flush(
+        new Thread(() -> OfflineQueue.flush(
             () -> Platform.runLater(() -> {
                 flushing = false;
                 updateLastSync();
                 refresh();
+                PostService.getInstance().clearCache();
                 if (announceResult) {
                     showBanner("Back online — offline actions synced!", "success");
                 }
@@ -138,19 +146,19 @@ public class SyncStatusService {
                 flushing = false;
                 refresh();
                 if (announceResult) {
-                    showBanner("Sync failed. Will retry when connection is stable.", "danger");
+                    String detail = OfflineQueue.getLastFlushMessage();
+                    String message = detail == null || detail.isBlank()
+                            ? "Sync failed. Will retry when connection is stable."
+                            : detail;
+                    showBanner(message, "danger");
                 }
             })
-        );
+        ), "offline-flush").start();
     }
 
     private void refresh() {
         boolean online = NetworkMonitor.isOnline();
-        if (!online) {
-            statusText.set("● Offline");
-        } else {
-            statusText.set("● Online");
-        }
+        statusText.set(online ? "● Online" : "● Offline");
     }
 
     private void updateLastSync() {

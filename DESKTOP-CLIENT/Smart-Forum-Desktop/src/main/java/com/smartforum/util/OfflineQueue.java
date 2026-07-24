@@ -5,6 +5,7 @@ import com.google.gson.reflect.TypeToken;
 import com.smartforum.api.ApiClient;
 import com.smartforum.service.PostService;
 import com.smartforum.service.TopicService;
+import com.smartforum.UserSession;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -15,6 +16,9 @@ public class OfflineQueue {
     private static final Path QUEUE_FILE = Paths.get(System.getProperty("user.home"), ".smartforum_queue.json");
     private static final Gson GSON = new Gson();
     private static final Set<String> DONE_STATUSES = Set.of("succeeded", "duplicate");
+    private static final Set<String> REMOVE_STATUSES = Set.of("succeeded", "duplicate", "failed");
+
+    private static volatile String lastFlushMessage = "";
 
     public static class QueueEntry {
         public String actionType;
@@ -30,6 +34,10 @@ public class OfflineQueue {
             this.pendingId = this.actionUuid;
             this.queuedAt = System.currentTimeMillis();
         }
+    }
+
+    public static String getLastFlushMessage() {
+        return lastFlushMessage;
     }
 
     public static List<QueueEntry> getQueue() {
@@ -67,6 +75,7 @@ public class OfflineQueue {
         QueueEntry entry = new QueueEntry(actionType, payload);
         queue.add(entry);
         saveQueue(queue);
+        NetworkMonitor.probeNow();
         return entry.pendingId;
     }
 
@@ -75,61 +84,221 @@ public class OfflineQueue {
     }
 
     public static void flush(Runnable onSuccess, Runnable onFailure) {
+        if (flushInternal()) {
+            if (onSuccess != null) onSuccess.run();
+        } else if (onFailure != null) {
+            onFailure.run();
+        }
+    }
+
+    private static boolean flushInternal() {
+        lastFlushMessage = "";
         List<QueueEntry> queue = getQueue();
         if (queue.isEmpty()) {
-            if (onSuccess != null) onSuccess.run();
-            return;
+            return true;
         }
 
-        String token = SessionManager.getInstance().getToken();
+        if (!NetworkMonitor.isOnline()) {
+            lastFlushMessage = "Still offline — actions will sync when the server is reachable.";
+            return false;
+        }
+
+        String token = resolveToken();
         if (token == null || token.isBlank()) {
-            if (onFailure != null) onFailure.run();
-            return;
+            lastFlushMessage = "Sign in again to sync offline actions.";
+            return false;
+        }
+
+        int initialSize = queue.size();
+
+        queue = applyDirectActions(queue);
+        saveQueue(queue);
+        if (queue.isEmpty()) {
+            if (lastFlushMessage.isBlank()) {
+                lastFlushMessage = "Offline actions synced.";
+                return true;
+            }
+            return false;
         }
 
         try {
             String deviceId = DeviceIdStore.getDeviceId();
-            if (!ApiClient.registerSyncDevice(deviceId)) {
-                if (onFailure != null) onFailure.run();
-                return;
-            }
-
-            JsonArray uploadActions = buildUploadPayload(queue);
-            ApiClient.MutationResult upload = ApiClient.uploadSyncActions(uploadActions);
-            if (!upload.success()) {
-                if (onFailure != null) onFailure.run();
-                return;
+            ApiClient.MutationResult deviceResult = ApiClient.registerSyncDeviceResult(deviceId);
+            if (!deviceResult.success()) {
+                queue = applyDirectActions(queue);
+                saveQueue(queue);
+                if (queue.isEmpty()) {
+                    lastFlushMessage = "Offline actions synced.";
+                    return true;
+                }
+                lastFlushMessage = deviceResult.message();
+                return false;
             }
 
             Map<Integer, Integer> remaps = new HashMap<>();
-            collectTopicRemaps(queue, upload.body(), remaps);
-            queue = mergeActionResults(queue, upload.body());
-            saveQueue(queue);
+
+            ApiClient.MutationResult upload = ApiClient.uploadSyncActions(buildUploadPayload(queue));
+            if (upload.success()) {
+                collectTopicRemaps(queue, upload.body(), remaps);
+                queue = mergeActionResults(queue, upload.body());
+                applyRemapsToQueue(queue, remaps);
+                saveQueue(queue);
+
+                ApiClient.MutationResult sync = ApiClient.runSync(deviceId);
+                if (sync.success()) {
+                    collectTopicRemaps(queue, sync.body(), remaps);
+                    queue = mergeActionResults(queue, sync.body());
+                    applyRemapsToQueue(queue, remaps);
+                    saveQueue(queue);
+                    if (!remaps.isEmpty()) {
+                        TopicService.getInstance().remapTopicIds(remaps);
+                        PostService.getInstance().remapTopicIds(remaps);
+                    }
+                } else if (lastFlushMessage.isBlank()) {
+                    lastFlushMessage = sync.message();
+                }
+            } else if (lastFlushMessage.isBlank()) {
+                lastFlushMessage = upload.message();
+            }
 
             if (!queue.isEmpty()) {
-                ApiClient.MutationResult sync = ApiClient.runSync(deviceId);
-                if (!sync.success()) {
-                    if (onFailure != null) onFailure.run();
-                    return;
-                }
-                collectTopicRemaps(queue, sync.body(), remaps);
-                queue = mergeActionResults(queue, sync.body());
+                queue = applyDirectActions(queue);
                 saveQueue(queue);
             }
 
-            if (!remaps.isEmpty()) {
-                TopicService.getInstance().remapTopicIds(remaps);
-                PostService.getInstance().remapTopicIds(remaps);
+            if (queue.isEmpty()) {
+                if (lastFlushMessage.isBlank()) {
+                    lastFlushMessage = "Offline actions synced.";
+                    return true;
+                }
+                return false;
             }
 
-            if (queue.isEmpty()) {
-                if (onSuccess != null) onSuccess.run();
-            } else {
-                if (onFailure != null) onFailure.run();
+            if (queue.size() < initialSize) {
+                lastFlushMessage = queue.size() + " action(s) could not be synced yet.";
+                return false;
             }
+
+            if (lastFlushMessage.isBlank()) {
+                lastFlushMessage = "Could not reach the server. Make sure Laravel is running on "
+                        + ApiClient.BASE_URL + ".";
+            }
+            return false;
         } catch (Exception e) {
             e.printStackTrace();
-            if (onFailure != null) onFailure.run();
+            lastFlushMessage = "Sync error: " + e.getMessage();
+            return false;
+        }
+    }
+
+    private static List<QueueEntry> applyDirectActions(List<QueueEntry> queue) {
+        if (!NetworkMonitor.isOnline()) {
+            return queue;
+        }
+
+        List<QueueEntry> remaining = new ArrayList<>();
+        for (QueueEntry entry : queue) {
+            if (tryDirectAction(entry)) {
+                continue;
+            }
+            remaining.add(entry);
+        }
+        return remaining;
+    }
+
+    private static boolean tryDirectAction(QueueEntry entry) {
+        if (entry.payload == null || entry.actionType == null) {
+            return false;
+        }
+
+        try {
+            return switch (entry.actionType) {
+                case "create_post" -> tryDirectCreatePost(entry);
+                case "create_topic" -> tryDirectCreateTopic(entry);
+                case "view_topic" -> tryDirectViewTopic(entry);
+                default -> false;
+            };
+        } catch (Exception e) {
+            if (lastFlushMessage.isBlank()) {
+                lastFlushMessage = e.getMessage();
+            }
+            return false;
+        }
+    }
+
+    private static boolean tryDirectCreatePost(QueueEntry entry) {
+        int topicId = TopicService.getInstance().resolveTopicId(entry.payload.get("topic_id").getAsInt());
+        String content = entry.payload.get("content").getAsString();
+        Integer parentId = entry.payload.has("parent_post_id") && !entry.payload.get("parent_post_id").isJsonNull()
+                ? entry.payload.get("parent_post_id").getAsInt()
+                : null;
+
+        ApiClient.MutationResult result = ApiClient.sendPostResult(
+                topicId,
+                content,
+                parentId,
+                readExcludedUserIds(entry.payload));
+        if (result.success()) {
+            lastFlushMessage = "";
+            return true;
+        }
+
+        lastFlushMessage = result.message();
+        return isPermanentFailure(result.statusCode());
+    }
+
+    private static boolean tryDirectCreateTopic(QueueEntry entry) {
+        int groupId = entry.payload.get("group_id").getAsInt();
+        String title = entry.payload.get("title").getAsString();
+        String description = entry.payload.has("description") && !entry.payload.get("description").isJsonNull()
+                ? entry.payload.get("description").getAsString()
+                : "";
+
+        if (!ApiClient.createTopic(groupId, title, description)) {
+            return false;
+        }
+
+        if (entry.payload.has("client_topic_id")) {
+            int clientId = entry.payload.get("client_topic_id").getAsInt();
+            TopicService.getInstance().getTopicsForGroup(groupId).stream()
+                    .filter(topic -> title.equals(topic.getTitle()))
+                    .findFirst()
+                    .ifPresent(topic -> TopicService.getInstance().remapTopicIds(
+                            Map.of(clientId, topic.getId())));
+        }
+        return true;
+    }
+
+    private static boolean tryDirectViewTopic(QueueEntry entry) {
+        int topicId = TopicService.getInstance().resolveTopicId(entry.payload.get("topic_id").getAsInt());
+        return ApiClient.recordTopicView(topicId);
+    }
+
+    private static String resolveToken() {
+        SessionManager session = SessionManager.getInstance();
+        String token = session.getToken();
+        if (token == null || token.isBlank()) {
+            token = UserSession.getInstance().getToken();
+            if (token != null && !token.isBlank()) {
+                session.setToken(token);
+            }
+        }
+        return token;
+    }
+
+    private static void applyRemapsToQueue(List<QueueEntry> queue, Map<Integer, Integer> remaps) {
+        if (remaps == null || remaps.isEmpty()) {
+            return;
+        }
+        for (QueueEntry entry : queue) {
+            if (entry.payload == null || !entry.payload.has("topic_id")) {
+                continue;
+            }
+            int topicId = entry.payload.get("topic_id").getAsInt();
+            Integer serverId = remaps.get(topicId);
+            if (serverId != null) {
+                entry.payload.addProperty("topic_id", serverId);
+            }
         }
     }
 
@@ -162,9 +331,14 @@ public class OfflineQueue {
         List<QueueEntry> remaining = new ArrayList<>();
         for (QueueEntry entry : queue) {
             JsonObject result = byUuid.get(entry.actionUuid);
-            if (result != null && result.has("status")
-                    && DONE_STATUSES.contains(result.get("status").getAsString())) {
-                continue;
+            if (result != null && result.has("status")) {
+                String status = result.get("status").getAsString();
+                if (REMOVE_STATUSES.contains(status)) {
+                    if ("failed".equals(status) && result.has("reason")) {
+                        lastFlushMessage = result.get("reason").getAsString();
+                    }
+                    continue;
+                }
             }
             remaining.add(entry);
         }
@@ -203,5 +377,22 @@ public class OfflineQueue {
             int serverId = result.get("resource_id").getAsInt();
             remaps.put(clientId, serverId);
         }
+    }
+
+    private static boolean isPermanentFailure(int statusCode) {
+        return statusCode == 403 || statusCode == 404 || statusCode == 422;
+    }
+
+    private static List<Integer> readExcludedUserIds(JsonObject payload) {
+        if (payload == null || !payload.has("excluded_users") || !payload.get("excluded_users").isJsonArray()) {
+            return List.of();
+        }
+        List<Integer> ids = new ArrayList<>();
+        for (JsonElement element : payload.getAsJsonArray("excluded_users")) {
+            if (element != null && !element.isJsonNull()) {
+                ids.add(element.getAsInt());
+            }
+        }
+        return ids;
     }
 }

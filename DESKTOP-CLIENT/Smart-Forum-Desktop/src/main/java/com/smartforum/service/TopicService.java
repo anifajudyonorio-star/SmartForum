@@ -78,19 +78,17 @@ public class TopicService {
 
     public Topic createTopic(int groupId, String title, String description) {
         if (ApiSupport.useApi()) {
-            if (ApiClient.createTopic(groupId, title, description)) {
+            if (NetworkMonitor.isOnline() && ApiClient.createTopic(groupId, title, description)) {
                 syncTopicsForGroup(groupId);
                 return topicsByGroup.getOrDefault(groupId, List.of()).stream()
                         .filter(topic -> title.equals(topic.getTitle()))
                         .findFirst()
                         .orElseThrow(() -> new IllegalStateException("Topic created but not returned by API."));
             }
-            if (!NetworkMonitor.isOnline()) {
-                Topic topic = buildLocalPendingTopic(groupId, title, description);
-                queueOfflineTopic(groupId, title, description, topic.getId());
-                return topic;
-            }
-            throw new IllegalStateException("Could not create topic via API.");
+            Topic topic = buildLocalPendingTopic(groupId, title, description);
+            queueOfflineTopic(groupId, title, description, topic.getId());
+            NetworkMonitor.probeNow();
+            return topic;
         }
 
         ForumUser creator = AppSession.getInstance().getCurrentUser();
