@@ -59,13 +59,17 @@ class AuthApiController extends Controller
             'role'     => 'student',
         ]);
 
-        EmailVerificationCodeController::sendCode($user);
+        $emailed = EmailVerificationCodeController::sendCode($user);
 
         $token = $user->createToken('desktop')->plainTextToken;
 
         return response()->json([
             'token' => $token,
-            'user'  => $this->formatUser($user),
+            'user' => $this->formatUser($user),
+            'email_sent' => $emailed,
+            'message' => $emailed
+                ? 'A verification code has been sent to your email.'
+                : 'Account created, but the verification email could not be sent.',
         ], 201);
     }
 
@@ -102,9 +106,19 @@ class AuthApiController extends Controller
             return response()->json(['message' => 'Please wait before requesting a new code.'], 429);
         }
 
-        EmailVerificationCodeController::sendCode($user);
+        $emailed = EmailVerificationCodeController::sendCode($user);
 
-        return response()->json(['message' => 'A new code has been sent to your email.']);
+        if (! $emailed) {
+            return response()->json([
+                'message' => 'We could not send the verification email. Please try again later.',
+                'email_sent' => false,
+            ], 503);
+        }
+
+        return response()->json([
+            'message' => 'A new code has been sent to your email.',
+            'email_sent' => true,
+        ]);
     }
 
     private function formatUser(User $user): array

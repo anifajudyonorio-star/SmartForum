@@ -29,3 +29,5 @@ Thumbs.db
 *.sqlite
 scripts/database/*.sqlite
 DESKTOP-CLIENT/**/smartforum.db
+DESKTOP-CLIENT/**/dist/
+DESKTOP-CLIENT/**/dist-debug/

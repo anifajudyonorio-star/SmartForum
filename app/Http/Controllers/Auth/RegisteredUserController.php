@@ -44,8 +44,17 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        EmailVerificationCodeController::sendCode($user);
+        $emailed = EmailVerificationCodeController::sendCode($user);
 
-        return redirect()->route('verification.notice');
+        $redirect = redirect()->route('verification.notice');
+
+        if (! $emailed) {
+            return $redirect->with(
+                'mail_error',
+                'Your account was created, but we could not send the verification email. Use Resend code after email is configured, or contact an administrator.'
+            );
+        }
+
+        return $redirect->with('status', 'A verification code has been sent to your email.');
     }
 }

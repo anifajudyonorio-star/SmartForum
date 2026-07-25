@@ -6,7 +6,7 @@
         <div class="auth-card-brand">
             <div class="auth-logo" style="font-size:1.2rem;">✉</div>
             <h1 class="auth-title">Check your email</h1>
-            <p class="auth-subtitle">We sent a 6-digit code to <strong>{{ auth()->user()->email }}</strong></p>
+            <p class="auth-subtitle">We sent a 6-digit code to <strong>{{ auth()->user()->email }}</strong>. Enter it below to continue.</p>
         </div>
 
         <div class="auth-card-form">
@@ -15,6 +15,9 @@
             @endif
             @if(session('resend_error'))
                 <div class="alert alert-warning py-2 small mb-3">{{ session('resend_error') }}</div>
+            @endif
+            @if(session('mail_error'))
+                <div class="alert alert-danger py-2 small mb-3">{{ session('mail_error') }}</div>
             @endif
             @error('code')
                 <div class="alert alert-danger py-2 small mb-3">{{ $message }}</div>
@@ -27,11 +30,11 @@
                 <div class="otp-boxes mb-3" id="otpBoxes">
                     @for($i = 0; $i < 6; $i++)
                         <input type="text" inputmode="numeric" maxlength="1"
-                               class="otp-box" autocomplete="off" pattern="[0-9]">
+                               class="otp-box" autocomplete="one-time-code" pattern="[0-9]">
                     @endfor
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100 auth-submit" id="otpSubmit">
+                <button type="submit" class="btn btn-primary w-100 auth-submit" id="otpSubmit" disabled>
                     Verify Email
                 </button>
             </form>
@@ -89,7 +92,7 @@
 (function () {
     const boxes = Array.from(document.querySelectorAll('.otp-box'));
     const codeInput = document.getElementById('codeInput');
-    const form = document.getElementById('otpForm');
+    const submitBtn = document.getElementById('otpSubmit');
 
     boxes.forEach((box, i) => {
         box.addEventListener('input', () => {
@@ -117,19 +120,17 @@
             const next = boxes[Math.min(pasted.length, boxes.length - 1)];
             next && next.focus();
             syncCode();
-            if (pasted.length === 6) form.submit();
         });
     });
 
     function syncCode() {
         const code = boxes.map(b => b.value).join('');
         codeInput.value = code;
-        if (code.length === 6) form.submit();
+        submitBtn.disabled = code.length !== 6;
     }
 
     boxes[0].focus();
 
-    // Resend cooldown
     @if(session('status'))
     startCooldown(60);
     @endif

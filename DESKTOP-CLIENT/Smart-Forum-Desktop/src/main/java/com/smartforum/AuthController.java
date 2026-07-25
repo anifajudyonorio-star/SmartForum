@@ -203,6 +203,10 @@ public class AuthController {
                             ? response.body().get("token").getAsString() : null;
                         pendingEmail = email;
                         showOtpPane();
+                        if (response.body().has("email_sent")
+                                && !response.body().get("email_sent").getAsBoolean()) {
+                            showError("Account created, but the verification email could not be sent.");
+                        }
                     } catch (Exception e) {
                         showError("Registration succeeded but could not start verification.");
                     }
@@ -234,7 +238,6 @@ public class AuthController {
                 String filtered = boxes[idx].getText().replaceAll("[^0-9]", "");
                 if (!filtered.equals(boxes[idx].getText())) boxes[idx].setText(filtered);
                 if (!boxes[idx].getText().isEmpty() && idx < boxes.length - 1) boxes[idx + 1].requestFocus();
-                if (getOtpCode().length() == 6) handleVerifyOtp();
             });
             boxes[i].setOnKeyPressed(e -> {
                 if (e.getCode() == javafx.scene.input.KeyCode.BACK_SPACE && boxes[idx].getText().isEmpty() && idx > 0)
@@ -281,7 +284,7 @@ public class AuthController {
             ApiService.ApiResponse response = ApiService.resendCode(pendingToken);
             Platform.runLater(() -> {
                 resendBtn.setDisable(false);
-                if (response.isSuccess()) showSuccess("A new code has been sent.");
+                if (response.isSuccess()) showSuccess("A new code has been sent to your email.");
                 else showError(response.getMessage());
             });
         }).start();

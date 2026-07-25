@@ -117,6 +117,35 @@ Laravel ignores the `.env` file until it is rebuilt.
 Do not change `APP_URL`. It must stay `http://147.224.178.246/forum` or links and
 assets will break.
 
+### Email verification (SMTP)
+
+Registration codes only reach inboxes when SMTP is configured. `MAIL_MAILER=log`
+writes messages to `storage/logs/laravel.log` and never delivers them.
+
+On the server `.env` (Gmail example — use an [App Password](https://myaccount.google.com/apppasswords), not your normal password):
+
+```env
+MAIL_MAILER=smtp
+MAIL_SCHEME=null
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your@gmail.com
+MAIL_PASSWORD=xxxx xxxx xxxx xxxx
+MAIL_FROM_ADDRESS=your@gmail.com
+MAIL_FROM_NAME=SmartForum
+```
+
+Use port **587** (not 465). Port 465 is often blocked on cellular links and some cloud networks.
+
+Then rebuild config:
+
+```bash
+php artisan config:cache
+php artisan tinker --execute="Mail::raw('SmartForum mail test', fn (\$m) => \$m->to('your@gmail.com')->subject('Test'));"
+```
+
+Apply the same `MAIL_*` values in your local `.env` (no `config:cache` needed locally).
+
 ---
 
 ## Avoiding downtime during bigger updates
