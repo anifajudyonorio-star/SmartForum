@@ -5,9 +5,9 @@ import sys
 import tarfile
 import paramiko
 
-HOST = "147.224.178.246"
-USER = "dockeruser"
-PASSWORD = "dockeruser123"
+HOST = os.environ.get("SF_VPS_HOST", "147.224.178.246")
+USER = os.environ.get("SF_VPS_USER", "dockeruser")
+PASSWORD = os.environ.get("SF_VPS_PASSWORD")
 APP_DIR = "/var/www/smartforum"
 LOCAL_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -252,6 +252,9 @@ curl -sI http://127.0.0.1:8082/login | head -5
 def main():
     action = sys.argv[1] if len(sys.argv) > 1 else "explore"
 
+    if not PASSWORD:
+        sys.exit("Set SF_VPS_PASSWORD in the environment before running this script.")
+
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(HOST, username=USER, password=PASSWORD, timeout=30)
@@ -400,11 +403,17 @@ sudo systemctl start supervisor
 sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl restart smartforum-worker:* || sudo supervisorctl start smartforum-worker:*
-( crontab -l 2>/dev/null | grep -v 'smartforum.*schedule:run'; echo '* * * * * cd /var/www/smartforum && php artisan schedule:run >> /dev/null 2>&1' ) | crontab -
+CRONTMP=$(mktemp)
+crontab -l 2>/dev/null | grep -v 'smartforum.*schedule:run' > "$CRONTMP" || true
+echo '* * * * * cd /var/www/smartforum && php artisan schedule:run >> /dev/null 2>&1' >> "$CRONTMP"
+crontab "$CRONTMP"
+rm -f "$CRONTMP"
 echo '--- supervisor ---'
 sudo supervisorctl status
 echo '--- crontab ---'
-crontab -l
+sudo grep -c 'schedule:run' /var/spool/cron/crontabs/dockeruser
+echo '--- scheduler dry run ---'
+cd {APP_DIR} && php artisan schedule:run
 echo SERVICES_OK
 """, timeout=300)
         sys.exit(code)
