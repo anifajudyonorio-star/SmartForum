@@ -69,6 +69,8 @@ class SyncService
 
     public function uploadOfflineData(Request $request)
     {
+        $this->ensureDesktopSyncClient($request);
+
         $validated = $request->validate([
             'actions' => ['required', 'array', 'max:50'],
             'actions.*.action_uuid' => ['required', 'uuid'],
@@ -142,6 +144,8 @@ class SyncService
 
     public function sync(Request $request)
     {
+        $this->ensureDesktopSyncClient($request);
+
         $request->validate(['device_id' => 'required']);
 
         $userId = $request->user()->id;
@@ -156,6 +160,8 @@ class SyncService
         if (! $device) {
             return response()->json(['success' => false, 'message' => 'Device not registered'], 404);
         }
+
+        $this->ensureDesktopDevice($device);
 
         return DB::transaction(function () use ($userId, $device) {
             $pending = $this->pendingActions($userId, lockForUpdate: true);
@@ -222,6 +228,8 @@ class SyncService
 
     public function getPendingData(Request $request)
     {
+        $this->ensureDesktopSyncClient($request);
+
         return response()->json([
             'success' => true,
             'pending_actions' => $this->pendingActions($request->user()->id),
@@ -236,17 +244,43 @@ class SyncService
             'device_type' => 'nullable|string',
         ]);
 
+        if (($request->device_type ?? 'browser') !== 'desktop') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Offline sync is only available through the desktop app.',
+            ], 403);
+        }
+
         $device = Device::updateOrCreate(
             ['device_id' => $request->device_id, 'user_id' => $request->user()->id],
             [
                 'device_name' => $request->device_name,
-                'device_type' => $request->device_type ?? 'browser',
+                'device_type' => 'desktop',
                 'is_online' => true,
                 'status' => 'online',
             ]
         );
 
         return response()->json(['success' => true, 'device' => $device]);
+    }
+
+    private function ensureDesktopSyncClient(Request $request): void
+    {
+        abort_unless(
+            $request->header('X-SF-Client') === 'desktop'
+            || $request->input('client') === 'desktop',
+            403,
+            'Offline sync is only available through the desktop app.'
+        );
+    }
+
+    private function ensureDesktopDevice(Device $device): void
+    {
+        abort_if(
+            $device->device_type !== 'desktop',
+            403,
+            'Offline sync is only available through the desktop app.'
+        );
     }
 
     private function processAction(SyncQueue $action): void
@@ -439,17 +473,13 @@ class SyncService
             throw new ConflictException('You are no longer a member of this group.');
         }
 
-        TopicView::updateOrCreate(
-            [
-                'user_id' => $action->user_id,
-                'topic_id' => $topicId,
-            ],
-            ['viewed_at' => now()],
-        );
+        TopicView::record($action->user_id, $topicId);
     }
 
     public function status(Request $request)
     {
+        $this->ensureDesktopSyncClient($request);
+
         $user = $request->user();
 
         $device = Device::where('user_id', $user->id)

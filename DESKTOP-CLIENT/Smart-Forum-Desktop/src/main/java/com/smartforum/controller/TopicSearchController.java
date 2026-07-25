@@ -1,12 +1,23 @@
 package com.smartforum.controller;
 
+import com.smartforum.api.ApiClient;
+import com.smartforum.model.RecommendedTopic;
 import com.smartforum.model.TopicSearchResult;
+import com.smartforum.model.Group;
+import com.smartforum.service.AppSession;
+import com.smartforum.service.GroupService;
 import com.smartforum.service.TopicService;
+import com.smartforum.util.ApiSupport;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -15,6 +26,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -24,6 +36,8 @@ public class TopicSearchController {
 
     @FXML private TextField searchField;
     @FXML private Label resultsSummaryLabel;
+    @FXML private VBox recommendationsBox;
+    @FXML private FlowPane recommendationsGrid;
     @FXML private FlowPane resultsGrid;
     @FXML private VBox emptyStateBox;
     @FXML private Label emptyStateLabel;
@@ -36,6 +50,7 @@ public class TopicSearchController {
     private Region rootNode;
 
     private final TopicService topicService = TopicService.getInstance();
+    private final GroupService groupService = GroupService.getInstance();
 
     public Region getRootNode() {
         return rootNode;
@@ -61,7 +76,152 @@ public class TopicSearchController {
     /** Web: search() initial page */
     public void index() {
         updateTitle("Search Topics");
+        loadRecommendations();
         search("");
+    }
+
+    private void loadRecommendations() {
+        if (!ApiSupport.useApi()) {
+            recommendationsBox.setVisible(false);
+            recommendationsBox.setManaged(false);
+            return;
+        }
+
+        new Thread(() -> {
+            List<RecommendedTopic> recommendations = ApiClient.fetchRecommendations();
+            Platform.runLater(() -> renderRecommendations(recommendations));
+        }).start();
+    }
+
+    private void renderRecommendations(List<RecommendedTopic> recommendations) {
+        recommendationsGrid.getChildren().clear();
+        if (recommendations == null || recommendations.isEmpty()) {
+            recommendationsBox.setVisible(false);
+            recommendationsBox.setManaged(false);
+            return;
+        }
+
+        recommendationsBox.setVisible(true);
+        recommendationsBox.setManaged(true);
+        for (RecommendedTopic topic : recommendations) {
+            recommendationsGrid.getChildren().add(buildRecommendationCard(topic));
+        }
+    }
+
+    private VBox buildRecommendationCard(RecommendedTopic topic) {
+        Label title = new Label(topic.title());
+        title.getStyleClass().add("group-card-title");
+        title.setWrapText(true);
+
+        Label scoreBadge = new Label(String.format("%.2f", topic.score()));
+        scoreBadge.getStyleClass().add("badge-primary");
+
+        HBox titleRow = new HBox(8, title);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(title, Priority.ALWAYS);
+        titleRow.getChildren().add(scoreBadge);
+
+        Label desc = new Label(truncate(topic.description(), 100));
+        desc.getStyleClass().add("group-card-desc");
+        desc.setWrapText(true);
+
+        Label groupLabel = new Label(topic.groupName());
+        groupLabel.getStyleClass().add("list-item-meta");
+
+        HBox footer = new HBox(8);
+        footer.setAlignment(Pos.CENTER_LEFT);
+
+        if (topic.canView() || AppSession.getInstance().isSystemAdmin()) {
+            Button openBtn = new Button(AppSession.getInstance().isSystemAdmin() && !topic.canView()
+                    ? "Open group"
+                    : "View recommendation");
+            openBtn.getStyleClass().add("btn-outline-primary");
+            openBtn.setOnAction(event -> {
+                if (navigator == null) {
+                    return;
+                }
+                if (topic.canView()) {
+                    navigator.showTopic(topic.id());
+                } else {
+                    navigator.showGroup(topic.groupId());
+                }
+            });
+            footer.getChildren().add(openBtn);
+        } else {
+            Button joinBtn = new Button("Request to Join");
+            joinBtn.getStyleClass().add("btn-outline-secondary");
+            if ("pending".equalsIgnoreCase(topic.joinStatus())) {
+                joinBtn.setText("Pending approval");
+                joinBtn.setDisable(true);
+            } else if ("blocked".equalsIgnoreCase(topic.joinStatus())) {
+                joinBtn.setText("Cannot join");
+                joinBtn.setDisable(true);
+            } else {
+                joinBtn.setOnAction(event -> handleRecommendationJoin(topic, joinBtn));
+            }
+            footer.getChildren().add(joinBtn);
+        }
+
+        VBox card = new VBox(8, titleRow, desc, groupLabel, footer);
+        card.getStyleClass().add("group-card-modern");
+        card.setMinWidth(280);
+        card.setMaxWidth(340);
+        if (topic.canView() || AppSession.getInstance().isSystemAdmin()) {
+            card.setOnMouseClicked(event -> {
+                if (navigator == null) {
+                    return;
+                }
+                if (topic.canView()) {
+                    navigator.showTopic(topic.id());
+                } else {
+                    navigator.showGroup(topic.groupId());
+                }
+            });
+        }
+        return card;
+    }
+
+    private void handleRecommendationJoin(RecommendedTopic topic, Button joinBtn) {
+        Group group = groupService.findExploreGroup(topic.groupId())
+                .or(() -> groupService.getGroup(topic.groupId()))
+                .orElse(null);
+        if (group == null) {
+            showInfo("Group unavailable", "Could not load group details.");
+            return;
+        }
+        if (group.hasJoinRules()) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Group rules — " + group.getName());
+            alert.setHeaderText("Please read the rules below. You must agree before your join request can be sent to the group admin.");
+            TextArea rulesArea = new TextArea(group.getJoinRules());
+            rulesArea.setEditable(false);
+            rulesArea.setWrapText(true);
+            rulesArea.setPrefRowCount(8);
+            rulesArea.setMaxWidth(Double.MAX_VALUE);
+            alert.getDialogPane().setContent(rulesArea);
+            ButtonType accept = new ButtonType("Agree & Request to Join", ButtonBar.ButtonData.OK_DONE);
+            alert.getButtonTypes().setAll(ButtonType.CANCEL, accept);
+            Optional<ButtonType> choice = alert.showAndWait();
+            if (choice.isEmpty() || choice.get() != accept) {
+                return;
+            }
+        }
+
+        if (groupService.requestJoinGroup(topic.groupId(), true)) {
+            joinBtn.setText("Pending approval");
+            joinBtn.setDisable(true);
+            showInfo("Request sent", "Your request to join \"" + group.getName() + "\" was sent for admin approval.");
+        } else {
+            showInfo("Request failed", "Could not send your join request.");
+        }
+    }
+
+    private void showInfo(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     @FXML

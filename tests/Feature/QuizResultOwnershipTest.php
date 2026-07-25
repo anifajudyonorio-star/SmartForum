@@ -162,11 +162,13 @@ class QuizResultOwnershipTest extends TestCase
         $headers = [
             'Authorization' => "Bearer {$token}",
             'Accept' => 'application/json',
+            'X-SF-Client' => 'desktop',
         ];
 
         $this->postJson('/api/sync/device', [
             'device_id' => 'quiz-device',
             'device_name' => 'Quiz Device',
+            'device_type' => 'desktop',
         ], $headers)->assertOk();
 
         $this->postJson('/api/sync/upload', [

@@ -205,6 +205,10 @@
         <div class="alert alert-info small fly-in">
             You are not a member of this group. Use <a href="{{ route('groups.explore') }}">Explore Groups</a> to request access.
         </div>
+    @elseif(! $isMember && ($canManage ?? false) && auth()->user()->isAdmin())
+        <div class="alert alert-info small fly-in">
+            You are viewing this group as a system admin. Join requests are not required for oversight.
+        </div>
     @elseif($isMember && ! $canParticipate)
         <div class="alert alert-warning small fly-in">
             Your access in this group is restricted. You cannot create topics or post until a group admin reinstates you.
@@ -215,7 +219,7 @@
         <div class="topic-chat-list fly-in mb-3">
             @foreach($topics as $topic)
                 @php $initials = strtoupper(substr($topic->Title, 0, 2)); @endphp
-                @if($isMember && auth()->user()->canViewGroup($group))
+                @if(auth()->user()->canViewGroup($group))
                     <a href="{{ route('topics.show', $topic) }}" class="topic-chat-item">
                         <div class="topic-chat-avatar">{{ $initials }}</div>
                         <div class="topic-chat-content">
@@ -267,36 +271,59 @@
                     <h6 class="small fw-semibold mb-2">
                         <i class="bi bi-hourglass-split me-1 text-warning"></i> Pending Join Requests
                     </h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th style="min-width: 180px;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($pendingJoinRequests as $requester)
+                    <div class="responsive-table-wrap">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
                                     <tr>
-                                        <td>{{ $requester->name }}</td>
-                                        <td>{{ $requester->email }}</td>
-                                        <td>
-                                            <div class="d-flex gap-1 flex-wrap">
-                                                <form action="{{ route('groups.join.approve', [$group, $requester]) }}" method="POST">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
-                                                </form>
-                                                <form action="{{ route('groups.join.reject', [$group, $requester]) }}" method="POST">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm">Decline</button>
-                                                </form>
-                                            </div>
-                                        </td>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th style="min-width: 180px;">Actions</th>
                                     </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @foreach($pendingJoinRequests as $requester)
+                                        <tr>
+                                            <td>{{ $requester->name }}</td>
+                                            <td>{{ $requester->email }}</td>
+                                            <td>
+                                                <div class="d-flex gap-1 flex-wrap">
+                                                    <form action="{{ route('groups.join.approve', [$group, $requester]) }}" method="POST">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                                    </form>
+                                                    <form action="{{ route('groups.join.reject', [$group, $requester]) }}" method="POST">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm">Decline</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="responsive-card-wrap mb-3">
+                        <div class="data-card-list">
+                            @foreach($pendingJoinRequests as $requester)
+                                <div class="data-card-item">
+                                    <p class="data-card-item-title">{{ $requester->name }}</p>
+                                    <p class="small text-muted mb-2">{{ $requester->email }}</p>
+                                    <div class="data-card-item-actions d-flex gap-1">
+                                        <form action="{{ route('groups.join.approve', [$group, $requester]) }}" method="POST" class="flex-fill">
+                                            @csrf
+                                            <button type="submit" class="btn btn-success btn-sm w-100">Approve</button>
+                                        </form>
+                                        <form action="{{ route('groups.join.reject', [$group, $requester]) }}" method="POST" class="flex-fill">
+                                            @csrf
+                                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">Decline</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
             @endif
@@ -334,8 +361,9 @@
             @if($members->isEmpty())
                 <p class="text-muted small mb-0">No members yet.</p>
             @else
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0">
+                <div class="responsive-table-wrap">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -516,6 +544,66 @@
                             @endforeach
                         </tbody>
                     </table>
+                    </div>
+                </div>
+
+                <div class="responsive-card-wrap">
+                    <div class="data-card-list">
+                        @foreach($members as $member)
+                            @php
+                                $memberGroupRole = $member->pivot->Member_Role ?? 'member';
+                                $memberStatus = $member->pivot->Member_Status ?? 'Active';
+                                $memberWarnings = (int) ($member->pivot->warnings ?? 0);
+                                $isSelf = (int) $member->id === (int) auth()->id();
+                                $isOtherAdmin = $memberGroupRole === 'admin' && ! auth()->user()->isAdmin();
+                            @endphp
+                            <div class="data-card-item">
+                                <p class="data-card-item-title">
+                                    {{ $member->name }}
+                                    @if((int) $member->id === (int) $group->Created_By)
+                                        <span class="badge bg-light text-muted border ms-1">Creator</span>
+                                    @endif
+                                </p>
+                                <div class="data-card-item-meta">
+                                    <span><i class="bi bi-person-badge me-1"></i>{{ ucfirst($memberGroupRole) }}</span>
+                                    <span><i class="bi bi-activity me-1"></i>{{ $memberStatus }}</span>
+                                    @if($canManage ?? false)
+                                        <span><i class="bi bi-exclamation-triangle me-1"></i>{{ $memberWarnings }}/2 warns</span>
+                                    @endif
+                                    <span><i class="bi bi-envelope me-1"></i>{{ $member->email }}</span>
+                                </div>
+                                @if($canManage ?? false)
+                                    <div class="data-card-item-actions d-flex flex-wrap gap-1">
+                                        @if($isSelf)
+                                            <span class="text-muted small">You</span>
+                                        @elseif($isOtherAdmin)
+                                            <span class="text-muted small">Protected</span>
+                                        @else
+                                            @if($memberStatus === 'Active')
+                                                <button type="button" class="btn btn-warning btn-sm"
+                                                        data-bs-toggle="modal" data-bs-target="#warnModal{{ $member->id }}">Warn</button>
+                                                <button type="button" class="btn btn-outline-warning btn-sm"
+                                                        data-bs-toggle="modal" data-bs-target="#suspendModal{{ $member->id }}">Suspend</button>
+                                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                                        data-bs-toggle="modal" data-bs-target="#blockModal{{ $member->id }}">Block</button>
+                                            @else
+                                                <form action="{{ route('groups.members.reinstate', [$group, $member]) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-success btn-sm">Reinstate</button>
+                                                </form>
+                                            @endif
+                                            <form action="{{ route('groups.members.remove', [$group, $member]) }}" method="POST"
+                                                  onsubmit="return confirm('Remove {{ $member->name }} from this group?')" class="d-inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-outline-secondary btn-sm">Remove</button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             @endif
         </div>

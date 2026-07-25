@@ -11,7 +11,8 @@
 <ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;" stylesheets="@../css/app.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.smartforum.controller.ForumStatisticsController">
    <content>
       <VBox spacing="12.0" styleClass="dashboard-content">
-         <Label styleClass="stats-page-title" text="Forum Statistics" />
+         <Label fx:id="pageTitleLabel" styleClass="stats-page-title" text="My Group Statistics" />
+         <Label fx:id="scopeNoteLabel" managed="false" styleClass="dashboard-subtitle" text="Showing statistics only for groups you administer as group admin." visible="true" wrapText="true" />
 
          <VBox spacing="0.0" styleClass="dashboard-card">
             <HBox alignment="CENTER_LEFT" spacing="8.0" styleClass="dashboard-card-header">

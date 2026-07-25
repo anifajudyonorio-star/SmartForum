@@ -27,4 +27,15 @@ class TopicView extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public static function record(int $userId, int $topicId): self
+    {
+        return static::updateOrCreate(
+            [
+                'user_id' => $userId,
+                'topic_id' => $topicId,
+            ],
+            ['viewed_at' => now()],
+        );
+    }
 }

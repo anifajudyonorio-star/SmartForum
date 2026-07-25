@@ -70,11 +70,7 @@ class TopicApiController extends Controller
     {
         abort_unless(Auth::user()->canViewGroup($topic->group), 403);
 
-        TopicView::create([
-            'user_id' => Auth::id(),
-            'topic_id' => $topic->id,
-            'viewed_at' => now(),
-        ]);
+        TopicView::record(Auth::id(), $topic->id);
 
         return response()->json(['success' => true]);
     }

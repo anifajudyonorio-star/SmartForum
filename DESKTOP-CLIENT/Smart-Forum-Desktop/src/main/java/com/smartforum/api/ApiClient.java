@@ -66,6 +66,9 @@ public class ApiClient {
     public static MutationResult mutateJson(String method, String path, JsonObject body) {
         try {
             HttpRequest.Builder req = builder(path);
+            if (path.startsWith("/api/sync")) {
+                req.header("X-SF-Client", "desktop");
+            }
             HttpRequest.BodyPublisher publisher = body == null
                     ? HttpRequest.BodyPublishers.noBody()
                     : HttpRequest.BodyPublishers.ofString(body.toString());
@@ -444,10 +447,71 @@ public class ApiClient {
     }
 
     public static boolean createGroup(String name, String description) {
+        return createGroup(name, description, null);
+    }
+
+    public static boolean createGroup(String name, String description, String joinRules) {
         JsonObject body = new JsonObject();
         body.addProperty("Group_Name", name);
         body.addProperty("Description", description);
+        if (joinRules != null && !joinRules.isBlank()) {
+            body.addProperty("join_rules", joinRules);
+        }
         return sendJson("POST", "/api/groups", body);
+    }
+
+    public static MutationResult updateGroup(int groupId, JsonObject body) {
+        return mutateJson("PUT", "/api/groups/" + groupId, body);
+    }
+
+    public static MutationResult approveJoinRequest(int groupId, int userId) {
+        return mutateJson("POST", "/api/groups/" + groupId + "/join-requests/" + userId + "/approve", new JsonObject());
+    }
+
+    public static MutationResult rejectJoinRequest(int groupId, int userId) {
+        return mutateJson("POST", "/api/groups/" + groupId + "/join-requests/" + userId + "/reject", new JsonObject());
+    }
+
+    public static MutationResult warnGroupMember(int groupId, int userId, String reason) {
+        JsonObject body = new JsonObject();
+        if (reason != null && !reason.isBlank()) {
+            body.addProperty("reason", reason);
+        }
+        return mutateJson("POST", "/api/groups/" + groupId + "/members/" + userId + "/warn", body);
+    }
+
+    public static MutationResult suspendGroupMember(int groupId, int userId, String reason) {
+        JsonObject body = new JsonObject();
+        if (reason != null && !reason.isBlank()) {
+            body.addProperty("reason", reason);
+        }
+        return mutateJson("POST", "/api/groups/" + groupId + "/members/" + userId + "/suspend", body);
+    }
+
+    public static MutationResult blockGroupMember(int groupId, int userId, String reason) {
+        JsonObject body = new JsonObject();
+        if (reason != null && !reason.isBlank()) {
+            body.addProperty("reason", reason);
+        }
+        return mutateJson("POST", "/api/groups/" + groupId + "/members/" + userId + "/block", body);
+    }
+
+    public static MutationResult reinstateGroupMember(int groupId, int userId) {
+        return mutateJson("POST", "/api/groups/" + groupId + "/members/" + userId + "/reinstate", new JsonObject());
+    }
+
+    public static List<RecommendedTopic> fetchRecommendations() {
+        return getJson("/api/recommendations")
+                .map(json -> ApiMapper.toRecommendedTopics(json.getAsJsonArray("recommendations")))
+                .orElseGet(ArrayList::new);
+    }
+
+    public static MutationResult updateParticipationCriteria(int groupId, JsonObject body) {
+        return mutateJson("PUT", "/api/groups/" + groupId + "/participation/criteria", body);
+    }
+
+    public static MutationResult updateParticipationGrade(int groupId, int userId, JsonObject body) {
+        return mutateJson("PATCH", "/api/groups/" + groupId + "/participation/grades/" + userId, body);
     }
 
     public static boolean addGroupMember(int groupId, int userId, String role) {
@@ -688,7 +752,7 @@ public class ApiClient {
         return mutateJson("POST", "/api/admin/users", body);
     }
 
-    // ── Offline sync (mirrors web offline.js) ────────────────────────────────
+    // ── Desktop-only offline sync (Req 8) ──────────────────────────────────
 
     public static boolean registerSyncDevice(String deviceId) {
         return registerSyncDeviceResult(deviceId).success();

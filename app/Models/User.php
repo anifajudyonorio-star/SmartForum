@@ -133,11 +133,15 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function canJoinGroups(): bool
     {
-        return true;
+        return ! $this->isAdmin();
     }
 
     public function canViewGroup(Group $group): bool
     {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
         if (! $this->isMemberOf($group)) {
             return false;
         }
@@ -156,8 +160,22 @@ class User extends Authenticatable implements MustVerifyEmail
             ]);
     }
 
+    /** Groups shown on "My Groups" — all groups for system admins. */
+    public function listedGroupsQuery()
+    {
+        if ($this->isAdmin()) {
+            return Group::query();
+        }
+
+        return $this->viewableGroupsQuery();
+    }
+
     public function viewableGroupIds()
     {
+        if ($this->isAdmin()) {
+            return Group::query()->pluck('groups.id');
+        }
+
         return $this->viewableGroupsQuery()->pluck('groups.id');
     }
 

@@ -40,20 +40,20 @@
                   </VBox>
 
                   <VBox fx:id="groupAdminSection" managed="false" spacing="2.0" visible="false">
-                     <Label styleClass="sidebar-section-label" text="GROUP ADMIN" />
+                     <Label styleClass="sidebar-section-label" text="Group Admin" />
                      <Button fx:id="statisticsNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showStatisticsFromNav" styleClass="sidebar-nav-btn" text="Statistics" />
                      <Button fx:id="participationNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showParticipationFromNav" styleClass="sidebar-nav-btn" text="Participation" />
                   </VBox>
 
                   <VBox fx:id="lecturerSection" managed="false" spacing="2.0" visible="false">
-                     <Label styleClass="sidebar-section-label" text="LECTURER" />
+                     <Label styleClass="sidebar-section-label" text="Lecturer" />
                      <Button fx:id="lecturerQuizzesNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showQuizzesFromNav" styleClass="sidebar-nav-btn" text="Quizzes" />
                      <Button fx:id="lecturerAnnouncementsNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showAnnouncementsFromNav" styleClass="sidebar-nav-btn" text="Announcements" />
                      <Button fx:id="quizReportsNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showQuizReportsFromNav" styleClass="sidebar-nav-btn" text="Quiz Reports" />
                   </VBox>
 
                   <VBox fx:id="superAdminSection" managed="false" spacing="2.0" visible="false">
-                     <Label styleClass="sidebar-section-label" text="SUPER ADMIN" />
+                     <Label styleClass="sidebar-section-label" text="Super Admin" />
                      <Button fx:id="userManagementNavBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#showUserManagementFromNav" styleClass="sidebar-nav-btn" text="User Management" />
                   </VBox>
                </VBox>

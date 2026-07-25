@@ -172,7 +172,7 @@ public class QuizController {
         editingQuiz = quiz;
         lblFormTitle.setText("Edit Quiz Schedule");
         lblFormSubtitle.setText("Update start/end time and duration. Assignment fields stay locked after publish.");
-        btnSaveQuiz.setText("Save Changes");
+        btnSaveQuiz.setText("Update Quiz");
         lblCreateFeedback.setText("Loading quiz…");
         showCreatePane(true);
         refreshFormOptions(() -> Platform.runLater(() -> {

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdminUserApiController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\GroupApiController;
+use App\Http\Controllers\Api\GroupModerationApiController;
 use App\Http\Controllers\Api\NotificationApiController;
 use App\Http\Controllers\Api\ParticipationApiController;
 use App\Http\Controllers\Api\PostApiController;
@@ -98,9 +99,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/groups', [GroupApiController::class, 'index']);
     Route::post('/groups', [GroupApiController::class, 'store']);
     Route::get('/groups/{group}', [GroupApiController::class, 'show']);
+    Route::put('/groups/{group}', [GroupApiController::class, 'update']);
     Route::post('/groups/{group}/members', [GroupApiController::class, 'addMember']);
     Route::delete('/groups/{group}/members/{user}', [GroupApiController::class, 'removeMember']);
     Route::patch('/groups/{group}/members/{user}/role', [GroupApiController::class, 'updateMemberRole']);
+    Route::post('/groups/{group}/members/{user}/warn', [GroupModerationApiController::class, 'warn']);
+    Route::post('/groups/{group}/members/{user}/suspend', [GroupModerationApiController::class, 'suspend']);
+    Route::post('/groups/{group}/members/{user}/block', [GroupModerationApiController::class, 'block']);
+    Route::post('/groups/{group}/members/{user}/reinstate', [GroupModerationApiController::class, 'reinstate']);
 
     Route::get('/topics', [TopicApiController::class, 'index']);
     Route::get('/topics/search', [TopicApiController::class, 'search']);

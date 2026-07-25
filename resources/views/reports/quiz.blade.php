@@ -24,39 +24,70 @@
                     <span class="badge bg-secondary me-1">{{ $label }}: {{ $count }}</span>
                 @endforeach
             </div>
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Student</th>
-                        <th>Status</th>
-                        <th>Score</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($rows as $row)
+            <div class="responsive-table-wrap">
+                <table class="table table-bordered mb-0">
+                    <thead>
                         <tr>
-                            <td>{{ $row['user']->name }}</td>
-                            <td>{{ $row['status'] }}</td>
-                            <td>
+                            <th>Student</th>
+                            <th>Status</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($rows as $row)
+                            <tr>
+                                <td>{{ $row['user']->name }}</td>
+                                <td>{{ $row['status'] }}</td>
+                                <td>
+                                    @if($row['result'])
+                                        <div>
+                                            Questions: {{ $row['result']->score }} / {{ $row['result']->maximum_score ?? 'snapshot unavailable' }}
+                                        </div>
+                                        <div>Participation: {{ $row['result']->participation_marks }}</div>
+                                        <strong>
+                                            Final: {{ $row['score'] }} / {{ $row['maximum_score'] ?? 'snapshot unavailable' }}
+                                            @if($row['percentage'] !== null)
+                                                ({{ $row['percentage'] }}%)
+                                            @endif
+                                        </strong>
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="responsive-card-wrap mt-3">
+                <div class="data-card-list">
+                    @foreach($rows as $row)
+                        <div class="data-card-item">
+                            <p class="data-card-item-title">{{ $row['user']->name }}</p>
+                            <div class="data-card-item-meta">
+                                <span><i class="bi bi-info-circle me-1"></i>{{ $row['status'] }}</span>
+                            </div>
+                            <div class="data-card-item-actions">
                                 @if($row['result'])
-                                    <div>
+                                    <div class="small">
                                         Questions: {{ $row['result']->score }} / {{ $row['result']->maximum_score ?? 'snapshot unavailable' }}
                                     </div>
-                                    <div>Participation: {{ $row['result']->participation_marks }}</div>
-                                    <strong>
+                                    <div class="small">Participation: {{ $row['result']->participation_marks }}</div>
+                                    <strong class="small">
                                         Final: {{ $row['score'] }} / {{ $row['maximum_score'] ?? 'snapshot unavailable' }}
                                         @if($row['percentage'] !== null)
                                             ({{ $row['percentage'] }}%)
                                         @endif
                                     </strong>
                                 @else
-                                    —
+                                    <span class="text-muted small">No score recorded</span>
                                 @endif
-                            </td>
-                        </tr>
+                            </div>
+                        </div>
                     @endforeach
-                </tbody>
-            </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>

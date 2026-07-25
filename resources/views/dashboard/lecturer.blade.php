@@ -137,43 +137,71 @@
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table table-hover table-sm align-middle mb-0 dashboard-table" id="lecturerQuizResultsTable">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-3">Student</th>
-                            <th>Quiz</th>
-                            <th>Status</th>
-                            <th>Final Score</th>
-                            <th class="pe-3">Percentage</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($quizProgress['results'] as $result)
-                            <tr data-quiz-id="{{ $result->quiz_id }}">
-                                <td class="ps-3 small">{{ $result->user->name ?? '—' }}</td>
-                                <td class="small">{{ $result->quiz->title ?? '—' }}</td>
-                                <td class="small">{{ $result->submissionStatus() }}</td>
-                                <td class="small">
-                                    {{ $result->total_score }} / {{ $result->maximum_total_score ?? 'snapshot unavailable' }}
-                                </td>
-                                <td class="pe-3">
-                                    @if($result->finalPercentage() !== null)
-                                        <span class="badge bg-primary">{{ $result->finalPercentage() }}%</span>
-                                    @else
-                                        <span class="text-muted small">Not comparable</span>
-                                    @endif
-                                </td>
+            <div class="responsive-table-wrap">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm align-middle mb-0 dashboard-table" id="lecturerQuizResultsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Student</th>
+                                <th>Quiz</th>
+                                <th>Status</th>
+                                <th>Final Score</th>
+                                <th class="pe-3">Percentage</th>
                             </tr>
-                        @empty
-                            <tr data-empty-row="1">
-                                <td colspan="5" class="text-center text-muted py-3 small">
-                                    No quiz results yet. Publish quizzes and wait for student submissions.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @forelse($quizProgress['results'] as $result)
+                                <tr data-quiz-id="{{ $result->quiz_id }}">
+                                    <td class="ps-3 small">{{ $result->user->name ?? '—' }}</td>
+                                    <td class="small">{{ $result->quiz->title ?? '—' }}</td>
+                                    <td class="small">{{ $result->submissionStatus() }}</td>
+                                    <td class="small">
+                                        {{ $result->total_score }} / {{ $result->maximum_total_score ?? 'snapshot unavailable' }}
+                                    </td>
+                                    <td class="pe-3">
+                                        @if($result->finalPercentage() !== null)
+                                            <span class="badge bg-primary">{{ $result->finalPercentage() }}%</span>
+                                        @else
+                                            <span class="text-muted small">Not comparable</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr data-empty-row="1">
+                                    <td colspan="5" class="text-center text-muted py-3 small">
+                                        No quiz results yet. Publish quizzes and wait for student submissions.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="responsive-card-wrap">
+                <div class="data-card-list" id="lecturerQuizResultsCards">
+                    @forelse($quizProgress['results'] as $result)
+                        <div class="data-card-item" data-quiz-id="{{ $result->quiz_id }}">
+                            <p class="data-card-item-title">{{ $result->user->name ?? '—' }}</p>
+                            <p class="small text-muted mb-2">{{ $result->quiz->title ?? '—' }}</p>
+                            <div class="data-card-item-meta">
+                                <span><i class="bi bi-info-circle me-1"></i>{{ $result->submissionStatus() }}</span>
+                                <span><i class="bi bi-calculator me-1"></i>{{ $result->total_score }} / {{ $result->maximum_total_score ?? 'snapshot unavailable' }}</span>
+                            </div>
+                            <div class="data-card-item-actions">
+                                @if($result->finalPercentage() !== null)
+                                    <span class="badge bg-primary">{{ $result->finalPercentage() }}%</span>
+                                @else
+                                    <span class="text-muted small">Not comparable</span>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-muted small text-center py-3 mb-0" data-empty-card="1">
+                            No quiz results yet. Publish quizzes and wait for student submissions.
+                        </p>
+                    @endforelse
+                </div>
             </div>
         </div>
     </div>
@@ -183,33 +211,55 @@
             <h6 class="mb-0 fw-semibold"><i class="bi bi-bar-chart-fill me-1 text-primary"></i>Student Participation</h6>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-sm align-middle mb-0 dashboard-table">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-3">Name</th>
-                            <th>Topics</th>
-                            <th>Posts</th>
-                            <th>Replies</th>
-                            <th class="pe-3">Score</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($participants as $participant)
+            <div class="responsive-table-wrap">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm align-middle mb-0 dashboard-table">
+                        <thead class="table-light">
                             <tr>
-                                <td class="ps-3 small">{{ $participant->name }}</td>
-                                <td class="small">{{ $participant->topics_count }}</td>
-                                <td class="small">{{ $participant->posts_count }}</td>
-                                <td class="small">{{ $participant->replies_count }}</td>
-                                <td class="pe-3"><span class="badge bg-primary">{{ $participant->score }}</span></td>
+                                <th class="ps-3">Name</th>
+                                <th>Topics</th>
+                                <th>Posts</th>
+                                <th>Replies</th>
+                                <th class="pe-3">Score</th>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-2 small">No participation data available.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @forelse($participants as $participant)
+                                <tr>
+                                    <td class="ps-3 small">{{ $participant->name }}</td>
+                                    <td class="small">{{ $participant->topics_count }}</td>
+                                    <td class="small">{{ $participant->posts_count }}</td>
+                                    <td class="small">{{ $participant->replies_count }}</td>
+                                    <td class="pe-3"><span class="badge bg-primary">{{ $participant->score }}</span></td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-2 small">No participation data available.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="responsive-card-wrap p-2">
+                <div class="data-card-list">
+                    @forelse($participants as $participant)
+                        <div class="data-card-item">
+                            <p class="data-card-item-title">{{ $participant->name }}</p>
+                            <div class="data-card-item-meta">
+                                <span><i class="bi bi-bookmark me-1"></i>{{ $participant->topics_count }} topics</span>
+                                <span><i class="bi bi-chat me-1"></i>{{ $participant->posts_count }} posts</span>
+                                <span><i class="bi bi-reply me-1"></i>{{ $participant->replies_count }} replies</span>
+                            </div>
+                            <div class="data-card-item-actions">
+                                <span class="badge bg-primary">Score: {{ $participant->score }}</span>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-muted small text-center py-2 mb-0">No participation data available.</p>
+                    @endforelse
+                </div>
             </div>
         </div>
     </div>
@@ -278,6 +328,7 @@
 
     const quizFilter = document.getElementById('lecturerQuizFilter');
     const resultsTable = document.getElementById('lecturerQuizResultsTable');
+    const resultsCards = document.getElementById('lecturerQuizResultsCards');
     quizFilter?.addEventListener('change', () => {
         const selected = quizFilter.value;
         let visible = 0;
@@ -286,9 +337,17 @@
             row.classList.toggle('d-none', !match);
             if (match) visible += 1;
         });
+        resultsCards?.querySelectorAll('[data-quiz-id]').forEach((card) => {
+            const match = selected === 'all' || card.dataset.quizId === selected;
+            card.classList.toggle('d-none', !match);
+        });
         const emptyRow = resultsTable?.querySelector('tbody tr[data-empty-row]');
         if (emptyRow) {
             emptyRow.classList.toggle('d-none', visible > 0 || selected === 'all');
+        }
+        const emptyCard = resultsCards?.querySelector('[data-empty-card]');
+        if (emptyCard) {
+            emptyCard.classList.toggle('d-none', visible > 0 || selected === 'all');
         }
     });
 </script>

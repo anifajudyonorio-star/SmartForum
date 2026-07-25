@@ -4,12 +4,15 @@ import com.smartforum.model.Group;
 import com.smartforum.model.GroupHighlight;
 import com.smartforum.model.GroupMember;
 import com.smartforum.model.GroupStats;
+import com.smartforum.model.PendingJoinRequest;
+import com.smartforum.model.PostReport;
 import com.smartforum.model.Topic;
 import com.smartforum.model.ForumUser;
 import com.smartforum.service.AppSession;
 import com.smartforum.service.GroupService;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -18,10 +21,13 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
@@ -50,8 +56,13 @@ public class GroupController {
     @FXML private ScrollPane contentScroll;
     @FXML private VBox indexPane;
     @FXML private Label sectionTitleLabel;
+    @FXML private Label pageTitleLabel;
+    @FXML private Label pageSubtitleLabel;
     @FXML private FlowPane groupsGrid;
     @FXML private VBox emptyStateBox;
+    @FXML private Label emptyStateIconLabel;
+    @FXML private Label emptyStateMessageLabel;
+    @FXML private Button emptyStateActionButton;
 
     // Show
     @FXML private VBox showPane;
@@ -93,10 +104,39 @@ public class GroupController {
     @FXML private Label restrictionLabel;
     @FXML private Button newTopicBtn;
 
+    // Edit group
+    @FXML private VBox editPane;
+    @FXML private TextField editNameField;
+    @FXML private TextArea editDescField;
+    @FXML private TextArea editJoinRulesField;
+    @FXML private CheckBox inactivityEnabledCheck;
+    @FXML private Spinner<Integer> inactivityThresholdSpinner;
+    @FXML private Spinner<Integer> inactivityGraceSpinner;
+    @FXML private Spinner<Integer> inactivityBlacklistSpinner;
+
+    // Pending join requests
+    @FXML private VBox pendingJoinBox;
+    @FXML private TableView<PendingJoinRequest> pendingJoinTable;
+    @FXML private TableColumn<PendingJoinRequest, String> joinNameColumn;
+    @FXML private TableColumn<PendingJoinRequest, String> joinEmailColumn;
+    @FXML private TableColumn<PendingJoinRequest, Void> joinActionsColumn;
+
+    // Post reports
+    @FXML private VBox postReportsBox;
+    @FXML private Label postReportsCountLabel;
+    @FXML private TableView<PostReport> postReportsTable;
+    @FXML private TableColumn<PostReport, String> reportTopicColumn;
+    @FXML private TableColumn<PostReport, String> reportContentColumn;
+    @FXML private TableColumn<PostReport, String> reportAuthorColumn;
+    @FXML private TableColumn<PostReport, String> reportReporterColumn;
+    @FXML private TableColumn<PostReport, String> reportReasonColumn;
+    @FXML private TableColumn<PostReport, Void> reportActionsColumn;
+
     // Create
     @FXML private VBox createPane;
     @FXML private TextField nameField;
     @FXML private TextArea descriptionField;
+    @FXML private TextArea createJoinRulesField;
 
     private int groupId;
     private Consumer<String> pageTitleUpdater;
@@ -120,6 +160,10 @@ public class GroupController {
         return createPane != null && createPane.isVisible();
     }
 
+    public boolean isShowingEdit() {
+        return editPane != null && editPane.isVisible();
+    }
+
     public boolean isExploreMode() {
         return exploreMode;
     }
@@ -139,6 +183,8 @@ public class GroupController {
     private boolean exploreMode;
 
     private boolean membersTableReady;
+    private boolean joinRequestsTableReady;
+    private boolean postReportsTableReady;
 
     private static final double[] MEMBER_COLUMN_WEIGHTS_MANAGE = {2.0, 1.1, 0.9, 0.7, 1.8, 2.5};
     private static final double[] MEMBER_COLUMN_WEIGHTS_VIEW = {2.2, 1.2, 1.0, 0.0, 2.6, 0.0};
@@ -146,7 +192,20 @@ public class GroupController {
     @FXML
     private void initialize() {
         sectionTitleLabel.setText("My Groups");
+        configureInactivitySpinners();
         switchTo(indexPane);
+    }
+
+    private void configureInactivitySpinners() {
+        if (inactivityThresholdSpinner != null) {
+            inactivityThresholdSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 365, 14));
+        }
+        if (inactivityGraceSpinner != null) {
+            inactivityGraceSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 90, 7));
+        }
+        if (inactivityBlacklistSpinner != null) {
+            inactivityBlacklistSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 365, 30));
+        }
     }
 
     private void ensureMembersTableReady() {
@@ -236,6 +295,7 @@ public class GroupController {
     public void index() {
         exploreMode = false;
         sectionTitleLabel.setText("My Groups");
+        updateIndexHeader(false);
         switchTo(indexPane);
         updateTitle("Discussion Groups");
         refreshGroups();
@@ -245,6 +305,7 @@ public class GroupController {
     public void explore() {
         exploreMode = true;
         sectionTitleLabel.setText("Explore Groups");
+        updateIndexHeader(true);
         switchTo(indexPane);
         updateTitle("Explore Groups");
         refreshExploreGroups();
@@ -254,6 +315,9 @@ public class GroupController {
     public void create() {
         nameField.clear();
         descriptionField.clear();
+        if (createJoinRulesField != null) {
+            createJoinRulesField.clear();
+        }
         switchTo(createPane);
         updateTitle("Create Group");
     }
@@ -284,7 +348,11 @@ public class GroupController {
             return;
         }
 
-        Group group = groupService.createGroup(name, description);
+        Group group = groupService.createGroup(
+                name,
+                description,
+                createJoinRulesField == null ? null : createJoinRulesField.getText()
+        );
         show(group.getId());
     }
 
@@ -323,13 +391,11 @@ public class GroupController {
         groupsGrid.getChildren().clear();
 
         if (groups.isEmpty()) {
-            emptyStateBox.setVisible(true);
-            emptyStateBox.setManaged(true);
+            showEmptyState();
             return;
         }
 
-        emptyStateBox.setVisible(false);
-        emptyStateBox.setManaged(false);
+        hideEmptyState();
 
         for (Group group : groups) {
             groupsGrid.getChildren().add(buildGroupCard(group));
@@ -341,13 +407,11 @@ public class GroupController {
         groupsGrid.getChildren().clear();
 
         if (groups.isEmpty()) {
-            emptyStateBox.setVisible(true);
-            emptyStateBox.setManaged(true);
+            showEmptyState();
             return;
         }
 
-        emptyStateBox.setVisible(false);
-        emptyStateBox.setManaged(false);
+        hideEmptyState();
 
         for (Group group : groups) {
             groupsGrid.getChildren().add(buildExploreGroupCard(group));
@@ -360,14 +424,23 @@ public class GroupController {
 
         Label actionLabel = new Label();
         actionLabel.getStyleClass().add("group-card-action");
-        String joinStatus = group.getJoinStatus() == null ? "none" : group.getJoinStatus();
-        if ("pending".equalsIgnoreCase(joinStatus)) {
-            actionLabel.setText("Pending approval");
-        } else if ("blocked".equalsIgnoreCase(joinStatus)) {
-            actionLabel.setText("Cannot join");
+        if (AppSession.getInstance().isSystemAdmin()) {
+            actionLabel.setText("Open group");
+            card.setOnMouseClicked(event -> {
+                if (navigator != null) {
+                    navigator.showGroup(group.getId());
+                }
+            });
         } else {
-            actionLabel.setText("Request to Join");
-            card.setOnMouseClicked(event -> handleExploreJoinRequest(group));
+            String joinStatus = group.getJoinStatus() == null ? "none" : group.getJoinStatus();
+            if ("pending".equalsIgnoreCase(joinStatus)) {
+                actionLabel.setText("Pending approval");
+            } else if ("blocked".equalsIgnoreCase(joinStatus)) {
+                actionLabel.setText("Cannot join");
+            } else {
+                actionLabel.setText("Request to Join");
+                card.setOnMouseClicked(event -> handleExploreJoinRequest(group));
+            }
         }
 
         if (card.getChildren().size() >= 5 && card.getChildren().get(4) instanceof HBox footer) {
@@ -381,15 +454,15 @@ public class GroupController {
         boolean acceptedRules = true;
         if (group.hasJoinRules()) {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-            alert.setTitle("Group rules");
-            alert.setHeaderText("Accept rules to join \"" + group.getName() + "\"");
+            alert.setTitle("Group rules — " + group.getName());
+            alert.setHeaderText("Please read the rules below. You must agree before your join request can be sent to the group admin.");
             TextArea rulesArea = new TextArea(group.getJoinRules());
             rulesArea.setEditable(false);
             rulesArea.setWrapText(true);
             rulesArea.setPrefRowCount(10);
             rulesArea.setMaxWidth(Double.MAX_VALUE);
             alert.getDialogPane().setContent(rulesArea);
-            ButtonType accept = new ButtonType("Accept & request", ButtonBar.ButtonData.OK_DONE);
+            ButtonType accept = new ButtonType("Agree & Request to Join", ButtonBar.ButtonData.OK_DONE);
             alert.getButtonTypes().setAll(ButtonType.CANCEL, accept);
             Optional<ButtonType> choice = alert.showAndWait();
             if (choice.isEmpty() || choice.get() != accept) {
@@ -432,7 +505,7 @@ public class GroupController {
         Label creator = new Label("🛡 " + (group.getCreatorName() != null ? group.getCreatorName() : "Unknown"));
         creator.getStyleClass().add("group-card-creator");
 
-        Label open = new Label("Open →");
+        Label open = new Label("Open");
         open.getStyleClass().add("group-card-action");
 
         Region spacer = new Region();
@@ -537,6 +610,241 @@ public class GroupController {
             restrictionLabel.setVisible(false);
             restrictionLabel.setManaged(false);
         }
+
+        loadPendingJoinRequests(canManage);
+        loadPostReports(canManage);
+    }
+
+    @FXML
+    public void onAdminStatistics(ActionEvent event) {
+        if (navigator != null && groupId > 0) {
+            navigator.showGroupStatistics(groupId);
+        }
+    }
+
+    @FXML
+    public void onAdminParticipation(ActionEvent event) {
+        if (navigator != null && groupId > 0) {
+            navigator.showParticipationForGroup(groupId);
+        }
+    }
+
+    @FXML
+    public void onAdminEdit(ActionEvent event) {
+        edit();
+    }
+
+    public void edit() {
+        Group group = groupService.getGroup(groupId).orElse(null);
+        if (group == null || !groupService.canManageGroup(groupId)) {
+            showAlert(Alert.AlertType.ERROR, "Access denied", "You cannot edit this group.");
+            return;
+        }
+
+        editNameField.setText(group.getName());
+        editDescField.setText(group.getDescription());
+        editJoinRulesField.setText(group.getJoinRules() == null ? "" : group.getJoinRules());
+        inactivityEnabledCheck.setSelected(group.isInactivityMonitoringEnabled());
+        inactivityThresholdSpinner.getValueFactory().setValue(group.getInactivityThresholdDays());
+        inactivityGraceSpinner.getValueFactory().setValue(group.getInactivityGraceDays());
+        inactivityBlacklistSpinner.getValueFactory().setValue(group.getInactivityBlacklistDays());
+        switchTo(editPane);
+        updateTitle("Edit Group");
+    }
+
+    @FXML
+    public void onSaveEdit(ActionEvent event) {
+        saveEdit();
+    }
+
+    public void saveEdit() {
+        String name = editNameField.getText() == null ? "" : editNameField.getText().trim();
+        String description = editDescField.getText() == null ? "" : editDescField.getText().trim();
+        if (name.isBlank() || description.isBlank()) {
+            showAlert(Alert.AlertType.WARNING, "Missing fields", "Group name and description are required.");
+            return;
+        }
+
+        try {
+            groupService.updateGroup(
+                    groupId,
+                    name,
+                    description,
+                    editJoinRulesField.getText(),
+                    inactivityEnabledCheck.isSelected(),
+                    inactivityThresholdSpinner.getValue(),
+                    inactivityGraceSpinner.getValue(),
+                    inactivityBlacklistSpinner.getValue()
+            );
+            showAlert(Alert.AlertType.INFORMATION, "Saved", "Group settings updated.");
+            show(groupId);
+        } catch (IllegalStateException ex) {
+            showAlert(Alert.AlertType.ERROR, "Update failed", ex.getMessage());
+        }
+    }
+
+    @FXML
+    public void onCancelEdit(ActionEvent event) {
+        show(groupId);
+    }
+
+    private void ensureJoinRequestsTableReady() {
+        if (joinRequestsTableReady) {
+            return;
+        }
+
+        joinNameColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue() == null ? "" : cell.getValue().name()));
+        joinEmailColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue() == null ? "" : cell.getValue().email()));
+        joinActionsColumn.setCellFactory(column -> new TableCell<>() {
+            private final HBox actions = new HBox(4);
+
+            {
+                actions.setAlignment(Pos.CENTER_LEFT);
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                actions.getChildren().clear();
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setGraphic(null);
+                    return;
+                }
+
+                PendingJoinRequest request = getTableRow().getItem();
+                actions.getChildren().add(memberActionButton("Approve", "btn-success", () -> {
+                    try {
+                        groupService.approveJoinRequest(groupId, request.userId());
+                        loadGroup();
+                    } catch (IllegalStateException ex) {
+                        showAlert(Alert.AlertType.ERROR, "Approve failed", ex.getMessage());
+                    }
+                }));
+                actions.getChildren().add(memberActionButton("Decline", "btn-outline-danger", () -> {
+                    try {
+                        groupService.rejectJoinRequest(groupId, request.userId());
+                        loadGroup();
+                    } catch (IllegalStateException ex) {
+                        showAlert(Alert.AlertType.ERROR, "Decline failed", ex.getMessage());
+                    }
+                }));
+                setGraphic(actions);
+            }
+        });
+
+        joinRequestsTableReady = true;
+    }
+
+    private void loadPendingJoinRequests(boolean canManage) {
+        ensureJoinRequestsTableReady();
+        if (!canManage) {
+            pendingJoinBox.setVisible(false);
+            pendingJoinBox.setManaged(false);
+            return;
+        }
+
+        List<PendingJoinRequest> requests = groupService.getPendingJoinRequests(groupId);
+        if (requests.isEmpty()) {
+            pendingJoinBox.setVisible(false);
+            pendingJoinBox.setManaged(false);
+            return;
+        }
+
+        pendingJoinBox.setVisible(true);
+        pendingJoinBox.setManaged(true);
+        pendingJoinTable.setItems(FXCollections.observableArrayList(requests));
+        pendingJoinTable.setPrefHeight(Math.min(200, Math.max(80, 42 + requests.size() * 40)));
+    }
+
+    private void ensurePostReportsTableReady() {
+        if (postReportsTableReady) {
+            return;
+        }
+
+        reportTopicColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue() == null ? "" : cell.getValue().topicTitle()));
+        reportContentColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue() == null ? "" : truncate(cell.getValue().postContent(), 120)));
+        reportAuthorColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue() == null ? "" : cell.getValue().authorName()));
+        reportReporterColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue() == null ? "" : cell.getValue().reporterName()));
+        reportReasonColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue() == null ? "" : cell.getValue().reason()));
+        reportActionsColumn.setCellFactory(column -> new TableCell<>() {
+            private final HBox actions = new HBox(4);
+
+            {
+                actions.setAlignment(Pos.CENTER_LEFT);
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                actions.getChildren().clear();
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setGraphic(null);
+                    return;
+                }
+
+                PostReport report = getTableRow().getItem();
+                actions.getChildren().add(memberActionButton("Restore", "btn-outline-primary", () -> {
+                    try {
+                        groupService.restorePostReport(groupId, report.id());
+                        loadGroup();
+                    } catch (IllegalStateException ex) {
+                        showAlert(Alert.AlertType.ERROR, "Restore failed", ex.getMessage());
+                    }
+                }));
+                actions.getChildren().add(memberActionButton("Delete", "btn-outline-danger", () -> {
+                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                    confirm.setTitle("Delete message");
+                    confirm.setHeaderText("Permanently delete this message?");
+                    confirm.setContentText("This cannot be undone.");
+                    confirm.showAndWait().ifPresent(choice -> {
+                        if (choice == ButtonType.OK) {
+                            try {
+                                groupService.deletePostReport(groupId, report.id());
+                                loadGroup();
+                            } catch (IllegalStateException ex) {
+                                showAlert(Alert.AlertType.ERROR, "Delete failed", ex.getMessage());
+                            }
+                        }
+                    });
+                }));
+                setGraphic(actions);
+            }
+        });
+
+        postReportsTableReady = true;
+    }
+
+    private void loadPostReports(boolean canManage) {
+        ensurePostReportsTableReady();
+        if (!canManage) {
+            postReportsBox.setVisible(false);
+            postReportsBox.setManaged(false);
+            return;
+        }
+
+        new Thread(() -> {
+            List<PostReport> reports = groupService.getPostReports(groupId);
+            Platform.runLater(() -> {
+                if (reports.isEmpty()) {
+                    postReportsBox.setVisible(false);
+                    postReportsBox.setManaged(false);
+                    return;
+                }
+
+                postReportsBox.setVisible(true);
+                postReportsBox.setManaged(true);
+                postReportsCountLabel.setText(reports.size() + " pending");
+                postReportsTable.setItems(FXCollections.observableArrayList(reports));
+                postReportsTable.setPrefHeight(Math.min(280, Math.max(120, 42 + reports.size() * 40)));
+            });
+        }).start();
     }
 
     private void setupAddMemberForm() {
@@ -880,7 +1188,7 @@ public class GroupController {
     }
 
     private void switchTo(VBox pane) {
-        for (VBox child : List.of(indexPane, showPane, createPane)) {
+        for (VBox child : List.of(indexPane, showPane, createPane, editPane)) {
             boolean active = child == pane;
             child.setVisible(active);
             child.setManaged(active);
@@ -888,6 +1196,67 @@ public class GroupController {
         if (contentScroll != null) {
             contentScroll.setVvalue(0);
         }
+    }
+
+    private void updateIndexHeader(boolean explore) {
+        if (pageTitleLabel == null || pageSubtitleLabel == null) {
+            return;
+        }
+        if (explore) {
+            pageTitleLabel.setText("🧭  Explore Groups");
+            pageSubtitleLabel.setText(
+                    "Discover discussion groups you are not in yet. Request to join and a group admin will review your request.");
+        } else {
+            pageTitleLabel.setText("👥  Discussion Groups");
+            pageSubtitleLabel.setText(
+                    "Create groups, invite members, and assign admin or lecturer roles — just like WhatsApp.");
+        }
+    }
+
+    private void showEmptyState() {
+        if (emptyStateBox == null) {
+            return;
+        }
+        emptyStateBox.setVisible(true);
+        emptyStateBox.setManaged(true);
+        if (exploreMode) {
+            if (emptyStateIconLabel != null) {
+                emptyStateIconLabel.setText("🧭");
+            }
+            if (emptyStateMessageLabel != null) {
+                emptyStateMessageLabel.setText(
+                        "There are no other groups to explore right now. You may already be in every available group.");
+            }
+            if (emptyStateActionButton != null) {
+                emptyStateActionButton.setText("Back to My Groups");
+                emptyStateActionButton.setOnAction(event -> {
+                    if (navigator != null) {
+                        navigator.showGroups();
+                    } else {
+                        index();
+                    }
+                });
+            }
+        } else {
+            if (emptyStateIconLabel != null) {
+                emptyStateIconLabel.setText("👥");
+            }
+            if (emptyStateMessageLabel != null) {
+                emptyStateMessageLabel.setText("No groups yet. Create one and invite others to join.");
+            }
+            if (emptyStateActionButton != null) {
+                emptyStateActionButton.setText("Create Group");
+                emptyStateActionButton.setOnAction(this::onCreate);
+            }
+        }
+    }
+
+    private void hideEmptyState() {
+        if (emptyStateBox == null) {
+            return;
+        }
+        emptyStateBox.setVisible(false);
+        emptyStateBox.setManaged(false);
     }
 
     private void updateTitle(String title) {

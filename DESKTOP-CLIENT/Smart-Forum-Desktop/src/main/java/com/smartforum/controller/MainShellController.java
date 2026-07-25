@@ -76,6 +76,7 @@ public class MainShellController implements ShellNavigator {
     private GroupController groupController;
     private TopicController topicController;
     private TopicSearchController topicSearchController;
+    private ParticipationViewController participationViewController;
     private NotificationViewController notificationViewController;
     private Label notificationsNavBadge;
     private int lastNotificationPollId;
@@ -332,7 +333,7 @@ public class MainShellController implements ShellNavigator {
             stage.setScene(scene);
             stage.setResizable(false);
             stage.setMaximized(false);
-            stage.setTitle("Smart Discussion Forum");
+            stage.setTitle(APP_TITLE);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -622,6 +623,11 @@ public class MainShellController implements ShellNavigator {
         navigateWithBack(this::showParticipationInternal);
     }
 
+    @Override
+    public void showParticipationForGroup(int groupId) {
+        navigateWithBack(() -> showParticipationForGroupInternal(groupId));
+    }
+
     @FXML
     @Override
     public void showGroups() {
@@ -693,7 +699,29 @@ public class MainShellController implements ShellNavigator {
     }
 
     private void showParticipationInternal() {
-        loadView("participation.fxml", participationNavBtn, null);
+        openParticipationView(null);
+    }
+
+    private void showParticipationForGroupInternal(int groupId) {
+        openParticipationView(groupId);
+    }
+
+    private void openParticipationView(Integer groupId) {
+        if (participationViewController == null) {
+            loadView("participation.fxml", participationNavBtn, controller -> {
+                participationViewController = (ParticipationViewController) controller;
+                participationViewController.loadParticipation(groupId);
+            });
+            return;
+        }
+
+        if (!isCurrentView(participationViewController.getRootNode())) {
+            contentArea.getChildren().setAll(participationViewController.getRootNode());
+            fillContentArea(participationViewController.getRootNode());
+        }
+        activeContentKey = "participation.fxml";
+        setActiveNav(participationNavBtn);
+        participationViewController.loadParticipation(groupId);
     }
 
     private void showGroupsIndexInternal() {
@@ -759,6 +787,10 @@ public class MainShellController implements ShellNavigator {
         String key = activeContentKey == null ? "" : activeContentKey;
 
         if ("groups.fxml".equals(key) && groupController != null) {
+            if (groupController.isShowingEdit()) {
+                int groupId = groupController.getGroupId();
+                return () -> showGroupInternal(groupId);
+            }
             if (groupController.isShowingDetail()) {
                 int groupId = groupController.getGroupId();
                 return () -> showGroupInternal(groupId);
@@ -955,6 +987,9 @@ public class MainShellController implements ShellNavigator {
                 } else if ("topic-search.fxml".equals(fxmlFile)
                         && loader.getController() instanceof TopicSearchController search) {
                     search.setRootNode(region);
+                } else if ("participation.fxml".equals(fxmlFile)
+                        && loader.getController() instanceof ParticipationViewController participation) {
+                    participation.setRootNode(region);
                 }
             }
             fillContentArea(view);

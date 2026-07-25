@@ -17,6 +17,7 @@ public interface ShellNavigator {
     /** Open statistics overview without pushing onto the back stack. */
     void reopenStatisticsOverview();
     void showGroupStatistics(int groupId);
+    void showParticipationForGroup(int groupId);
     void showParticipation();
     void showQuizzes();
     void showAnnouncements();

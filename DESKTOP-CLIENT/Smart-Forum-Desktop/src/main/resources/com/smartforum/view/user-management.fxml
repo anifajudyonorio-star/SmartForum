@@ -32,11 +32,11 @@
                 <Label fx:id="addLecturerError" styleClass="profile-field-error" text="" wrapText="true" />
                 <HBox spacing="10">
                     <VBox spacing="4" HBox.hgrow="ALWAYS">
-                        <Label styleClass="form-label" text="First Name" />
+                        <Label styleClass="form-label" text="First name" />
                         <TextField fx:id="fnameField" promptText="First name" />
                     </VBox>
                     <VBox spacing="4" HBox.hgrow="ALWAYS">
-                        <Label styleClass="form-label" text="Last Name" />
+                        <Label styleClass="form-label" text="Last name" />
                         <TextField fx:id="lnameField" promptText="Last name" />
                     </VBox>
                 </HBox>
@@ -50,7 +50,7 @@
                         <PasswordField fx:id="passwordField" promptText="Password" />
                     </VBox>
                     <VBox spacing="4" HBox.hgrow="ALWAYS">
-                        <Label styleClass="form-label" text="Confirm Password" />
+                        <Label styleClass="form-label" text="Confirm password" />
                         <PasswordField fx:id="passwordConfirmField" promptText="Confirm password" />
                     </VBox>
                 </HBox>

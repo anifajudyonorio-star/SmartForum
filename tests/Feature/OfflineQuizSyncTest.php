@@ -136,12 +136,14 @@ class OfflineQuizSyncTest extends TestCase
         $headers = [
             'Authorization' => "Bearer {$token}",
             'Accept' => 'application/json',
+            'X-SF-Client' => 'desktop',
         ];
         app('auth')->forgetGuards();
         $deviceId = 'offline-lecturer-device';
         $this->postJson('/api/sync/device', [
             'device_id' => $deviceId,
             'device_name' => 'Lecturer Device',
+            'device_type' => 'desktop',
         ], $headers)->assertOk();
         $this->postJson('/api/sync/upload', [
             'actions' => [[
@@ -331,12 +333,14 @@ class OfflineQuizSyncTest extends TestCase
         $headers = [
             'Authorization' => "Bearer {$token}",
             'Accept' => 'application/json',
+            'X-SF-Client' => 'desktop',
         ];
         $deviceId = 'offline-device-'.uniqid();
 
         $this->postJson('/api/sync/device', [
             'device_id' => $deviceId,
             'device_name' => 'Offline Test Device',
+            'device_type' => 'desktop',
         ], $headers)->assertOk();
 
         return compact(

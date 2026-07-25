@@ -76,7 +76,7 @@ public class StudentDashboardController {
     private void initialize() {
         ForumUser currentUser = AppSession.getInstance().getCurrentUser();
         if (welcomeTitleLabel != null && currentUser != null) {
-            welcomeTitleLabel.setText("Welcome back, " + currentUser.getName() + "!");
+            welcomeTitleLabel.setText("Welcome back, Student!");
         }
 
         GroupAdminDashboardSupport.configureHeader(groupAdminTitleBox);

@@ -29,12 +29,19 @@ class SyncApiTest extends TestCase
         ];
     }
 
+    private function desktopSyncHeaders(string $token): array
+    {
+        return array_merge($this->apiHeaders($token), [
+            'X-SF-Client' => 'desktop',
+        ]);
+    }
+
     public function test_unauthenticated_request_is_rejected(): void
     {
         $this->postJson('/api/sync/device')->assertUnauthorized();
     }
 
-    public function test_device_can_be_registered(): void
+    public function test_browser_device_registration_is_rejected(): void
     {
         $user = User::factory()->create();
         $token = $this->actingAsApi($user);
@@ -43,9 +50,40 @@ class SyncApiTest extends TestCase
             'device_id' => 'browser-test-001',
             'device_name' => 'Test Browser',
             'device_type' => 'browser',
-        ], $this->apiHeaders($token))
+        ], $this->desktopSyncHeaders($token))
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Offline sync is only available through the desktop app.');
+    }
+
+    public function test_device_can_be_registered(): void
+    {
+        $user = User::factory()->create();
+        $token = $this->actingAsApi($user);
+
+        $this->postJson('/api/sync/device', [
+            'device_id' => 'desktop-test-001',
+            'device_name' => 'Test Desktop',
+            'device_type' => 'desktop',
+        ], $this->desktopSyncHeaders($token))
             ->assertOk()
             ->assertJsonPath('success', true);
+    }
+
+    public function test_web_upload_is_rejected(): void
+    {
+        $user = User::factory()->create();
+        $token = $this->actingAsApi($user);
+
+        $this->postJson('/api/sync/upload', [
+            'actions' => [
+                [
+                    'action_uuid' => '10000000-0000-4000-8000-000000000099',
+                    'action_type' => 'create_post',
+                    'payload' => ['topic_id' => 1, 'content' => 'web attempt'],
+                ],
+            ],
+        ], $this->apiHeaders($token))
+            ->assertForbidden();
     }
 
     public function test_actions_can_be_uploaded(): void
@@ -61,7 +99,7 @@ class SyncApiTest extends TestCase
                     'payload' => ['topic_id' => 1, 'content' => 'hello'],
                 ],
             ],
-        ], $this->apiHeaders($token))
+        ], $this->desktopSyncHeaders($token))
             ->assertOk()
             ->assertJsonPath('success', true);
     }
@@ -73,7 +111,7 @@ class SyncApiTest extends TestCase
 
         $this->postJson('/api/sync', [
             'device_id' => 'nonexistent-device',
-        ], $this->apiHeaders($token))
+        ], $this->desktopSyncHeaders($token))
             ->assertNotFound();
     }
 
@@ -89,8 +127,9 @@ class SyncApiTest extends TestCase
         // Register device
         $this->postJson('/api/sync/device', [
             'device_id' => 'browser-test-002',
-            'device_name' => 'Test Browser',
-        ], $this->apiHeaders($token));
+            'device_name' => 'Test Desktop',
+            'device_type' => 'desktop',
+        ], $this->desktopSyncHeaders($token));
 
         // Upload action
         $this->postJson('/api/sync/upload', [
@@ -101,12 +140,12 @@ class SyncApiTest extends TestCase
                     'payload' => ['topic_id' => $topic->id, 'content' => 'Offline post'],
                 ],
             ],
-        ], $this->apiHeaders($token));
+        ], $this->desktopSyncHeaders($token));
 
         // Sync
         $response = $this->postJson('/api/sync', [
             'device_id' => 'browser-test-002',
-        ], $this->apiHeaders($token));
+        ], $this->desktopSyncHeaders($token));
 
         $response->assertOk()->assertJsonPath('success', true);
         $this->assertDatabaseHas('posts', ['Post_Content' => 'Offline post', 'Created_By' => $user->id]);
@@ -117,7 +156,7 @@ class SyncApiTest extends TestCase
         $user = User::factory()->create();
         $token = $this->actingAsApi($user);
 
-        $this->getJson('/api/sync/pending', $this->apiHeaders($token))
+        $this->getJson('/api/sync/pending', $this->desktopSyncHeaders($token))
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonStructure(['pending_actions']);
@@ -128,7 +167,7 @@ class SyncApiTest extends TestCase
         $user = User::factory()->create();
         $token = $this->actingAsApi($user);
 
-        $this->getJson('/api/sync/status', $this->apiHeaders($token))
+        $this->getJson('/api/sync/status', $this->desktopSyncHeaders($token))
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonStructure(['online', 'pending_actions']);
@@ -144,8 +183,9 @@ class SyncApiTest extends TestCase
         // Register device for userA and upload an action
         $this->postJson('/api/sync/device', [
             'device_id' => 'browser-a',
-            'device_name' => 'Browser A',
-        ], $this->apiHeaders($tokenA));
+            'device_name' => 'Desktop A',
+            'device_type' => 'desktop',
+        ], $this->desktopSyncHeaders($tokenA))->assertOk();
 
         $this->postJson('/api/sync/upload', [
             'actions' => [
@@ -155,12 +195,12 @@ class SyncApiTest extends TestCase
                     'payload' => ['topic_id' => 999, 'content' => 'secret'],
                 ],
             ],
-        ], $this->apiHeaders($tokenA));
+        ], $this->desktopSyncHeaders($tokenA))->assertOk();
 
         // userB syncs with their own (unregistered) device — gets 404
         $this->postJson('/api/sync', [
             'device_id' => 'browser-b',
-        ], $this->apiHeaders($tokenB))
+        ], $this->desktopSyncHeaders($tokenB))
             ->assertNotFound();
     }
 
@@ -182,7 +222,7 @@ class SyncApiTest extends TestCase
             'device_id' => $deviceId,
             'device_name' => 'Desktop Test',
             'device_type' => 'desktop',
-        ], $this->apiHeaders($token));
+        ], $this->desktopSyncHeaders($token));
 
         $clientTopicId = 42;
         $this->postJson('/api/sync/upload', [
@@ -206,11 +246,11 @@ class SyncApiTest extends TestCase
                     ],
                 ],
             ],
-        ], $this->apiHeaders($token));
+        ], $this->desktopSyncHeaders($token));
 
         $response = $this->postJson('/api/sync', [
             'device_id' => $deviceId,
-        ], $this->apiHeaders($token));
+        ], $this->desktopSyncHeaders($token));
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -239,8 +279,9 @@ class SyncApiTest extends TestCase
         $deviceId = 'browser-exclude-test';
         $this->postJson('/api/sync/device', [
             'device_id' => $deviceId,
-            'device_name' => 'Test Browser',
-        ], $this->apiHeaders($token));
+            'device_name' => 'Test Desktop',
+            'device_type' => 'desktop',
+        ], $this->desktopSyncHeaders($token));
 
         $this->postJson('/api/sync/upload', [
             'actions' => [
@@ -254,11 +295,11 @@ class SyncApiTest extends TestCase
                     ],
                 ],
             ],
-        ], $this->apiHeaders($token));
+        ], $this->desktopSyncHeaders($token));
 
         $this->postJson('/api/sync', [
             'device_id' => $deviceId,
-        ], $this->apiHeaders($token))->assertOk();
+        ], $this->desktopSyncHeaders($token))->assertOk();
 
         $post = Post::where('Post_Content', 'Hidden from member')->first();
         $this->assertNotNull($post);
@@ -287,8 +328,9 @@ class SyncApiTest extends TestCase
         $deviceId = 'browser-update-test';
         $this->postJson('/api/sync/device', [
             'device_id' => $deviceId,
-            'device_name' => 'Test Browser',
-        ], $this->apiHeaders($token));
+            'device_name' => 'Test Desktop',
+            'device_type' => 'desktop',
+        ], $this->desktopSyncHeaders($token));
 
         $this->postJson('/api/sync/upload', [
             'actions' => [
@@ -301,11 +343,11 @@ class SyncApiTest extends TestCase
                     ],
                 ],
             ],
-        ], $this->apiHeaders($token));
+        ], $this->desktopSyncHeaders($token));
 
         $this->postJson('/api/sync', [
             'device_id' => $deviceId,
-        ], $this->apiHeaders($token))->assertOk();
+        ], $this->desktopSyncHeaders($token))->assertOk();
 
         $this->assertDatabaseHas('posts', [
             'id' => $post->id,
@@ -335,8 +377,9 @@ class SyncApiTest extends TestCase
         $deviceId = 'browser-delete-test';
         $this->postJson('/api/sync/device', [
             'device_id' => $deviceId,
-            'device_name' => 'Test Browser',
-        ], $this->apiHeaders($token));
+            'device_name' => 'Test Desktop',
+            'device_type' => 'desktop',
+        ], $this->desktopSyncHeaders($token));
 
         $this->postJson('/api/sync/upload', [
             'actions' => [
@@ -348,11 +391,11 @@ class SyncApiTest extends TestCase
                     ],
                 ],
             ],
-        ], $this->apiHeaders($token));
+        ], $this->desktopSyncHeaders($token));
 
         $this->postJson('/api/sync', [
             'device_id' => $deviceId,
-        ], $this->apiHeaders($token))->assertOk();
+        ], $this->desktopSyncHeaders($token))->assertOk();
 
         $this->assertNull(Post::find($post->id));
     }

@@ -16,7 +16,7 @@
                 <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-header">
                     <VBox spacing="4.0" HBox.hgrow="ALWAYS">
                         <Label text="Manage Quizzes" styleClass="dashboard-title"/>
-                        <Label text="Create quizzes, review their questions, then publish when ready."
+                        <Label text="Create quiz titles, quizzes, and questions. Publish when ready."
                                styleClass="dashboard-subtitle"/>
                     </VBox>
                     <Label fx:id="quizCountLabel" styleClass="badge-muted" text="0"/>

@@ -32,6 +32,18 @@ public final class ApiMapper {
         if (json.has("join_rules") && !json.get("join_rules").isJsonNull()) {
             group.setJoinRules(json.get("join_rules").getAsString());
         }
+        if (json.has("inactivity_monitoring_enabled")) {
+            group.setInactivityMonitoringEnabled(json.get("inactivity_monitoring_enabled").getAsBoolean());
+        }
+        if (json.has("inactivity_threshold_days")) {
+            group.setInactivityThresholdDays(json.get("inactivity_threshold_days").getAsInt());
+        }
+        if (json.has("inactivity_grace_days")) {
+            group.setInactivityGraceDays(json.get("inactivity_grace_days").getAsInt());
+        }
+        if (json.has("inactivity_blacklist_days")) {
+            group.setInactivityBlacklistDays(json.get("inactivity_blacklist_days").getAsInt());
+        }
         return group;
     }
 
@@ -210,5 +222,79 @@ public final class ApiMapper {
         } catch (Exception ignored) {
             return LocalDateTime.now();
         }
+    }
+
+    public static List<PendingJoinRequest> toPendingJoinRequests(JsonArray array) {
+        List<PendingJoinRequest> requests = new ArrayList<>();
+        if (array == null) {
+            return requests;
+        }
+        for (JsonElement element : array) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            JsonObject json = element.getAsJsonObject();
+            requests.add(new PendingJoinRequest(
+                    intVal(json, "user_id"),
+                    text(json, "name", "Unknown"),
+                    text(json, "email", "")
+            ));
+        }
+        return requests;
+    }
+
+    public static List<PostReport> toPostReports(JsonArray array) {
+        List<PostReport> reports = new ArrayList<>();
+        if (array == null) {
+            return reports;
+        }
+        for (JsonElement element : array) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            JsonObject json = element.getAsJsonObject();
+            JsonObject post = json.has("post") && json.get("post").isJsonObject()
+                    ? json.getAsJsonObject("post") : new JsonObject();
+            JsonObject reporter = json.has("reporter") && json.get("reporter").isJsonObject()
+                    ? json.getAsJsonObject("reporter") : new JsonObject();
+            reports.add(new PostReport(
+                    intVal(json, "id"),
+                    text(json, "reason", ""),
+                    text(json, "status", "pending"),
+                    intVal(post, "id"),
+                    text(post, "content", ""),
+                    text(post, "author_name", "Unknown"),
+                    text(post, "topic_title", ""),
+                    intVal(post, "topic_id"),
+                    text(reporter, "name", "Unknown")
+            ));
+        }
+        return reports;
+    }
+
+    public static List<RecommendedTopic> toRecommendedTopics(JsonArray array) {
+        List<RecommendedTopic> topics = new ArrayList<>();
+        if (array == null) {
+            return topics;
+        }
+        for (JsonElement element : array) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            JsonObject json = element.getAsJsonObject();
+            double score = json.has("score") && !json.get("score").isJsonNull()
+                    ? json.get("score").getAsDouble() : 0;
+            topics.add(new RecommendedTopic(
+                    intVal(json, "id"),
+                    text(json, "title", "Untitled"),
+                    text(json, "description", ""),
+                    score,
+                    intVal(json, "group_id"),
+                    text(json, "group_name", ""),
+                    json.has("can_view") && json.get("can_view").getAsBoolean(),
+                    text(json, "join_status", "none")
+            ));
+        }
+        return topics;
     }
 }

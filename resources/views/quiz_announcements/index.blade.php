@@ -53,43 +53,72 @@
                     <span class="badge bg-secondary">{{ $announcements->count() }}</span>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0 align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Quiz Title</th>
-                                    <th>Title</th>
-                                    <th>Message</th>
-                                    <th>Posted By</th>
-                                    <th>Date</th>
-                                    <th width="90">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($announcements as $announcement)
+                    <div class="responsive-table-wrap">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead>
                                     <tr>
-                                        <td>{{ $announcement->category->category_name ?? '—' }}</td>
-                                        <td><strong>{{ $announcement->title }}</strong></td>
-                                        <td class="small">{{ \Illuminate\Support\Str::limit($announcement->message, 120) }}</td>
-                                        <td class="small">{{ $announcement->author->name ?? '—' }}</td>
-                                        <td class="small">{{ $announcement->created_at?->format('M j, Y g:i A') }}</td>
-                                        <td>
-                                            @can('delete', $announcement)
-                                                <form method="POST" action="{{ route('quiz-announcements.destroy', $announcement) }}">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this announcement?')">Delete</button>
-                                                </form>
-                                            @endcan
-                                        </td>
+                                        <th>Quiz Title</th>
+                                        <th>Title</th>
+                                        <th>Message</th>
+                                        <th>Posted By</th>
+                                        <th>Date</th>
+                                        <th width="90">Action</th>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">No announcements yet.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @forelse($announcements as $announcement)
+                                        <tr>
+                                            <td>{{ $announcement->category->category_name ?? '—' }}</td>
+                                            <td><strong>{{ $announcement->title }}</strong></td>
+                                            <td class="small">{{ \Illuminate\Support\Str::limit($announcement->message, 120) }}</td>
+                                            <td class="small">{{ $announcement->author->name ?? '—' }}</td>
+                                            <td class="small">{{ $announcement->created_at?->format('M j, Y g:i A') }}</td>
+                                            <td>
+                                                @can('delete', $announcement)
+                                                    <form method="POST" action="{{ route('quiz-announcements.destroy', $announcement) }}">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this announcement?')">Delete</button>
+                                                    </form>
+                                                @endcan
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted py-4">No announcements yet.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="responsive-card-wrap p-2">
+                        <div class="data-card-list">
+                            @forelse($announcements as $announcement)
+                                <div class="data-card-item">
+                                    <p class="data-card-item-title">{{ $announcement->title }}</p>
+                                    <p class="small text-muted mb-2">{{ $announcement->category->category_name ?? '—' }}</p>
+                                    <p class="small mb-2">{{ \Illuminate\Support\Str::limit($announcement->message, 200) }}</p>
+                                    <div class="data-card-item-meta">
+                                        <span><i class="bi bi-person me-1"></i>{{ $announcement->author->name ?? '—' }}</span>
+                                        <span><i class="bi bi-calendar me-1"></i>{{ $announcement->created_at?->format('M j, Y g:i A') }}</span>
+                                    </div>
+                                    @can('delete', $announcement)
+                                        <div class="data-card-item-actions">
+                                            <form method="POST" action="{{ route('quiz-announcements.destroy', $announcement) }}" class="w-100">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="btn btn-danger btn-sm w-100" onclick="return confirm('Delete this announcement?')">Delete</button>
+                                            </form>
+                                        </div>
+                                    @endcan
+                                </div>
+                            @empty
+                                <p class="text-muted small text-center py-4 mb-0">No announcements yet.</p>
+                            @endforelse
+                        </div>
                     </div>
                 </div>
             </div>

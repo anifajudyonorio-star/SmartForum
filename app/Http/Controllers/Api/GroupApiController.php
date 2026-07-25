@@ -18,7 +18,7 @@ class GroupApiController extends Controller
     {
         $user = Auth::user();
 
-        $groups = $user->viewableGroupsQuery()
+        $groups = $user->listedGroupsQuery()
             ->withCount('topics')
             ->withCount('memberships as members_count')
             ->with('user')
@@ -206,6 +206,38 @@ class GroupApiController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function update(Request $request, Group $group)
+    {
+        abort_unless(Auth::user()->canManageGroup($group), 403);
+
+        $request->validate([
+            'Group_Name' => 'required|max:255',
+            'Description' => 'required',
+            'join_rules' => 'nullable|string|max:5000',
+            'inactivity_monitoring_enabled' => 'nullable|boolean',
+            'inactivity_threshold_days' => 'nullable|integer|min:1|max:365',
+            'inactivity_grace_days' => 'nullable|integer|min:1|max:90',
+            'inactivity_blacklist_days' => 'nullable|integer|min:1|max:365',
+        ]);
+
+        $group->update([
+            'Group_Name' => $request->Group_Name,
+            'Description' => $request->Description,
+            'join_rules' => $request->join_rules,
+            'inactivity_monitoring_enabled' => $request->boolean('inactivity_monitoring_enabled'),
+            'inactivity_threshold_days' => $request->input('inactivity_threshold_days', $group->inactivity_threshold_days ?? 14),
+            'inactivity_grace_days' => $request->input('inactivity_grace_days', $group->inactivity_grace_days ?? 7),
+            'inactivity_blacklist_days' => $request->input('inactivity_blacklist_days', $group->inactivity_blacklist_days ?? 30),
+        ]);
+
+        $group->loadCount(['topics', 'memberships as members_count'])->load('user');
+
+        return response()->json([
+            'message' => 'Group updated successfully.',
+            'group' => $this->formatGroup($group, Auth::user()),
+        ]);
+    }
+
     private function formatGroup(Group $group, User $user): array
     {
         return [
@@ -214,12 +246,16 @@ class GroupApiController extends Controller
             'description' => $group->Description,
             'join_rules' => $group->join_rules,
             'join_status' => GroupJoinService::joinStatusFor($user, $group),
+            'inactivity_monitoring_enabled' => (bool) $group->inactivity_monitoring_enabled,
+            'inactivity_threshold_days' => (int) ($group->inactivity_threshold_days ?? 14),
+            'inactivity_grace_days' => (int) ($group->inactivity_grace_days ?? 7),
+            'inactivity_blacklist_days' => (int) ($group->inactivity_blacklist_days ?? 30),
             'status' => $group->Status,
             'created_by' => $group->Created_By,
             'creator_name' => $group->user->name ?? '',
             'topics_count' => $group->topics_count ?? $group->topics()->count(),
             'members_count' => $group->members_count ?? $group->members()->count(),
-            'my_role' => $user->groupRole($group) ?? 'member',
+            'my_role' => $user->groupRole($group) ?? ($user->isAdmin() ? 'admin' : 'member'),
         ];
     }
 

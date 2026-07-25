@@ -24,7 +24,7 @@ class MembershipVisibilityTest extends TestCase
         ];
     }
 
-    public function test_system_admin_only_sees_member_groups(): void
+    public function test_system_admin_sees_all_groups_without_membership(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $memberGroup = Group::factory()->create(['Group_Name' => 'My Group']);
@@ -39,8 +39,37 @@ class MembershipVisibilityTest extends TestCase
         $response = $this->getJson('/api/groups', $this->apiHeaders($admin));
 
         $response->assertOk()
-            ->assertJsonCount(1, 'groups')
-            ->assertJsonPath('groups.0.name', 'My Group');
+            ->assertJsonCount(2, 'groups');
+
+        $this->getJson("/api/groups/{$otherGroup->id}", $this->apiHeaders($admin))
+            ->assertOk()
+            ->assertJsonPath('can_manage', true)
+            ->assertJsonPath('is_member', false);
+    }
+
+    public function test_system_admin_cannot_request_to_join_groups(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $group = Group::factory()->create(['Group_Name' => 'Open Group']);
+
+        $this->postJson("/api/groups/{$group->id}/join", [], $this->apiHeaders($admin))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('group');
+
+        $this->assertDatabaseMissing('group_members', [
+            'User_ID' => $admin->id,
+            'Group_ID' => $group->id,
+        ]);
+    }
+
+    public function test_system_admin_explore_list_is_empty(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Group::factory()->count(2)->create();
+
+        $this->getJson('/api/groups/explore', $this->apiHeaders($admin))
+            ->assertOk()
+            ->assertJsonCount(0, 'groups');
     }
 
     public function test_non_member_cannot_view_group(): void

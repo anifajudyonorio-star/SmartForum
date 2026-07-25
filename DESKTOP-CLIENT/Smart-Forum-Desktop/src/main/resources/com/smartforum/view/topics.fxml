@@ -27,7 +27,7 @@
                </VBox>
                <VBox maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="dashboard-card">
                   <HBox styleClass="dashboard-card-header">
-                     <Label styleClass="dashboard-card-title" text="New Discussion Topic" />
+                     <Label styleClass="dashboard-card-title" text="Create Topic" />
                   </HBox>
                   <VBox spacing="12.0" styleClass="dashboard-card-body">
                      <VBox spacing="6.0">

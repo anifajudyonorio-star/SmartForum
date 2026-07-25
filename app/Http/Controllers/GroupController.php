@@ -26,7 +26,7 @@ class GroupController extends Controller
     {
         $user = Auth::user();
 
-        $myGroups = $user->viewableGroupsQuery()
+        $myGroups = $user->listedGroupsQuery()
             ->withCount('topics')
             ->withCount('memberships as members_count')
             ->with('user')

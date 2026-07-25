@@ -60,7 +60,7 @@
                 <Hyperlink text="Forgot password?" onAction="#handleForgotPassword"
                            style="-fx-text-fill: #6366f1; -fx-font-size: 11; -fx-border-color: transparent;"/>
             </HBox>
-            <Button text="Sign In" onAction="#handleSignIn" maxWidth="Infinity"
+            <Button text="Login" onAction="#handleSignIn" maxWidth="Infinity"
                     style="-fx-background-color: #16a34a; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 10; -fx-cursor: hand; -fx-font-size: 13;"/>
 
             <!-- Divider -->
@@ -79,12 +79,12 @@
         <VBox fx:id="registerPane" visible="false" managed="false" style="-fx-padding: 8 16 0 16; -fx-spacing: 7;">
             <HBox spacing="8">
                 <VBox spacing="4" HBox.hgrow="ALWAYS">
-                    <Label text="First Name" style="-fx-text-fill: #9ca3af; -fx-font-size: 11; -fx-font-weight: bold;"/>
+                    <Label text="First name" style="-fx-text-fill: #9ca3af; -fx-font-size: 11; -fx-font-weight: bold;"/>
                     <TextField fx:id="regFname" promptText="First name"
                                style="-fx-background-color: #1f2937; -fx-text-fill: white; -fx-prompt-text-fill: #6b7280; -fx-background-radius: 6; -fx-border-color: #374151; -fx-border-radius: 6; -fx-padding: 8 10;"/>
                 </VBox>
                 <VBox spacing="4" HBox.hgrow="ALWAYS">
-                    <Label text="Last Name" style="-fx-text-fill: #9ca3af; -fx-font-size: 11; -fx-font-weight: bold;"/>
+                    <Label text="Last name" style="-fx-text-fill: #9ca3af; -fx-font-size: 11; -fx-font-weight: bold;"/>
                     <TextField fx:id="regLname" promptText="Last name"
                                style="-fx-background-color: #1f2937; -fx-text-fill: white; -fx-prompt-text-fill: #6b7280; -fx-background-radius: 6; -fx-border-color: #374151; -fx-border-radius: 6; -fx-padding: 8 10;"/>
                 </VBox>
@@ -108,7 +108,7 @@
                 <Label text="Min 8 chars, uppercase, number &amp; symbol" style="-fx-text-fill: #6b7280; -fx-font-size: 10;"/>
             </VBox>
             <VBox spacing="4">
-                <Label text="Confirm Password" style="-fx-text-fill: #9ca3af; -fx-font-size: 11; -fx-font-weight: bold;"/>
+                <Label text="Confirm password" style="-fx-text-fill: #9ca3af; -fx-font-size: 11; -fx-font-weight: bold;"/>
                 <StackPane>
                     <PasswordField fx:id="regPasswordConfirm" promptText="Confirm password"
                                    style="-fx-background-color: #1f2937; -fx-text-fill: white; -fx-prompt-text-fill: #6b7280; -fx-background-radius: 6; -fx-border-color: #374151; -fx-border-radius: 6; -fx-padding: 8 36 8 10;"/>
@@ -121,7 +121,7 @@
             </VBox>
             <CheckBox fx:id="termsCheck" text="I agree to the Terms &amp; Conditions"
                       style="-fx-text-fill: #9ca3af; -fx-font-size: 11;"/>
-            <Button text="Create Account" onAction="#handleRegister" maxWidth="Infinity"
+            <Button text="Create account" onAction="#handleRegister" maxWidth="Infinity"
                     style="-fx-background-color: #16a34a; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 10; -fx-cursor: hand; -fx-font-size: 13;"/>
 
             <!-- Divider -->

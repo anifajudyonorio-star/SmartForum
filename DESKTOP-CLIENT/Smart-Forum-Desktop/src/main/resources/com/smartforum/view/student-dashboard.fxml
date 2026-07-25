@@ -17,7 +17,7 @@
       <content>
          <VBox maxWidth="1.7976931348623157E308" spacing="12.0" styleClass="dashboard-content">
             <VBox spacing="4.0" styleClass="dashboard-header">
-               <Label fx:id="welcomeTitleLabel" styleClass="dashboard-title" text="Welcome back!" />
+               <Label fx:id="welcomeTitleLabel" styleClass="dashboard-title" text="Welcome back, Student!" />
                <Label styleClass="dashboard-subtitle" text="Participate in discussions and stay connected with your classmates." />
             </VBox>
 

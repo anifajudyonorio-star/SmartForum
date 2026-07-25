@@ -140,7 +140,7 @@ class DashboardApiController extends Controller
             ->all();
 
         return [
-            'my_groups' => $user->viewableGroupsQuery()->count(),
+            'my_groups' => $user->listedGroupsQuery()->count(),
             'my_topics' => Topic::where('Created_By', $user->id)->count(),
             'participants' => $participants,
         ];

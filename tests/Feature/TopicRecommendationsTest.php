@@ -45,7 +45,7 @@ class TopicRecommendationsTest extends TestCase
             ->assertOk()
             ->assertSee('Recommended for you')
             ->assertSee('Similar topic')
-            ->assertSee('Request to join group');
+            ->assertSee('Request to Join');
     }
 
     public function test_deleted_groups_are_excluded_from_recommendations(): void

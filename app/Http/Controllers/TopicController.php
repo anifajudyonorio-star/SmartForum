@@ -119,13 +119,7 @@ class TopicController extends Controller
 
     private function recordTopicEngagementView(Topic $topic): void
     {
-        TopicView::updateOrCreate(
-            [
-                'user_id' => Auth::id(),
-                'topic_id' => $topic->id,
-            ],
-            ['viewed_at' => now()]
-        );
+        TopicView::record(Auth::id(), $topic->id);
     }
 
     public function edit(Topic $topic)

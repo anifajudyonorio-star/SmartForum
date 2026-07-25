@@ -75,7 +75,7 @@
                   </VBox>
 
                   <VBox spacing="4.0">
-                     <Label styleClass="form-label" text="Confirm Password" />
+                     <Label styleClass="form-label" text="Confirm password" />
                      <PasswordField fx:id="confirmPasswordField" />
                      <Label fx:id="confirmPasswordErrorLabel" managed="false" styleClass="profile-field-error" visible="false" />
                   </VBox>

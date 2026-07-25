@@ -152,31 +152,51 @@
             <h6 class="mb-0 fw-semibold">All Topics in This Group</h6>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 dashboard-table">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-3">Topic</th>
-                            <th>Posts</th>
-                            <th class="pe-3">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($topics as $topic)
+            <div class="responsive-table-wrap">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 dashboard-table">
+                        <thead class="table-light">
                             <tr>
-                                <td class="ps-3">{{ $topic->Title }}</td>
-                                <td><span class="badge bg-primary">{{ $topic->posts_count }}</span></td>
-                                <td class="pe-3">
-                                    <a href="{{ route('topics.show', $topic) }}" class="btn btn-outline-primary btn-sm">Open</a>
-                                </td>
+                                <th class="ps-3">Topic</th>
+                                <th>Posts</th>
+                                <th class="pe-3">Action</th>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3" class="text-center text-muted py-3">No topics in this group.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @forelse($topics as $topic)
+                                <tr>
+                                    <td class="ps-3">{{ $topic->Title }}</td>
+                                    <td><span class="badge bg-primary">{{ $topic->posts_count }}</span></td>
+                                    <td class="pe-3">
+                                        <a href="{{ route('topics.show', $topic) }}" class="btn btn-outline-primary btn-sm">Open</a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-3">No topics in this group.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="responsive-card-wrap p-2">
+                <div class="data-card-list">
+                    @forelse($topics as $topic)
+                        <div class="data-card-item">
+                            <p class="data-card-item-title">{{ $topic->Title }}</p>
+                            <div class="data-card-item-meta">
+                                <span><i class="bi bi-chat me-1"></i>{{ $topic->posts_count }} posts</span>
+                            </div>
+                            <div class="data-card-item-actions">
+                                <a href="{{ route('topics.show', $topic) }}" class="btn btn-outline-primary btn-sm w-100">Open</a>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-muted small text-center py-3 mb-0">No topics in this group.</p>
+                    @endforelse
+                </div>
             </div>
         </div>
     </div>

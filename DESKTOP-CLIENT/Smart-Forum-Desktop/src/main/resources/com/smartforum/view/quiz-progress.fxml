@@ -17,7 +17,7 @@
       <VBox spacing="12.0" styleClass="dashboard-content">
          <VBox spacing="4.0" styleClass="dashboard-header">
             <Label styleClass="dashboard-title" text="Quiz Progress" />
-            <Label styleClass="dashboard-subtitle" text="Review your submitted quizzes and follow your performance over time." />
+            <Label styleClass="dashboard-subtitle" text="Your private quiz history and percentage progress. No other students' results are shown." />
          </VBox>
 
          <GridPane hgap="10.0" maxWidth="1.7976931348623157E308" vgap="10.0">
@@ -28,26 +28,26 @@
                <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="110.0" percentWidth="25.0" />
             </columnConstraints>
             <VBox maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="stat-card" GridPane.columnIndex="0">
-               <Label styleClass="stat-label" text="Quizzes Attempted" />
+               <Label styleClass="stat-label" text="Total Attempted" />
                <Label fx:id="quizzesAttemptedLabel" styleClass="stat-number" text="0" />
             </VBox>
             <VBox maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="stat-card" GridPane.columnIndex="1">
-               <Label styleClass="stat-label" text="Average Percentage" />
+               <Label styleClass="stat-label" text="Average" />
                <Label fx:id="averagePercentageLabel" styleClass="stat-number" text="N/A" />
             </VBox>
             <VBox maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="stat-card" GridPane.columnIndex="2">
-               <Label styleClass="stat-label" text="Best Percentage" />
+               <Label styleClass="stat-label" text="Best" />
                <Label fx:id="bestPercentageLabel" styleClass="stat-number" text="N/A" />
             </VBox>
             <VBox maxWidth="1.7976931348623157E308" spacing="4.0" styleClass="stat-card" GridPane.columnIndex="3">
-               <Label styleClass="stat-label" text="Latest Percentage" />
+               <Label styleClass="stat-label" text="Latest Comparable" />
                <Label fx:id="latestPercentageLabel" styleClass="stat-number" text="N/A" />
             </VBox>
          </GridPane>
 
          <VBox maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="dashboard-card">
             <HBox styleClass="dashboard-card-header">
-               <Label styleClass="dashboard-card-title" text="Progress Across Attempts" />
+               <Label styleClass="dashboard-card-title" text="Chronological percentage progress" />
             </HBox>
             <VBox spacing="6.0" styleClass="dashboard-card-body">
                <Label fx:id="quizProgressMessage" styleClass="empty-label" text="Loading quiz progress..." wrapText="true" />

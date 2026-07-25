@@ -31,43 +31,70 @@
                 <span class="badge bg-secondary">{{ $quiz->questions->count() }} Questions</span>
             </div>
             <div class="card-body p-0">
-                <table class="table table-bordered mb-0">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Question</th>
-                            <th>Type</th>
-                            <th>Marks</th>
-                            <th width="180">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div class="responsive-table-wrap">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Question</th>
+                                    <th>Type</th>
+                                    <th>Marks</th>
+                                    <th width="180">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($quiz->questions as $question)
+                                    <tr>
+                                        <td>{{ $question->id }}</td>
+                                        <td>{{ $question->question }}</td>
+                                        <td>{{ $question->question_type }}</td>
+                                        <td>{{ $question->marks }}</td>
+                                        <td>
+                                            @if($quiz->canEditQuestions())
+                                                <a href="{{ route('questions.edit', $question->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                                <form action="{{ route('questions.destroy', $question->id) }}" method="POST" style="display:inline;">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this question?')">Delete</button>
+                                                </form>
+                                            @else
+                                                <span class="text-muted small">Published content is locked</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="responsive-card-wrap p-2">
+                    <div class="data-card-list">
                         @foreach($quiz->questions as $question)
-                            <tr>
-                                <td>{{ $question->id }}</td>
-                                <td>{{ $question->question }}</td>
-                                <td>{{ $question->question_type }}</td>
-                                <td>{{ $question->marks }}</td>
-                                <td>
+                            <div class="data-card-item">
+                                <p class="data-card-item-title">{{ Str::limit($question->question, 100) }}</p>
+                                <div class="data-card-item-meta">
+                                    <span><i class="bi bi-hash me-1"></i>#{{ $question->id }}</span>
+                                    <span><i class="bi bi-ui-checks me-1"></i>{{ $question->question_type }}</span>
+                                    <span><i class="bi bi-award me-1"></i>{{ $question->marks }} marks</span>
+                                </div>
+                                <div class="data-card-item-actions">
                                     @if($quiz->canEditQuestions())
-                                        <a href="{{ route('questions.edit', $question->id) }}" class="btn btn-warning btn-sm">
-                                            Edit
-                                        </a>
-                                        <form action="{{ route('questions.destroy', $question->id) }}" method="POST" style="display:inline;">
+                                        <a href="{{ route('questions.edit', $question->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                        <form action="{{ route('questions.destroy', $question->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this question?')">
-                                                Delete
-                                            </button>
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this question?')">Delete</button>
                                         </form>
                                     @else
                                         <span class="text-muted small">Published content is locked</span>
                                     @endif
-                                </td>
-                            </tr>
+                                </div>
+                            </div>
                         @endforeach
-                    </tbody>
-                </table>
+                    </div>
+                </div>
             </div>
         </div>
     @empty

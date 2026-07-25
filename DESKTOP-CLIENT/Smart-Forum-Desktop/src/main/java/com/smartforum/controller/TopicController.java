@@ -730,7 +730,7 @@ public class TopicController {
         actions.setPickOnBounds(true);
 
         actions.getChildren().add(copyActionButton(post.getContent()));
-        actions.getChildren().add(actionButton("⤴", "Share", event -> sharePost(post, (Button) event.getSource())));
+        actions.getChildren().add(actionButton("⤴", "Share to social media", event -> sharePost(post, (Button) event.getSource())));
 
         if (postController.canParticipate(topicId)) {
             actions.getChildren().add(actionButton("↩", "Reply", event -> startReply(post)));

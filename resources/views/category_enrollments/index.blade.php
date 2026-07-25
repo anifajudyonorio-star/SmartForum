@@ -77,39 +77,65 @@
                     <span class="badge bg-secondary">{{ $enrolledStudents->count() }}</span>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Student</th>
-                                    <th>Email</th>
-                                    <th width="110">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($enrolledStudents as $student)
+                    <div class="responsive-table-wrap">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
                                     <tr>
-                                        <td>{{ $student->name }}</td>
-                                        <td>{{ $student->email }}</td>
-                                        <td>
-                                            <form method="POST" action="{{ route('category-enrollments.destroy') }}" class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <input type="hidden" name="category_id" value="{{ optional($selectedCategory)->id }}">
-                                                <input type="hidden" name="user_id" value="{{ $student->id }}">
-                                                <button class="btn btn-danger btn-sm" onclick="return confirm('Unenroll this student?')">Unenroll</button>
-                                            </form>
-                                        </td>
+                                        <th>Student</th>
+                                        <th>Email</th>
+                                        <th width="110">Action</th>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="3" class="text-center py-4 text-muted">
-                                            {{ $selectedCategory ? 'No students enrolled yet.' : 'Create a quiz title first.' }}
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @forelse($enrolledStudents as $student)
+                                        <tr>
+                                            <td>{{ $student->name }}</td>
+                                            <td>{{ $student->email }}</td>
+                                            <td>
+                                                <form method="POST" action="{{ route('category-enrollments.destroy') }}" class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <input type="hidden" name="category_id" value="{{ optional($selectedCategory)->id }}">
+                                                    <input type="hidden" name="user_id" value="{{ $student->id }}">
+                                                    <button class="btn btn-danger btn-sm" onclick="return confirm('Unenroll this student?')">Unenroll</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="text-center py-4 text-muted">
+                                                {{ $selectedCategory ? 'No students enrolled yet.' : 'Create a quiz title first.' }}
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="responsive-card-wrap p-2">
+                        <div class="data-card-list">
+                            @forelse($enrolledStudents as $student)
+                                <div class="data-card-item">
+                                    <p class="data-card-item-title">{{ $student->name }}</p>
+                                    <p class="small text-muted mb-2">{{ $student->email }}</p>
+                                    <div class="data-card-item-actions">
+                                        <form method="POST" action="{{ route('category-enrollments.destroy') }}" class="w-100">
+                                            @csrf
+                                            @method('DELETE')
+                                            <input type="hidden" name="category_id" value="{{ optional($selectedCategory)->id }}">
+                                            <input type="hidden" name="user_id" value="{{ $student->id }}">
+                                            <button class="btn btn-danger btn-sm w-100" onclick="return confirm('Unenroll this student?')">Unenroll</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @empty
+                                <p class="text-muted small text-center py-4 mb-0">
+                                    {{ $selectedCategory ? 'No students enrolled yet.' : 'Create a quiz title first.' }}
+                                </p>
+                            @endforelse
+                        </div>
                     </div>
                 </div>
             </div>

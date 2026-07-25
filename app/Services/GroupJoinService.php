@@ -14,6 +14,10 @@ class GroupJoinService
 {
     public static function exploreGroups(User $user): Collection
     {
+        if ($user->isAdmin()) {
+            return collect();
+        }
+
         $viewableIds = $user->viewableGroupIds();
 
         return Group::query()
@@ -52,6 +56,12 @@ class GroupJoinService
 
     public static function requestJoin(User $user, Group $group, bool $acceptedRules = false): void
     {
+        if ($user->isAdmin()) {
+            throw ValidationException::withMessages([
+                'group' => ['System admins oversee all groups and cannot request to join.'],
+            ]);
+        }
+
         if (! $user->canRequestJoinGroup($group)) {
             throw ValidationException::withMessages([
                 'group' => ['You cannot request to join this group.'],

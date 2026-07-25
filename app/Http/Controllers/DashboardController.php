@@ -112,7 +112,7 @@ class DashboardController extends Controller
         }
 
         return [
-            'myGroups' => Auth::user()->viewableGroupsQuery()->count(),
+            'myGroups' => Auth::user()->listedGroupsQuery()->count(),
             'myTopics' => Topic::where('Created_By', Auth::id())->count(),
             'participants' => $participants->sortByDesc('score')->take(10),
             'quizProgress' => $this->lecturerQuizProgress(Auth::user()),

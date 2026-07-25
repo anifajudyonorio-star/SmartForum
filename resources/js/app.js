@@ -3,90 +3,38 @@ import './theme';
 import './chat';
 import './notifications';
 import './quiz-launch';
-import { initOfflineSync, queueAction, isStableOnline } from './offline';
+import { initWebConnectivity, isStableOnline, notifyOfflineActionBlocked } from './offline';
 import { initPushNotifications } from './push';
 
-window.queueAction = queueAction;
-initOfflineSync();
+initWebConnectivity();
 initPushNotifications();
 
-// Intercept topic creation form when offline
+function blockIfOffline(event) {
+    if (isStableOnline()) return false;
+    event.preventDefault();
+    notifyOfflineActionBlocked();
+    return true;
+}
+
+// Block topic creation when offline (desktop handles offline topic creation)
 (function () {
     const form = document.getElementById('topicCreateForm');
     if (!form) return;
-    form.addEventListener('submit', function (e) {
-        const isOffline = !isStableOnline();
-        if (!isOffline) return;
-        e.preventDefault();
-        const groupId = form.dataset.groupId;
-        const title = form.querySelector('input[name="Title"]')?.value.trim();
-        const description = form.querySelector('textarea[name="Topic_Description"]')?.value.trim();
-        if (!title) return;
-        const clientTopicId = -Math.floor(Date.now() / 1000);
-        queueAction('create_topic', {
-            group_id: Number(groupId),
-            title,
-            description,
-            client_topic_id: clientTopicId,
-        });
-        alert('You\'re offline. Your topic will be created when you reconnect.');
-    });
+    form.addEventListener('submit', blockIfOffline);
 })();
 
-// Intercept quiz form when offline
+// Block quiz submission when offline
 (function () {
     const form = document.getElementById('quizForm');
     if (!form) return;
-    form.addEventListener('submit', function (e) {
-        const isOffline = !isStableOnline();
-        if (!isOffline) return;
-        e.preventDefault();
-        if (form.dataset.offlineQueued === 'true') return;
-        const action = form.getAttribute('action');
-        const quizId = action?.match(/\/quizzes\/(\d+)\//)?.[1];
-        const attemptId = form.querySelector('input[name="attempt_id"]')?.value;
-        if (!quizId || !attemptId) return;
-        const answers = {};
-        form.querySelectorAll('input[type="radio"]:checked').forEach((input) => {
-            const match = input.name.match(/answers\[(\d+)\]/);
-            if (match) answers[match[1]] = input.value;
-        });
-        queueAction('submit_quiz', {
-            quiz_id: Number(quizId),
-            attempt_id: Number(attemptId),
-            answers,
-        });
-        form.dataset.offlineQueued = 'true';
-        form.querySelectorAll('button, input').forEach((element) => {
-            if (element.type !== 'hidden') element.disabled = true;
-        });
-        alert(
-            'Your quiz submission is queued once. The server deadline is authoritative; '
-            + 'if synchronization occurs after it, queued answer changes are ignored and the attempt times out.',
-        );
-    });
+    form.addEventListener('submit', blockIfOffline);
 })();
 
-// Intercept post edit form when offline
+// Block post edit when offline
 (function () {
     const form = document.getElementById('postEditForm');
     if (!form) return;
-    form.addEventListener('submit', function (e) {
-        if (isStableOnline()) return;
-        e.preventDefault();
-        const postId = Number(form.dataset.postId);
-        const content = form.querySelector('textarea[name="Post_Content"]')?.value.trim();
-        if (!postId || !content) return;
-        const excludedUsers = [...form.querySelectorAll('input[name="excluded_users[]"]:checked')]
-            .map((input) => Number(input.value));
-        const payload = { post_id: postId, content };
-        if (excludedUsers.length > 0) {
-            payload.excluded_users = excludedUsers;
-        }
-        queueAction('update_post', payload);
-        alert('You\'re offline. Your edit will sync when you reconnect.');
-        window.location.href = form.dataset.topicUrl || document.referrer || '/';
-    });
+    form.addEventListener('submit', blockIfOffline);
 })();
 
 // Mobile sidebar toggle
@@ -118,7 +66,6 @@ initPushNotifications();
     if (backdrop) backdrop.addEventListener('click', closeSidebar);
     if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
 
-    // Close mobile sidebar when a nav link is clicked
     document.querySelectorAll('#mobileSidebar .sidebar-nav-link').forEach((link) => {
         link.addEventListener('click', closeSidebar);
     });

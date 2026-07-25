@@ -1,30 +1,12 @@
 // WhatsApp-style chat interactions
 
-import { isStableOnline } from './offline';
+import { isStableOnline, notifyOfflineActionBlocked } from './offline';
 import { bindShareButtons } from './share';
 
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-}
-
-export function buildPendingBubble(content, pendingId) {
-    const now = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    const div = document.createElement('div');
-    div.innerHTML = `
-        <div class="wa-msg mine" data-pending-id="${pendingId}">
-            <div class="wa-bubble-wrap">
-                <div class="wa-bubble">
-                    <p class="wa-bubble-text">${content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>
-                    <div class="wa-bubble-meta">
-                        <span class="wa-bubble-time">${now}</span>
-                        <span class="msg-tick msg-tick--pending" title="Pending">&#10003;</span>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-    return div.firstElementChild;
 }
 
 export function buildMessageHtml(post) {
@@ -436,54 +418,17 @@ export function buildMessageHtml(post) {
             form.addEventListener('submit', (event) => {
                 if (isStableOnline()) return;
                 event.preventDefault();
-                if (!confirm('Delete this message?')) return;
-                const postId = Number(form.dataset.postDelete);
-                queueAction('delete_post', { post_id: postId });
-                form.closest('.wa-msg')?.remove();
+                notifyOfflineActionBlocked();
             });
         });
-    }
-
-    function queuePendingPost(content) {
-        const topicId = chat.dataset.topicId;
-        const parentId = parentInput?.value || null;
-        const excludedUsers = collectExcludedUsers();
-
-        const exportArea = document.getElementById('chatExportArea');
-        const empty = document.getElementById('chatEmpty');
-        if (empty) empty.remove();
-
-        const bubble = buildPendingBubble(content, 'tmp');
-        exportArea?.appendChild(bubble);
-        scrollToBottom();
-
-        const payload = {
-            topic_id: Number(topicId),
-            content,
-            parent_post_id: parentId ? Number(parentId) : null,
-        };
-        if (excludedUsers.length > 0) {
-            payload.excluded_users = excludedUsers;
-        }
-
-        const pendingId = window.queueAction('create_post', payload, bubble);
-        bubble.dataset.pendingId = pendingId;
-
-        input.value = '';
-        autoGrow(input);
-        clearReply();
-        clearExcludeSelections();
     }
 
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const isOffline = !isStableOnline();
 
-            if (isOffline) {
-                const content = input?.value?.trim();
-                if (!content) return;
-                queuePendingPost(content);
+            if (!isStableOnline()) {
+                notifyOfflineActionBlocked();
                 return;
             }
 
@@ -505,7 +450,7 @@ export function buildMessageHtml(post) {
                 });
 
                 if (!res.ok) {
-                    queuePendingPost(content);
+                    window.alert('Could not send your message. Check your connection and try again.');
                     return;
                 }
 
@@ -529,7 +474,7 @@ export function buildMessageHtml(post) {
                 clearExcludeSelections();
                 scrollToBottom();
             } catch {
-                queuePendingPost(content);
+                window.alert('Could not send your message. Check your connection and try again.');
             } finally {
                 sendBtn.disabled = false;
             }

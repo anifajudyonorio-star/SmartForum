@@ -21,6 +21,8 @@ import java.util.List;
 
 public class ForumStatisticsController {
 
+    @FXML private Label pageTitleLabel;
+    @FXML private Label scopeNoteLabel;
     @FXML private Label groupCountBadge;
     @FXML private Label totalGroupsLabel;
     @FXML private Label totalTopicsLabel;
@@ -60,12 +62,24 @@ public class ForumStatisticsController {
 
     private void loadFromApi() {
         new Thread(() -> ApiClient.getStatistics().ifPresentOrElse(json -> Platform.runLater(() -> {
+            applyScopeLabels(json);
             populateSummaryCards(json);
             populateGroupTable(json);
             populateTopUsers(json);
             populateMostActive(json);
             populateCharts(json);
         }), () -> Platform.runLater(this::showEmptyState))).start();
+    }
+
+    private void applyScopeLabels(JsonObject json) {
+        boolean systemScope = json.has("scope") && "system".equals(json.get("scope").getAsString());
+        if (pageTitleLabel != null) {
+            pageTitleLabel.setText(systemScope ? "Forum Statistics" : "My Group Statistics");
+        }
+        if (scopeNoteLabel != null) {
+            scopeNoteLabel.setVisible(!systemScope);
+            scopeNoteLabel.setManaged(!systemScope);
+        }
     }
 
     private void populateSummaryCards(JsonObject json) {

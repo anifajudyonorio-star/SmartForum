@@ -11,7 +11,7 @@
          <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="dashboard-header">
             <VBox spacing="4.0" HBox.hgrow="ALWAYS">
                <Label styleClass="dashboard-title" text="🔔 Notifications" />
-               <Label styleClass="dashboard-subtitle" text="Related activity is grouped so you can follow conversations easily." />
+               <Label styleClass="dashboard-subtitle" text="Unread items stay marked until you open them." />
             </VBox>
             <Label fx:id="unreadCountLabel" styleClass="badge-primary" text="0 unread" />
          </HBox>

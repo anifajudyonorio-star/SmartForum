@@ -22,13 +22,13 @@ class RegistrationTest extends TestCase
             'Fname' => 'Test',
             'Lname' => 'User',
             'email' => 'newuser@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'Password1!',
+            'password_confirmation' => 'Password1!',
             'role' => 'student',
             'terms' => '1',
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('verification.notice', absolute: false));
     }
 }

@@ -13,6 +13,8 @@ class Device extends Model
         'user_id',
         'device_name',
         'device_id',
+        'device_type',
+        'status',
         'last_sync',
         'is_online',
     ];

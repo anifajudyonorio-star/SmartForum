@@ -24,9 +24,11 @@
             <a href="{{ route('groups.create') }}" class="btn btn-primary btn-sm">
                 <i class="bi bi-plus-lg me-1"></i> Create Group
             </a>
+            @unless(auth()->user()->isAdmin())
             <a href="{{ route('groups.explore') }}" class="btn btn-outline-primary btn-sm">
                 <i class="bi bi-compass me-1"></i> Explore Groups
             </a>
+            @endunless
         </div>
     </div>
 

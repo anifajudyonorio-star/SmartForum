@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
@@ -25,17 +27,17 @@
             <VBox fx:id="indexPane" maxWidth="1.7976931348623157E308" spacing="14.0" styleClass="dashboard-content">
                <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="groups-page-header">
                   <VBox spacing="4.0" HBox.hgrow="ALWAYS">
-                     <Label styleClass="groups-page-title" text="👥  Discussion Groups" />
-                     <Label styleClass="groups-page-subtitle" text="Create groups, invite members, and assign admin or lecturer roles — just like the web app." />
+                     <Label fx:id="pageTitleLabel" styleClass="groups-page-title" text="👥  Discussion Groups" />
+                     <Label fx:id="pageSubtitleLabel" styleClass="groups-page-subtitle" text="Create groups, invite members, and assign admin or lecturer roles — just like WhatsApp." />
                   </VBox>
                   <Button mnemonicParsing="false" onAction="#onCreate" styleClass="btn-primary" text="+  Create Group" />
                </HBox>
                <Label fx:id="sectionTitleLabel" styleClass="dashboard-card-title" text="My Groups" />
                <FlowPane fx:id="groupsGrid" hgap="12.0" maxWidth="1.7976931348623157E308" vgap="12.0" />
                <VBox fx:id="emptyStateBox" alignment="CENTER" managed="false" spacing="10.0" styleClass="groups-empty-state" visible="false">
-                  <Label styleClass="groups-empty-icon" text="👥" />
-                  <Label text="No groups yet. Create one and invite others to join." />
-                  <Button mnemonicParsing="false" onAction="#onCreate" styleClass="btn-primary" text="Create Group" />
+                  <Label fx:id="emptyStateIconLabel" styleClass="groups-empty-icon" text="👥" />
+                  <Label fx:id="emptyStateMessageLabel" text="No groups yet. Create one and invite others to join." wrapText="true" />
+                  <Button fx:id="emptyStateActionButton" mnemonicParsing="false" onAction="#onCreate" styleClass="btn-primary" text="Create Group" />
                </VBox>
             </VBox>
 
@@ -50,9 +52,9 @@
                         <Label fx:id="roleBadge" styleClass="badge-muted" />
                      </HBox>
                      <HBox fx:id="adminActionsBox" managed="false" spacing="8.0" visible="false">
-                        <Button disable="true" mnemonicParsing="false" styleClass="btn-outline" text="Statistics" />
-                        <Button disable="true" mnemonicParsing="false" styleClass="btn-outline" text="Participation" />
-                        <Button disable="true" mnemonicParsing="false" styleClass="btn-outline" text="Edit Group" />
+                        <Button fx:id="statisticsBtn" mnemonicParsing="false" onAction="#onAdminStatistics" styleClass="btn-outline" text="Statistics" />
+                        <Button fx:id="participationBtn" mnemonicParsing="false" onAction="#onAdminParticipation" styleClass="btn-outline" text="Participation" />
+                        <Button fx:id="editGroupBtn" mnemonicParsing="false" onAction="#onAdminEdit" styleClass="btn-outline" text="Edit Group" />
                         <Button disable="true" mnemonicParsing="false" styleClass="btn-outline" text="Delete" />
                      </HBox>
                   </VBox>
@@ -174,12 +176,41 @@
                      </VBox>
                   </VBox>
                </VBox>
+               <VBox fx:id="postReportsBox" managed="false" maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="dashboard-card" visible="false">
+                  <HBox alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" spacing="8.0" styleClass="dashboard-card-header">
+                     <Label styleClass="dashboard-card-title" text="🚩  Reported Messages" />
+                     <Label fx:id="postReportsCountLabel" styleClass="badge-danger" text="0 pending" />
+                  </HBox>
+                  <VBox spacing="8.0" styleClass="dashboard-card-body">
+                     <TableView fx:id="postReportsTable" maxWidth="1.7976931348623157E308" minHeight="120.0" styleClass="dashboard-table">
+                        <columns>
+                           <TableColumn fx:id="reportTopicColumn" minWidth="120.0" text="Topic" />
+                           <TableColumn fx:id="reportContentColumn" minWidth="160.0" text="Message" />
+                           <TableColumn fx:id="reportAuthorColumn" minWidth="90.0" text="Author" />
+                           <TableColumn fx:id="reportReporterColumn" minWidth="90.0" text="Reported by" />
+                           <TableColumn fx:id="reportReasonColumn" minWidth="90.0" text="Reason" />
+                           <TableColumn fx:id="reportActionsColumn" minWidth="180.0" text="Actions" />
+                        </columns>
+                     </TableView>
+                     <Label styleClass="list-item-meta" text="Reported messages are hidden from the discussion until you restore or permanently delete them." wrapText="true" />
+                  </VBox>
+               </VBox>
                <VBox maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="dashboard-card group-members-card">
                   <HBox alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" spacing="6.0" styleClass="dashboard-card-header group-members-card-header">
                      <Label styleClass="dashboard-card-title" text="👥  Group Members" />
                      <Label fx:id="membersCountLabel" styleClass="group-members-count" text="(0)" />
                   </HBox>
                   <VBox spacing="0.0">
+                     <VBox fx:id="pendingJoinBox" managed="false" spacing="8.0" styleClass="group-members-form" visible="false">
+                        <Label styleClass="form-label" text="⏳  Pending Join Requests" />
+                        <TableView fx:id="pendingJoinTable" maxWidth="1.7976931348623157E308" minHeight="80.0" styleClass="dashboard-table">
+                           <columns>
+                              <TableColumn fx:id="joinNameColumn" minWidth="140.0" text="Name" />
+                              <TableColumn fx:id="joinEmailColumn" minWidth="180.0" text="Email" />
+                              <TableColumn fx:id="joinActionsColumn" minWidth="160.0" text="Actions" />
+                           </columns>
+                        </TableView>
+                     </VBox>
                      <VBox fx:id="addMemberBox" managed="false" spacing="10.0" styleClass="group-members-form" visible="false">
                         <HBox alignment="BOTTOM_LEFT" maxWidth="1.7976931348623157E308" spacing="10.0">
                            <VBox spacing="4.0" HBox.hgrow="ALWAYS">
@@ -223,9 +254,58 @@
                         <Label styleClass="form-label" text="Description" />
                         <TextArea fx:id="descriptionField" maxWidth="1.7976931348623157E308" prefRowCount="5" styleClass="form-textarea" wrapText="true" />
                      </VBox>
+                     <VBox spacing="6.0">
+                        <Label styleClass="form-label" text="Join rules (optional)" />
+                        <TextArea fx:id="createJoinRulesField" maxWidth="1.7976931348623157E308" prefRowCount="4" promptText="Rules new members must accept before requesting to join..." styleClass="form-textarea" wrapText="true" />
+                     </VBox>
                      <HBox spacing="8.0">
                         <Button mnemonicParsing="false" onAction="#onStore" styleClass="btn-primary" text="Create Group" />
                         <Button mnemonicParsing="false" onAction="#index" styleClass="btn-outline" text="Cancel" />
+                     </HBox>
+                  </VBox>
+               </VBox>
+            </VBox>
+
+            <VBox fx:id="editPane" managed="false" maxWidth="1.7976931348623157E308" spacing="14.0" styleClass="dashboard-content" visible="false">
+               <VBox maxWidth="1.7976931348623157E308" spacing="0.0" styleClass="dashboard-card">
+                  <HBox styleClass="dashboard-card-header">
+                     <Label styleClass="dashboard-card-title" text="Edit Group" />
+                  </HBox>
+                  <VBox spacing="12.0" styleClass="dashboard-card-body">
+                     <VBox spacing="6.0">
+                        <Label styleClass="form-label" text="Group Name" />
+                        <TextField fx:id="editNameField" maxWidth="1.7976931348623157E308" />
+                     </VBox>
+                     <VBox spacing="6.0">
+                        <Label styleClass="form-label" text="Description" />
+                        <TextArea fx:id="editDescField" maxWidth="1.7976931348623157E308" prefRowCount="4" styleClass="form-textarea" wrapText="true" />
+                     </VBox>
+                     <VBox spacing="6.0">
+                        <Label styleClass="form-label" text="Join rules (optional)" />
+                        <TextArea fx:id="editJoinRulesField" maxWidth="1.7976931348623157E308" prefRowCount="4" styleClass="form-textarea" wrapText="true" />
+                     </VBox>
+                     <VBox spacing="8.0">
+                        <Label styleClass="dashboard-card-title" text="Inactivity monitoring" />
+                        <Label styleClass="dashboard-subtitle" text="Automatically warn members who stop posting, then temporarily suspend them if they remain inactive after two warnings." wrapText="true" />
+                        <CheckBox fx:id="inactivityEnabledCheck" text="Enable automatic inactivity warnings" />
+                        <HBox spacing="10.0">
+                           <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                              <Label styleClass="form-label" text="Days without posting before 1st warning" />
+                              <Spinner fx:id="inactivityThresholdSpinner" editable="true" maxWidth="1.7976931348623157E308" />
+                           </VBox>
+                           <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                              <Label styleClass="form-label" text="Grace days after each warning" />
+                              <Spinner fx:id="inactivityGraceSpinner" editable="true" maxWidth="1.7976931348623157E308" />
+                           </VBox>
+                           <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                              <Label styleClass="form-label" text="Suspension duration (days)" />
+                              <Spinner fx:id="inactivityBlacklistSpinner" editable="true" maxWidth="1.7976931348623157E308" />
+                           </VBox>
+                        </HBox>
+                     </VBox>
+                     <HBox spacing="8.0">
+                        <Button mnemonicParsing="false" onAction="#onSaveEdit" styleClass="btn-primary" text="Update Group" />
+                        <Button mnemonicParsing="false" onAction="#onCancelEdit" styleClass="btn-outline" text="Cancel" />
                      </HBox>
                   </VBox>
                </VBox>

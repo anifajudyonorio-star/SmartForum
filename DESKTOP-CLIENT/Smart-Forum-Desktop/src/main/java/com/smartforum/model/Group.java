@@ -12,6 +12,10 @@ public class Group {
     private String myRole;
     private String joinStatus = "none";
     private String joinRules;
+    private boolean inactivityMonitoringEnabled;
+    private int inactivityThresholdDays = 14;
+    private int inactivityGraceDays = 7;
+    private int inactivityBlacklistDays = 30;
 
     public Group(int id, String name, String description, String status, int createdBy,
                  String creatorName, int topicsCount, int membersCount, String myRole) {
@@ -100,6 +104,38 @@ public class Group {
 
     public boolean hasJoinRules() {
         return joinRules != null && !joinRules.isBlank();
+    }
+
+    public boolean isInactivityMonitoringEnabled() {
+        return inactivityMonitoringEnabled;
+    }
+
+    public void setInactivityMonitoringEnabled(boolean inactivityMonitoringEnabled) {
+        this.inactivityMonitoringEnabled = inactivityMonitoringEnabled;
+    }
+
+    public int getInactivityThresholdDays() {
+        return inactivityThresholdDays;
+    }
+
+    public void setInactivityThresholdDays(int inactivityThresholdDays) {
+        this.inactivityThresholdDays = inactivityThresholdDays;
+    }
+
+    public int getInactivityGraceDays() {
+        return inactivityGraceDays;
+    }
+
+    public void setInactivityGraceDays(int inactivityGraceDays) {
+        this.inactivityGraceDays = inactivityGraceDays;
+    }
+
+    public int getInactivityBlacklistDays() {
+        return inactivityBlacklistDays;
+    }
+
+    public void setInactivityBlacklistDays(int inactivityBlacklistDays) {
+        this.inactivityBlacklistDays = inactivityBlacklistDays;
     }
 
     @Override
