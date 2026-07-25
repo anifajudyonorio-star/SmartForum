@@ -39,12 +39,16 @@ def run(client, cmd, timeout=300):
 
 
 def should_skip(path: str) -> bool:
-    parts = path.replace("\\", "/").split("/")
+    normalised = path.replace("\\", "/")
+    parts = normalised.split("/")
     if any(part in SKIP_DIRS for part in parts):
         return True
     if os.path.basename(path) in SKIP_FILES:
         return True
-    if "/storage/logs/" in path.replace("\\", "/"):
+    if "/storage/logs/" in normalised:
+        return True
+    # Vite's hot file makes production load assets from a dev server on :5173.
+    if normalised.endswith("/public/hot"):
         return True
     return False
 
@@ -86,7 +90,18 @@ def upload_project(client):
     run(client, f"sudo mkdir -p {APP_DIR} && sudo rm -rf {APP_DIR}/*")
     run(client, f"sudo tar -xzf {remote_tar} -C {APP_DIR}")
     run(client, f"rm -f {remote_tar}")
+    run(client, f"sudo rm -f {APP_DIR}/public/hot")
+    run(
+        client,
+        f"sudo mkdir -p {APP_DIR}/storage/logs "
+        f"{APP_DIR}/storage/framework/cache/data "
+        f"{APP_DIR}/storage/framework/sessions "
+        f"{APP_DIR}/storage/framework/views "
+        f"{APP_DIR}/bootstrap/cache",
+    )
     run(client, f"sudo chown -R {USER}:www-data {APP_DIR}")
+    # php-fpm runs as www-data and must be able to write logs, sessions and caches.
+    run(client, f"sudo chmod -R 775 {APP_DIR}/storage {APP_DIR}/bootstrap/cache")
 
 
 def configure_app(client):
@@ -125,6 +140,7 @@ cd "$APP_DIR"
 composer install --no-dev --optimize-autoloader --no-interaction
 npm ci
 npm run build
+sudo rm -f public/hot
 
 if [ ! -f .env ]; then
   cp .env.example .env
@@ -138,7 +154,7 @@ updates = {{
     'APP_NAME': 'SmartForum',
     'APP_ENV': 'production',
     'APP_DEBUG': 'false',
-    'APP_URL': 'http://147.224.178.246:8082',
+    'APP_URL': 'http://147.224.178.246/forum',
     'DB_CONNECTION': 'mysql',
     'DB_HOST': '127.0.0.1',
     'DB_PORT': '3306',
@@ -164,7 +180,7 @@ for line in lines:
 for key, val in updates.items():
     if key not in keys_done:
         new_lines.append(f"{{key}}={{val}}")
-p.write_text('\\n'.join(new_lines) + '\\n')
+p.write_text('\n'.join(new_lines) + '\n')
 PY
 
 php artisan key:generate --force
@@ -315,7 +331,7 @@ cp .env.example .env
 sed -i 's/^APP_NAME=.*/APP_NAME=SmartForum/' .env
 sed -i 's/^APP_ENV=.*/APP_ENV=production/' .env
 sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
-sed -i 's|^APP_URL=.*|APP_URL=http://147.224.178.246:8082|' .env
+sed -i 's|^APP_URL=.*|APP_URL=http://147.224.178.246/forum|' .env
 sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
 sed -i 's/^# DB_HOST=.*/DB_HOST=127.0.0.1/' .env
 sed -i 's/^# DB_PORT=.*/DB_PORT=3306/' .env
