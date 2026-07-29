@@ -119,6 +119,23 @@ class DashboardController extends Controller
         ];
     }
 
+        private function adminData(): array
+    {
+        return [
+            'totalUsers' => User::count(),
+            'totalGroups' => Group::count(),
+            'totalTopics' => Topic::count(),
+            'totalPosts' => Post::count(),
+            'topGroups' => Group::withCount('topics')
+                ->orderByDesc('topics_count')
+                ->take(5)
+                ->get(),
+            'topTopics' => Topic::withCount('posts')
+                ->orderByDesc('posts_count')
+                ->take(5)
+                ->get(),
+        ];
+    }
     /**
      * @return array{
      *     results: Collection<int, QuizResult>,
@@ -195,21 +212,4 @@ class DashboardController extends Controller
         ];
     }
 
-    private function adminData(): array
-    {
-        return [
-            'totalUsers' => User::count(),
-            'totalGroups' => Group::count(),
-            'totalTopics' => Topic::count(),
-            'totalPosts' => Post::count(),
-            'topGroups' => Group::withCount('topics')
-                ->orderByDesc('topics_count')
-                ->take(5)
-                ->get(),
-            'topTopics' => Topic::withCount('posts')
-                ->orderByDesc('posts_count')
-                ->take(5)
-                ->get(),
-        ];
-    }
 }

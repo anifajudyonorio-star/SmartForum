@@ -13,6 +13,8 @@
      data-topic-title="{{ $topic->Title }}"
      data-topic-url="{{ route('topics.show', $topic) }}"
      data-store-url="{{ route('posts.store', $topic) }}"
+     data-posts-fragment-url="{{ route('topics.posts-fragment', $topic) }}"
+     data-posts-base-url="{{ url('/posts') }}"
      data-report-url="{{ url('/posts') }}"
      data-topic-api-url="{{ url('/api/topics/' . $topic->id) }}">
 

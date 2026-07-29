@@ -5,6 +5,7 @@
 <div class="container-fluid px-0">
     <div class="dashboard-header fly-in">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            {{-- Admin dashboard header --}}
             <div>
                 <h2 class="dashboard-title mb-0">
                     <i data-feather="shield" class="feather-icon me-1"></i>
@@ -12,6 +13,8 @@
                 </h2>
                 <p class="text-muted small mb-0">Manage the forum, review usage statistics, and keep the community healthy.</p>
             </div>
+
+            {{-- Action buttons --}}
             <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('groups.index') }}" class="btn btn-outline-primary btn-sm dashboard-action-btn">
                     <i data-feather="layers" class="feather-icon-sm me-1"></i> Manage Groups
@@ -20,20 +23,25 @@
                     <i data-feather="bar-chart-2" class="feather-icon-sm me-1"></i> View Statistics
                 </a>
             </div>
+
         </div>
     </div>
 
     <div class="row g-2 mb-2">
         <div class="col-6 col-lg-3">
             <div class="stat-card stat-card-compact fly-in fly-in-delay-1">
-                <div class="stat-card-icon"><i data-feather="users" class="feather-icon-sm"></i></div>
+                <div class="stat-card-icon">
+                    <i data-feather="users" class="feather-icon-sm"></i>
+                </div>
                 <p class="stat-label">Total Users</p>
                 <p class="stat-number">{{ $totalUsers }}</p>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="stat-card stat-card-compact fly-in fly-in-delay-2">
-                <div class="stat-card-icon"><i data-feather="layers" class="feather-icon-sm"></i></div>
+                <div class="stat-card-icon">
+                    <i data-feather="layers" class="feather-icon-sm"></i>
+                </div>
                 <p class="stat-label">Total Groups</p>
                 <p class="stat-number">{{ $totalGroups }}</p>
             </div>

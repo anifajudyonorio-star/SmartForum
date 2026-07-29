@@ -189,6 +189,8 @@ class PostController extends Controller
             'parent' => $parent,
             'share_url' => route('topics.show', $post->topic).'#msg-'.$post->id,
             'topic_title' => $post->topic->Title ?? 'Discussion',
+            'edit_url' => route('posts.edit', $post),
+            'destroy_url' => route('posts.destroy', $post),
         ];
     }
 }

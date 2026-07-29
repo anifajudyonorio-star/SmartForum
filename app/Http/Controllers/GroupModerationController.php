@@ -174,7 +174,7 @@ class GroupModerationController extends Controller
         abort_unless($group->isMember($user->id), 404, 'User is not a member of this group.');
         abort_unless((int) $user->id !== (int) Auth::id(), 422, 'You cannot moderate yourself.');
 
-        // Protect other group admins unless the actor is a system admin.
+        //Protect other group admins unless the actor is a system admin.
         if ($group->isGroupAdmin($user->id) && ! Auth::user()->isAdmin()) {
             abort(403, 'Only a system admin can moderate another group admin.');
         }

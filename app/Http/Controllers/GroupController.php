@@ -101,7 +101,7 @@ class GroupController extends Controller
             'Status' => 'Active',
         ]);
 
-        // Creator becomes the group admin (WhatsApp-style).
+        // Creator becomes the group admin.
         $group->members()->attach(Auth::id(), [
             'Member_Status' => GroupMember::STATUS_ACTIVE,
             'Member_Role' => GroupMember::ROLE_ADMIN,
@@ -142,7 +142,7 @@ class GroupController extends Controller
                 ->where('id', '!=', $user->id)
                 ->whereNotIn('id', $members->pluck('id'))
                 ->when(! $user->isAdmin(), function ($query) {
-                    // Non-system-admins can only add students/lecturers (not other system admins).
+        // Non-system-admins can only add students/lecturers (not other system admins).
                     $query->whereIn('role', ['student', 'lecturer']);
                 })
                 ->orderBy('Fname')

@@ -27,7 +27,7 @@ class ClassifyTopic implements ShouldQueue
      
     public function handle(MachineLearningService $mlService) 
     {
-        $category = $mlService->classify($this->topic->title, $this->topic->content);
+        $category = $mlService-> classify ($this->topic->title, $this->topic->content);
         $this->topic->update(['predicted_category' => $category]);
     }
 }

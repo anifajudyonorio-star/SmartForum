@@ -10,6 +10,10 @@ function escapeHtml(text) {
 }
 
 export function buildMessageHtml(post) {
+    const chatRoot = document.getElementById('waChat');
+    const postsBase = (chatRoot?.dataset.postsBaseUrl || '/posts').replace(/\/$/, '');
+    const editUrl = post.edit_url || `${postsBase}/${post.id}/edit`;
+    const destroyUrl = post.destroy_url || `${postsBase}/${post.id}`;
     const mine = post.is_mine ? 'mine' : 'theirs';
     const nameBlock = post.is_mine ? '' : `<div class="wa-bubble-name">${escapeHtml(post.user_name)}</div>`;
     let quoteBlock = '';
@@ -21,8 +25,8 @@ export function buildMessageHtml(post) {
             </div>`;
     }
     const actions = post.is_mine
-        ? `<a href="/posts/${post.id}/edit" class="wa-action-btn" title="Edit"><i class="bi bi-pencil-fill"></i></a>
-           <form action="/posts/${post.id}" method="POST" class="d-inline" onsubmit="return confirm('Delete this message?')">
+        ? `<a href="${escapeHtml(editUrl)}" class="wa-action-btn" title="Edit"><i class="bi bi-pencil-fill"></i></a>
+           <form action="${escapeHtml(destroyUrl)}" method="POST" class="d-inline" data-post-delete="${post.id}" onsubmit="return confirm('Delete this message?')">
                <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]')?.content || ''}">
                <input type="hidden" name="_method" value="DELETE">
                <button type="submit" class="wa-action-btn" title="Delete"><i class="bi bi-trash-fill"></i></button>
@@ -82,9 +86,11 @@ export function buildMessageHtml(post) {
     const excludeToggle = document.getElementById('excludeToggle');
     const excludePanel = document.getElementById('excludePanel');
     const storeUrl = chat.dataset.storeUrl;
+    const postsFragmentUrl = chat.dataset.postsFragmentUrl;
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
     const topicTitle = chat.dataset.topicTitle || 'Discussion';
     const topicUrl = chat.dataset.topicUrl || window.location.href.split('#')[0];
+    let messageRefreshSeq = 0;
 
     function scrollToBottom() {
         if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -295,32 +301,42 @@ export function buildMessageHtml(post) {
     async function refreshMessagesFromServer() {
         if (!isStableOnline()) return;
 
-        const topicId = chat.dataset.topicId;
         const exportArea = document.getElementById('chatExportArea');
         const messagesEl = document.getElementById('chatMessages');
-        if (!topicId || !exportArea) return;
+        const fragmentUrl = postsFragmentUrl || null;
+        if (!fragmentUrl || !exportArea) return;
 
         const previousFingerprint = getMessageFingerprint(exportArea);
+        const previousCount = exportArea.querySelectorAll('.wa-msg[data-msg-id]').length;
+        const seq = ++messageRefreshSeq;
 
         try {
-            const postsRes = await fetch(`/topics/${topicId}/posts-fragment`, {
+            const postsRes = await fetch(fragmentUrl, {
                 headers: {
                     'Accept': 'text/html',
                     'X-Requested-With': 'XMLHttpRequest',
                 },
                 credentials: 'same-origin',
+                cache: 'no-store',
             });
 
-            if (!postsRes.ok) return;
+            if (!postsRes.ok || seq !== messageRefreshSeq) return;
 
             const html = await postsRes.text();
+            // Wrong host/path often returns a full HTML document (login page, other app).
+            if (/<!DOCTYPE|<html[\s>]/i.test(html)) return;
+
             const temp = document.createElement('div');
             temp.innerHTML = html;
-            const newIds = [...temp.querySelectorAll('.wa-msg[data-msg-id]')].map((el) => el.dataset.msgId);
-            const newFingerprint = [...temp.querySelectorAll('.wa-msg[data-msg-id]')]
+            const newMsgs = [...temp.querySelectorAll('.wa-msg[data-msg-id]')];
+            const newIds = newMsgs.map((el) => el.dataset.msgId);
+            const newFingerprint = newMsgs
                 .map((el) => `${el.dataset.msgId}:${el.querySelector('.wa-bubble-text')?.textContent?.trim() ?? ''}`)
                 .join('|');
             if (newFingerprint === previousFingerprint) return;
+
+            // Do not wipe an existing conversation with an empty/foreign payload.
+            if (newIds.length === 0 && previousCount > 0 && html.trim() !== '') return;
 
             const scrollNearBottom = messagesEl
                 && (messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80);
@@ -336,6 +352,7 @@ export function buildMessageHtml(post) {
                 bindReplyButtons(exportArea);
                 bindShareButtons(exportArea, topicTitle, topicUrl);
                 bindQuoteScroll(exportArea);
+                bindDeleteForms(exportArea);
             }
 
             updateMessageCount(newIds.length);
@@ -344,6 +361,56 @@ export function buildMessageHtml(post) {
         } catch {
             // ignore transient network errors during polling
         }
+    }
+
+    function bindLongPressActions() {
+        const area = document.getElementById('chatExportArea');
+        if (!area || area.dataset.longPressBound) return;
+        area.dataset.longPressBound = '1';
+
+        let pressTimer = null;
+
+        const clearPress = () => {
+            if (pressTimer) {
+                window.clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        };
+
+        const closeAllActions = (except = null) => {
+            area.querySelectorAll('.wa-msg.wa-actions-open').forEach((el) => {
+                if (el !== except) el.classList.remove('wa-actions-open');
+            });
+        };
+
+        area.addEventListener('touchstart', (event) => {
+            if (event.target.closest('.wa-bubble-actions')) return;
+            const msg = event.target.closest('.wa-msg');
+            if (!msg) return;
+
+            clearPress();
+            pressTimer = window.setTimeout(() => {
+                closeAllActions(msg);
+                msg.classList.add('wa-actions-open');
+                if (navigator.vibrate) {
+                    try { navigator.vibrate(12); } catch { /* ignore */ }
+                }
+            }, 450);
+        }, { passive: true });
+
+        area.addEventListener('touchend', clearPress, { passive: true });
+        area.addEventListener('touchmove', clearPress, { passive: true });
+        area.addEventListener('touchcancel', clearPress, { passive: true });
+
+        area.addEventListener('click', (event) => {
+            if (event.target.closest('.wa-bubble-actions')) return;
+            closeAllActions();
+        });
+
+        document.addEventListener('click', (event) => {
+            if (event.target.closest('#chatExportArea')) return;
+            closeAllActions();
+        });
     }
 
     let messagePollTimer = null;
@@ -395,6 +462,7 @@ export function buildMessageHtml(post) {
     bindCopyButtons();
     bindShareButtons(chat, topicTitle, topicUrl);
     bindDeleteForms(chat);
+    bindLongPressActions();
     bindQuoteScroll();
     scrollToBottom();
 
@@ -467,12 +535,16 @@ export function buildMessageHtml(post) {
                 bindReplyButtons(msgEl);
                 bindShareButtons(msgEl, topicTitle, topicUrl);
                 bindQuoteScroll(msgEl);
+                bindDeleteForms(msgEl);
 
                 input.value = '';
                 autoGrow(input);
                 clearReply();
                 clearExcludeSelections();
                 scrollToBottom();
+
+                // Keep the optimistic message; next poll uses the prefixed fragment URL.
+                refreshMessagesFromServer();
             } catch {
                 window.alert('Could not send your message. Check your connection and try again.');
             } finally {

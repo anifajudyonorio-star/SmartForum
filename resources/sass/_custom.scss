@@ -12,6 +12,7 @@
     --primary-surface: #{t.$primary-surface};
     --sidebar-bg: #{t.$sidebar-bg};
     --warning: #{t.$warning};
+    --danger: #{t.$danger};
     --danger-light: #{t.$danger-light};
     --sidebar-active: rgba(255, 255, 255, 0.18);
     --sidebar-width: 250px;
@@ -498,6 +499,34 @@ h5 { font-size: 1rem; }
     &:focus {
         background: var(--primary-dark) !important;
         border-color: var(--primary-dark) !important;
+    }
+}
+
+.btn-warning {
+    background: var(--warning) !important;
+    border-color: var(--warning) !important;
+    color: #111827 !important;
+
+    &:hover,
+    &:focus {
+        filter: brightness(0.92);
+        background: var(--warning) !important;
+        border-color: var(--warning) !important;
+        color: #111827 !important;
+    }
+}
+
+.btn-danger {
+    background: var(--danger) !important;
+    border-color: var(--danger) !important;
+    color: #fff !important;
+
+    &:hover,
+    &:focus {
+        filter: brightness(0.92);
+        background: var(--danger) !important;
+        border-color: var(--danger) !important;
+        color: #fff !important;
     }
 }
 
@@ -1105,9 +1134,13 @@ body.chat-page {
     font-weight: 700;
     color: #e5425c;
     margin-bottom: 0.15rem;
-    padding-right: 4.5rem;
+    padding-right: 0.35rem;
 
     .wa-msg.mine & { display: none; }
+
+    @media (min-width: 768px) {
+        padding-right: 4.5rem;
+    }
 }
 
 .wa-quote {
@@ -1141,7 +1174,11 @@ body.chat-page {
     line-height: 1.45;
     white-space: pre-wrap;
     margin: 0;
-    padding-right: 3.5rem;
+    padding-right: 0.35rem;
+
+    @media (min-width: 768px) {
+        padding-right: 3.5rem;
+    }
 }
 
 .wa-bubble-meta {
@@ -1177,7 +1214,24 @@ body.chat-page {
         background: rgba(217, 253, 211, 0.95);
     }
 
-    @media (max-width: 767.98px) {
+    // Mobile: shown via long-press (.wa-actions-open), not always-on.
+    .wa-msg.wa-actions-open & {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .wa-bubble:hover .wa-bubble-actions,
+    .wa-bubble:focus-within .wa-bubble-actions {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .wa-msg.wa-actions-open .wa-bubble-actions,
+    .wa-msg.wa-actions-open .wa-bubble:focus-within .wa-bubble-actions {
         opacity: 1;
         visibility: visible;
         pointer-events: auto;

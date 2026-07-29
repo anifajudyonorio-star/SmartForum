@@ -16,7 +16,7 @@
                 <i class="bi bi-people-fill me-2 text-primary"></i>Discussion Groups
             </h1>
             <p class="groups-page-subtitle">
-                Create groups, invite members, and assign admin or lecturer roles — just like WhatsApp.
+                Create groups, invite members, and assign admin or lecturer roles.
             </p>
         </div>
 

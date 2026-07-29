@@ -1,13 +1,27 @@
 // Theme colors: edit resources/sass/_tokens.scss
-// Variables
-@use 'variables' as *;
+@use 'tokens' as t;
 
-// Bootstrap
-@use 'bootstrap/scss/bootstrap' as *;
+// Bootstrap must receive palette via `with (...)`.
+// `@use 'variables' as *` alone does NOT override Bootstrap defaults.
+@use 'bootstrap/scss/bootstrap' with (
+    $primary: t.$primary,
+    $success: t.$primary-dark,
+    $info: t.$primary-light,
+    $warning: t.$warning,
+    $danger: t.$danger,
+    $body-bg: t.$primary-surface,
+    $body-color: t.$body-color,
+    $font-family-sans-serif: ('Nunito', sans-serif),
+    $font-size-base: 1rem,
+    $line-height-base: 1.5,
+    $border-radius: 0.5rem,
+    $border-radius-lg: 0.625rem,
+    $box-shadow: 0 2px 8px rgba(22, 101, 52, 0.08),
+    $link-color: t.$primary
+);
 
 // Fonts
 @import url('https://fonts.bunny.net/css?family=Nunito:400,500,600,700');
-
 
 // Custom theme & components
 @import 'custom';
