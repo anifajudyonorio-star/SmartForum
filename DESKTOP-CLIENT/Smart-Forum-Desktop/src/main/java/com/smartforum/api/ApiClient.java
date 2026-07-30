@@ -779,32 +779,17 @@ public class ApiClient {
     }
 
     public static boolean pingServer() {
-        for (int attempt = 0; attempt < 2; attempt++) {
-            if (pingServerOnce()) {
-                return true;
-            }
-            if (attempt == 0) {
-                try {
-                    Thread.sleep(350);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return false;
-                }
-            }
-        }
-        return false;
+        // Online = internet reachable. Port 53 (DNS) is almost never firewalled.
+        // Short timeout per host so total worst-case is ~1.5s when all fail.
+        return tcpReachable("1.1.1.1", 53, 500)
+            || tcpReachable("8.8.8.8", 53, 500)
+            || tcpReachable("1.1.1.1", 443, 500);
     }
 
-    private static boolean pingServerOnce() {
-        try {
-            HttpResponse<String> res = HTTP.send(
-                    HttpRequest.newBuilder()
-                            .uri(URI.create(getBaseUrl() + "/up"))
-                            .timeout(java.time.Duration.ofMillis(4500))
-                            .GET()
-                            .build(),
-                    HttpResponse.BodyHandlers.ofString());
-            return res.statusCode() >= 200 && res.statusCode() < 300;
+    private static boolean tcpReachable(String host, int port, int timeoutMs) {
+        try (java.net.Socket s = new java.net.Socket()) {
+            s.connect(new java.net.InetSocketAddress(host, port), timeoutMs);
+            return true;
         } catch (Exception e) {
             return false;
         }

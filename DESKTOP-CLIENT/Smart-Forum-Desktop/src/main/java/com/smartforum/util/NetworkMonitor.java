@@ -14,15 +14,15 @@ import java.util.function.Consumer;
 /**
  * Connectivity monitor with asymmetric debouncing:
  * - Reconnect: one successful probe → online + sync immediately
- * - Disconnect: three failed probes → offline (avoids flicker on WiFi/mobile)
+ * - Disconnect: two failed probes → offline (avoids flicker on WiFi/mobile)
  */
 public final class NetworkMonitor {
-    private static final int FAILURES_FOR_OFFLINE = 3;
-    private static final long ONLINE_PROBE_SEC = 8;
-    private static final long OFFLINE_PROBE_SEC = 2;
+    private static final int FAILURES_FOR_OFFLINE = 2;
+    private static final long ONLINE_PROBE_SEC = 1;
+    private static final long OFFLINE_PROBE_SEC = 1;
 
     private static volatile boolean stableOnline = true;
-    private static int consecutiveFailures = 0;
+    private static volatile int consecutiveFailures = 0;
 
     private static Boolean manualOverride = null;
     private static ScheduledExecutorService prober;
@@ -128,22 +128,7 @@ public final class NetworkMonitor {
         }
     }
 
-    /** Works on WiFi, mobile hotspot, and ethernet. */
-    private static boolean hasNetworkLink() {
-        for (String host : new String[] {"1.1.1.1", "8.8.8.8"}) {
-            try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(host, 53), 2000);
-                return true;
-            } catch (IOException ignored) {
-            }
-        }
-        return false;
-    }
-
     private static boolean probeConnectivity() {
-        if (!hasNetworkLink()) {
-            return false;
-        }
         return ApiClient.pingServer();
     }
 }

@@ -62,7 +62,7 @@ public class SyncStatusService {
             t.setDaemon(true);
             return t;
         });
-        scheduler.scheduleAtFixedRate(this::tick, 10, 10, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::tick, 5, 5, TimeUnit.SECONDS);
         Platform.runLater(this::refresh);
     }
 
@@ -109,8 +109,10 @@ public class SyncStatusService {
         } else {
             if (pending > 0) {
                 showBanner("Reconnected. Syncing…", "info");
+                autoSync(true, true);
+            } else {
+                showBanner("You're back online.", "success");
             }
-            autoSync(true, pending > 0);
         }
         Platform.runLater(this::refresh);
     }

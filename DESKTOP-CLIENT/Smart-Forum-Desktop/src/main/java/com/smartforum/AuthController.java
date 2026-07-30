@@ -164,10 +164,12 @@ public class AuthController {
                         if (rememberMe.isSelected()) prefs.put("remembered_email", email);
                         else prefs.remove("remembered_email");
 
+                        String role = (user.has("role") && !user.get("role").isJsonNull())
+                            ? user.get("role").getAsString() : "student";
                         UserSession.getInstance().setUser(
                             user.get("id").getAsInt(), user.get("Fname").getAsString(),
                             user.get("Lname").getAsString(), user.get("email").getAsString(),
-                            user.get("role").getAsString(), token
+                            role, token
                         );
                         syncAppSession(user, token);
                         navigateToDashboard();

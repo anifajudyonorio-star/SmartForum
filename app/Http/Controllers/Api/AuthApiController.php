@@ -128,7 +128,7 @@ class AuthApiController extends Controller
             'Fname' => $user->Fname,
             'Lname' => $user->Lname,
             'email' => $user->email,
-            'role'  => $user->role,
+            'role'  => $user->role ?? 'student',
             'can_view_statistics' => $user->canViewStatistics(),
             'can_view_participation' => $user->canViewParticipation(),
             'administers_groups' => $user->administeredGroups()->exists(),
