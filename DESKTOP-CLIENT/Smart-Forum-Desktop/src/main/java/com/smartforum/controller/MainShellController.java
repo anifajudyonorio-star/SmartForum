@@ -4,7 +4,6 @@ import com.smartforum.api.ApiClient;
 import com.smartforum.service.AppSession;
 import com.smartforum.service.QuizLaunchMonitor;
 import com.smartforum.service.SyncStatusService;
-import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -196,9 +195,7 @@ public class MainShellController implements ShellNavigator {
     }
 
     private void startNotificationPolling() {
-        if (!ApiSupport.useApi()) {
-            return;
-        }
+
 
         stopNotificationPolling();
         refreshNotificationUnreadCount();

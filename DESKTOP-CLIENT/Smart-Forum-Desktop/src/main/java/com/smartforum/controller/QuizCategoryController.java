@@ -4,9 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
-import com.smartforum.dao.QuizCategoryDAO;
 import com.smartforum.model.QuizCategory;
-import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -32,7 +30,6 @@ public class QuizCategoryController implements Initializable {
     @FXML private TableColumn<QuizCategory, String> colDescription;
     @FXML private TableColumn<QuizCategory, String> colCreatedBy;
 
-    private final QuizCategoryDAO dao = new QuizCategoryDAO();
     private final ObservableList<QuizCategory> categoryList = FXCollections.observableArrayList();
     private QuizCategory selectedCategory;
 
@@ -60,37 +57,31 @@ public class QuizCategoryController implements Initializable {
     }
 
     private void loadCategories() {
-        if (ApiSupport.useApi()) {
-            new Thread(() -> ApiClient.getQuizCategories().ifPresentOrElse(json -> {
-                ObservableList<QuizCategory> loaded = FXCollections.observableArrayList();
-                JsonArray array = json.getAsJsonArray("categories");
-                if (array != null) {
-                    for (JsonElement element : array) {
-                        JsonObject item = element.getAsJsonObject();
-                        QuizCategory category = new QuizCategory();
-                        category.setId(item.get("id").getAsInt());
-                        category.setCategoryName(item.get("name").getAsString());
-                        if (item.has("description") && !item.get("description").isJsonNull()) {
-                            category.setDescription(item.get("description").getAsString());
-                        }
-                        category.setCreatedBy("You");
-                        loaded.add(category);
-                    }
-                }
-                Platform.runLater(() -> {
-                    categoryList.setAll(loaded);
-                    tblCategories.setItems(categoryList);
-                });
-            }, () -> Platform.runLater(this::loadOfflineCategories)), "quiz-categories-load").start();
-            return;
-        }
-        loadOfflineCategories();
-    }
 
-    private void loadOfflineCategories() {
-        categoryList.clear();
-        categoryList.addAll(dao.getAllCategories());
-        tblCategories.setItems(categoryList);
+        new Thread(() -> ApiClient.getQuizCategories().ifPresentOrElse(json -> {
+            ObservableList<QuizCategory> loaded = FXCollections.observableArrayList();
+            JsonArray array = json.getAsJsonArray("categories");
+            if (array != null) {
+                for (JsonElement element : array) {
+                    JsonObject item = element.getAsJsonObject();
+                    QuizCategory category = new QuizCategory();
+                    category.setId(item.get("id").getAsInt());
+                    category.setCategoryName(item.get("name").getAsString());
+                    if (item.has("description") && !item.get("description").isJsonNull()) {
+                        category.setDescription(item.get("description").getAsString());
+                    }
+                    category.setCreatedBy("You");
+                    loaded.add(category);
+                }
+            }
+            Platform.runLater(() -> {
+                categoryList.setAll(loaded);
+                tblCategories.setItems(categoryList);
+            });
+        }, () -> Platform.runLater(() -> {
+            categoryList.clear();
+            tblCategories.setItems(categoryList);
+        })), "quiz-categories-load").start();
     }
 
     @FXML
@@ -103,34 +94,23 @@ public class QuizCategoryController implements Initializable {
             return;
         }
 
-        if (ApiSupport.useApi()) {
-            new Thread(() -> {
-                ApiClient.MutationResult result = ApiClient.createQuizCategory(name, description);
-                Platform.runLater(() -> {
-                    if (result.success()) {
-                        showAlert("Success", result.message().isBlank()
-                                ? "Quiz title created successfully."
-                                : result.message());
-                        clearFields();
-                        loadCategories();
-                    } else {
-                        showAlert("Error", result.message().isBlank()
-                                ? "Failed to save quiz title on the server."
-                                : result.message());
-                    }
-                });
-            }, "quiz-category-create").start();
-            return;
-        }
 
-        QuizCategory category = new QuizCategory(name, description, "Lecturer");
-        if (dao.saveCategory(category)) {
-            showAlert("Success", "Category saved successfully.");
-            clearFields();
-            loadCategories();
-        } else {
-            showAlert("Error", "Failed to save category.");
-        }
+        new Thread(() -> {
+            ApiClient.MutationResult result = ApiClient.createQuizCategory(name, description);
+            Platform.runLater(() -> {
+                if (result.success()) {
+                    showAlert("Success", result.message().isBlank()
+                            ? "Quiz title created successfully."
+                            : result.message());
+                    clearFields();
+                    loadCategories();
+                } else {
+                    showAlert("Error", result.message().isBlank()
+                            ? "Failed to save quiz title on the server."
+                            : result.message());
+                }
+            });
+        }, "quiz-category-create").start();
     }
 
     @FXML
@@ -140,29 +120,8 @@ public class QuizCategoryController implements Initializable {
             return;
         }
 
-        if (ApiSupport.useApi()) {
-            showAlert("Online Mode", "Editing quiz titles online is available on the web app for now. Create a new title here if needed.");
-            return;
-        }
 
-        String name = txtCategoryName.getText().trim();
-        String description = txtDescription.getText().trim();
-        if (name.isEmpty()) {
-            showAlert("Validation", "Category name is required.");
-            return;
-        }
-
-        selectedCategory.setCategoryName(name);
-        selectedCategory.setDescription(description);
-        selectedCategory.setCreatedBy("Lecturer");
-
-        if (dao.updateCategory(selectedCategory)) {
-            showAlert("Success", "Category updated successfully.");
-            loadCategories();
-            clearFields();
-        } else {
-            showAlert("Error", "Failed to update category.");
-        }
+        showAlert("Online Mode", "Editing quiz titles online is available on the web app for now. Create a new title here if needed.");
     }
 
     @FXML
@@ -172,18 +131,8 @@ public class QuizCategoryController implements Initializable {
             return;
         }
 
-        if (ApiSupport.useApi()) {
-            showAlert("Online Mode", "Deleting quiz titles online is available on the web app for now.");
-            return;
-        }
 
-        if (dao.deleteCategory(selectedCategory.getId())) {
-            showAlert("Success", "Category deleted successfully.");
-            loadCategories();
-            clearFields();
-        } else {
-            showAlert("Error", "Failed to delete category.");
-        }
+        showAlert("Online Mode", "Deleting quiz titles online is available on the web app for now.");
     }
 
     @FXML

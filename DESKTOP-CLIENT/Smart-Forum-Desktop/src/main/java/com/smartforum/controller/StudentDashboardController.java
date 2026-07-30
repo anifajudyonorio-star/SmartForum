@@ -7,7 +7,6 @@ import com.smartforum.api.ApiClient;
 import com.smartforum.model.ForumUser;
 import com.smartforum.model.GroupAdminSummaryRow;
 import com.smartforum.service.AppSession;
-import com.smartforum.util.ApiSupport;
 import com.smartforum.util.GroupAdminDashboardSupport;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
@@ -95,11 +94,9 @@ public class StudentDashboardController {
                 }
         );
 
-        if (ApiSupport.useApi()) {
-            loadFromApi();
-        } else {
-            loadEmptyState();
-        }
+
+        loadFromApi();
+
     }
 
     private void loadFromApi() {

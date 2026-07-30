@@ -2,7 +2,6 @@
 @use 'tokens' as t;
 
 // Bootstrap must receive palette via `with (...)`.
-// `@use 'variables' as *` alone does NOT override Bootstrap defaults.
 @use 'bootstrap/scss/bootstrap' with (
     $primary: t.$primary,
     $success: t.$primary-dark,

@@ -112,7 +112,7 @@
                 <p class="sidebar-brand-title">Smart Discussion</p>
                 <p class="sidebar-brand-sub">Learning forum</p>
             </div>
-            <button id="mobileSidebarClose" class="btn btn-sm btn-link text-white p-0 opacity-75" aria-label="Close sidebar">
+            <button id="mobileSidebarClose" class="btn btn-link text-white p-0 opacity-75" aria-label="Close sidebar">
                 <i class="bi bi-x-lg"></i>
             </button>
         </div>

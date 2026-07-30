@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
-import com.smartforum.util.ApiSupport;
 import com.smartforum.util.StatChartFactory;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -53,11 +52,9 @@ public class ForumStatisticsController {
     }
 
     public void refresh() {
-        if (ApiSupport.useApi()) {
-            loadFromApi();
-        } else {
-            showEmptyState();
-        }
+
+        loadFromApi();
+
     }
 
     private void loadFromApi() {

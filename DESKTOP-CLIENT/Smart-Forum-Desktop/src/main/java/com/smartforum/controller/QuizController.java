@@ -4,14 +4,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
-import com.smartforum.dao.QuestionDAO;
-import com.smartforum.dao.QuizCategoryDAO;
-import com.smartforum.dao.QuizDAO;
 import com.smartforum.model.Group;
 import com.smartforum.model.Question;
 import com.smartforum.model.Quiz;
 import com.smartforum.model.QuizCategory;
-import com.smartforum.util.ApiSupport;
 
 import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -78,7 +74,6 @@ public class QuizController {
     @FXML private TableColumn<Question, String> colReviewCorrect;
     @FXML private TableColumn<Question, Integer> colReviewMarks;
 
-    private final QuizDAO quizDAO = new QuizDAO();
     private final List<QuizCategory> formCategories = new ArrayList<>();
     private final List<Group> formGroups = new ArrayList<>();
     private Quiz reviewingQuiz;
@@ -154,7 +149,7 @@ public class QuizController {
                     "No quiz title templates yet. Open the Quiz Categories tab, create one "
                         + "(it syncs to the server when online), then come back here.");
                 btnSaveQuiz.setDisable(true);
-            } else if (ApiSupport.useApi() && formGroups.isEmpty()) {
+            } else if (formGroups.isEmpty()) {
                 lblCreateFeedback.setText(
                     "You need at least one teachable group before creating a quiz.");
                 btnSaveQuiz.setDisable(true);
@@ -188,7 +183,7 @@ public class QuizController {
 
     private void setAssignmentFieldsEnabled(boolean enabled) {
         cmbCategory.setDisable(!enabled);
-        cmbGroup.setDisable(!enabled || !ApiSupport.useApi());
+        cmbGroup.setDisable(!enabled);
         spnParticipation.setDisable(!enabled);
     }
 
@@ -276,7 +271,7 @@ public class QuizController {
             lblCreateFeedback.setText("Select a quiz title template.");
             return;
         }
-        if (canEditAssignment && ApiSupport.useApi() && group == null) {
+        if (canEditAssignment && group == null) {
             lblCreateFeedback.setText("Select a group.");
             return;
         }
@@ -304,97 +299,53 @@ public class QuizController {
         btnSaveQuiz.setDisable(true);
         lblCreateFeedback.setText(editing ? "Saving changes…" : "Creating quiz…");
 
-        if (ApiSupport.useApi()) {
-            JsonObject body = new JsonObject();
-            body.addProperty("title", title);
-            body.addProperty("description", description);
-            body.addProperty("duration", duration);
-            body.addProperty("start_time", start.format(LOCAL_INPUT));
-            body.addProperty("end_time", end.format(LOCAL_INPUT));
-            if (canEditAssignment) {
-                body.addProperty("category_id", category.getId());
-                body.addProperty("group_id", group.getId());
-                body.addProperty("participation_marks", participation);
-            }
 
-            final int quizId = editing ? editingQuiz.getId() : 0;
-            new Thread(() -> {
-                ApiClient.MutationResult result = editing
-                        ? ApiClient.updateQuiz(quizId, body)
-                        : ApiClient.createQuiz(body);
-                Platform.runLater(() -> {
-                    btnSaveQuiz.setDisable(false);
-                    if (result.success()) {
-                        Quiz saved = null;
-                        if (result.body() != null && result.body().has("quiz")) {
-                            saved = parseQuiz(result.body().getAsJsonObject("quiz"));
-                        }
-                        showCreatePane(false);
-                        clearCreateForm();
-                        editingQuiz = null;
-                        loadQuizzes();
-                        if (editing) {
-                            alert("Quiz Updated", result.message().isBlank()
-                                    ? "Quiz schedule and details saved."
-                                    : result.message());
-                        } else if (saved != null) {
-                            openReview(saved);
-                        } else {
-                            alert("Quiz Created", result.message().isBlank()
-                                    ? "Quiz created. Add questions in the Questions tab, then publish it."
-                                    : result.message());
-                        }
+        JsonObject body = new JsonObject();
+        body.addProperty("title", title);
+        body.addProperty("description", description);
+        body.addProperty("duration", duration);
+        body.addProperty("start_time", start.format(LOCAL_INPUT));
+        body.addProperty("end_time", end.format(LOCAL_INPUT));
+        if (canEditAssignment) {
+            body.addProperty("category_id", category.getId());
+            body.addProperty("group_id", group.getId());
+            body.addProperty("participation_marks", participation);
+        }
+
+        final int quizId = editing ? editingQuiz.getId() : 0;
+        new Thread(() -> {
+            ApiClient.MutationResult result = editing
+                    ? ApiClient.updateQuiz(quizId, body)
+                    : ApiClient.createQuiz(body);
+            Platform.runLater(() -> {
+                btnSaveQuiz.setDisable(false);
+                if (result.success()) {
+                    Quiz saved = null;
+                    if (result.body() != null && result.body().has("quiz")) {
+                        saved = parseQuiz(result.body().getAsJsonObject("quiz"));
+                    }
+                    showCreatePane(false);
+                    clearCreateForm();
+                    editingQuiz = null;
+                    loadQuizzes();
+                    if (editing) {
+                        alert("Quiz Updated", result.message().isBlank()
+                                ? "Quiz schedule and details saved."
+                                : result.message());
+                    } else if (saved != null) {
+                        openReview(saved);
                     } else {
-                        lblCreateFeedback.setText(result.message().isBlank()
-                                ? (editing ? "Could not update this quiz." : "Could not create this quiz.")
+                        alert("Quiz Created", result.message().isBlank()
+                                ? "Quiz created. Add questions in the Questions tab, then publish it."
                                 : result.message());
                     }
-                });
-            }, editing ? "update-quiz" : "create-quiz").start();
-            return;
-        }
-
-        if (editing) {
-            editingQuiz.setTitle(title);
-            editingQuiz.setDescription(description);
-            editingQuiz.setDuration(duration);
-            editingQuiz.setParticipationMarks(participation);
-            editingQuiz.setStartDate(start.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-            editingQuiz.setEndDate(end.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-            if (canEditAssignment && category != null) {
-                editingQuiz.setCategoryId(category.getId());
-            }
-            if (quizDAO.updateQuiz(editingQuiz)) {
-                showCreatePane(false);
-                clearCreateForm();
-                editingQuiz = null;
-                loadOfflineQuizzes();
-                alert("Quiz Updated", "Local quiz schedule saved.");
-            } else {
-                btnSaveQuiz.setDisable(false);
-                lblCreateFeedback.setText("Could not update the quiz locally.");
-            }
-            return;
-        }
-
-        Quiz quiz = new Quiz();
-        quiz.setCategoryId(category.getId());
-        quiz.setTitle(title);
-        quiz.setDescription(description);
-        quiz.setDuration(duration);
-        quiz.setParticipationMarks(participation);
-        quiz.setTotalMarks(0);
-        quiz.setStartDate(start.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        quiz.setEndDate(end.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        if (quizDAO.saveQuiz(quiz)) {
-            showCreatePane(false);
-            clearCreateForm();
-            loadOfflineQuizzes();
-            alert("Quiz Created", "Local quiz draft saved. Add questions next.");
-        } else {
-            btnSaveQuiz.setDisable(false);
-            lblCreateFeedback.setText("Could not save the quiz locally.");
-        }
+                } else {
+                    lblCreateFeedback.setText(result.message().isBlank()
+                            ? (editing ? "Could not update this quiz." : "Could not create this quiz.")
+                            : result.message());
+                }
+            });
+        }, editing ? "update-quiz" : "create-quiz").start();
     }
 
     private void showCreatePane(boolean showCreate) {
@@ -455,8 +406,8 @@ public class QuizController {
         if (!formGroups.isEmpty()) {
             cmbGroup.getSelectionModel().selectFirst();
         }
-        cmbGroup.setDisable(!ApiSupport.useApi());
-        cmbGroup.setPromptText(ApiSupport.useApi() ? "Select group" : "Offline (local only)");
+        cmbGroup.setDisable(false);
+        cmbGroup.setPromptText("Select group");
 
         LocalDateTime now = LocalDateTime.now().withSecond(0).withNano(0);
         if (txtStartTime.getText() == null || txtStartTime.getText().isBlank()) {
@@ -492,79 +443,68 @@ public class QuizController {
     }
 
     private void refreshFormOptions(Runnable then) {
-        if (ApiSupport.useApi()) {
-            new Thread(() -> {
-                formCategories.clear();
-                formGroups.clear();
 
-                ApiClient.getQuizCategories().ifPresent(categoriesJson -> {
-                    JsonArray array = categoriesJson.getAsJsonArray("categories");
-                    if (array != null) {
-                        for (JsonElement element : array) {
-                            JsonObject item = element.getAsJsonObject();
-                            QuizCategory category = new QuizCategory();
-                            category.setId(item.get("id").getAsInt());
-                            category.setCategoryName(item.get("name").getAsString());
-                            formCategories.add(category);
-                        }
+        new Thread(() -> {
+            formCategories.clear();
+            formGroups.clear();
+
+            ApiClient.getQuizCategories().ifPresent(categoriesJson -> {
+                JsonArray array = categoriesJson.getAsJsonArray("categories");
+                if (array != null) {
+                    for (JsonElement element : array) {
+                        JsonObject item = element.getAsJsonObject();
+                        QuizCategory category = new QuizCategory();
+                        category.setId(item.get("id").getAsInt());
+                        category.setCategoryName(item.get("name").getAsString());
+                        formCategories.add(category);
                     }
-                });
+                }
+            });
 
-                ApiClient.getManagedQuizzes().ifPresent(json -> {
-                    if (json.has("groups") && json.get("groups").isJsonArray()) {
-                        for (JsonElement element : json.getAsJsonArray("groups")) {
-                            JsonObject item = element.getAsJsonObject();
-                            formGroups.add(new Group(
-                                    item.get("id").getAsInt(),
-                                    item.get("name").getAsString(),
-                                    "",
-                                    "Active",
-                                    0,
-                                    "",
-                                    0,
-                                    0,
-                                    ""
-                            ));
-                        }
+            ApiClient.getManagedQuizzes().ifPresent(json -> {
+                if (json.has("groups") && json.get("groups").isJsonArray()) {
+                    for (JsonElement element : json.getAsJsonArray("groups")) {
+                        JsonObject item = element.getAsJsonObject();
+                        formGroups.add(new Group(
+                                item.get("id").getAsInt(),
+                                item.get("name").getAsString(),
+                                "",
+                                "Active",
+                                0,
+                                "",
+                                0,
+                                0,
+                                ""
+                        ));
                     }
-                    // Fallback categories from quizzes payload if dedicated endpoint failed.
-                    if (formCategories.isEmpty() && json.has("categories") && json.get("categories").isJsonArray()) {
-                        for (JsonElement element : json.getAsJsonArray("categories")) {
-                            JsonObject item = element.getAsJsonObject();
-                            QuizCategory category = new QuizCategory();
-                            category.setId(item.get("id").getAsInt());
-                            category.setCategoryName(item.get("name").getAsString());
-                            formCategories.add(category);
-                        }
+                }
+                // Fallback categories from quizzes payload if dedicated endpoint failed.
+                if (formCategories.isEmpty() && json.has("categories") && json.get("categories").isJsonArray()) {
+                    for (JsonElement element : json.getAsJsonArray("categories")) {
+                        JsonObject item = element.getAsJsonObject();
+                        QuizCategory category = new QuizCategory();
+                        category.setId(item.get("id").getAsInt());
+                        category.setCategoryName(item.get("name").getAsString());
+                        formCategories.add(category);
                     }
-                });
+                }
+            });
 
-                then.run();
-            }, "quiz-form-options").start();
-            return;
-        }
-        loadOfflineFormOptions();
-        then.run();
-    }
-
-    private void loadOfflineFormOptions() {
-        formCategories.clear();
-        formCategories.addAll(new QuizCategoryDAO().getAllCategories());
-        formGroups.clear();
+            then.run();
+        }, "quiz-form-options").start();
     }
 
     private void loadQuizzes() {
-        if (ApiSupport.useApi()) {
-            new Thread(() -> ApiClient.getManagedQuizzes().ifPresentOrElse(json -> Platform.runLater(() -> {
-                List<Quiz> quizzes = parseQuizzes(json.getAsJsonArray("quizzes"));
-                tblQuizzes.setItems(FXCollections.observableArrayList(quizzes));
-                quizCountLabel.setText(String.valueOf(json.get("count").getAsInt()));
-                cacheFormOptions(json);
-            }), () -> Platform.runLater(this::loadOfflineQuizzes))).start();
-            return;
-        }
 
-        loadOfflineQuizzes();
+        new Thread(() -> ApiClient.getManagedQuizzes().ifPresentOrElse(json -> Platform.runLater(() -> {
+            List<Quiz> quizzes = parseQuizzes(json.getAsJsonArray("quizzes"));
+            tblQuizzes.setItems(FXCollections.observableArrayList(quizzes));
+            quizCountLabel.setText(String.valueOf(json.get("count").getAsInt()));
+            cacheFormOptions(json);
+        }), () -> Platform.runLater(() -> {
+            tblQuizzes.setItems(FXCollections.observableArrayList());
+            quizCountLabel.setText("0");
+        }))).start();
     }
 
     private void cacheFormOptions(JsonObject json) {
@@ -595,19 +535,6 @@ public class QuizController {
                 ));
             }
         }
-    }
-
-    private void loadOfflineQuizzes() {
-        loadOfflineFormOptions();
-        List<Quiz> quizzes = quizDAO.getAllQuizzes().stream().map(quiz -> {
-            quiz.setQuestionsCount(0);
-            quiz.setMaximumMarks(quiz.getTotalMarks() + Math.max(0, quiz.getParticipationMarks()));
-            quiz.setGroupName("Local");
-            quiz.setLifecycleStatus("Draft");
-            return quiz;
-        }).toList();
-        tblQuizzes.setItems(FXCollections.observableArrayList(quizzes));
-        quizCountLabel.setText(String.valueOf(quizzes.size()));
     }
 
     private List<Quiz> parseQuizzes(JsonArray array) {
@@ -801,26 +728,20 @@ public class QuizController {
         applyReviewHeader(quiz);
         tblReviewQuestions.getItems().clear();
 
-        if (ApiSupport.useApi()) {
-            new Thread(() -> ApiClient.getManagedQuiz(quiz.getId()).ifPresentOrElse(json -> {
-                Quiz fresh = parseQuiz(json.getAsJsonObject("quiz"));
-                List<Question> questions = parseReviewQuestions(json.getAsJsonArray("questions"));
-                Platform.runLater(() -> {
-                    if (reviewingQuiz == null || reviewingQuiz.getId() != quiz.getId()) {
-                        return;
-                    }
-                    reviewingQuiz = fresh;
-                    applyReviewHeader(fresh);
-                    tblReviewQuestions.setItems(FXCollections.observableArrayList(questions));
-                });
-            }, () -> Platform.runLater(() ->
-                    tblReviewQuestions.setItems(FXCollections.observableArrayList()))), "quiz-review").start();
-            return;
-        }
 
-        applyReviewHeader(quiz);
-        tblReviewQuestions.setItems(FXCollections.observableArrayList(
-                new QuestionDAO().getQuestionsByQuizId(quiz.getId())));
+        new Thread(() -> ApiClient.getManagedQuiz(quiz.getId()).ifPresentOrElse(json -> {
+            Quiz fresh = parseQuiz(json.getAsJsonObject("quiz"));
+            List<Question> questions = parseReviewQuestions(json.getAsJsonArray("questions"));
+            Platform.runLater(() -> {
+                if (reviewingQuiz == null || reviewingQuiz.getId() != quiz.getId()) {
+                    return;
+                }
+                reviewingQuiz = fresh;
+                applyReviewHeader(fresh);
+                tblReviewQuestions.setItems(FXCollections.observableArrayList(questions));
+            });
+        }, () -> Platform.runLater(() ->
+                tblReviewQuestions.setItems(FXCollections.observableArrayList()))), "quiz-review").start();
     }
 
     private void applyReviewHeader(Quiz quiz) {
@@ -842,27 +763,23 @@ public class QuizController {
     }
 
     private void publishQuiz(Quiz quiz) {
-        if (ApiSupport.useApi()) {
-            new Thread(() -> {
-                ApiClient.MutationResult result = ApiClient.publishQuiz(quiz.getId());
-                Platform.runLater(() -> {
-                    if (result.success()) {
-                        alert("Published", result.message());
-                        if (reviewPane.isVisible()) {
-                            openReview(quiz);
-                        }
-                        loadQuizzes();
-                    } else {
-                        alert("Publish Failed", result.message().isBlank()
-                                ? "Could not publish this quiz."
-                                : result.message());
-                    }
-                });
-            }).start();
-            return;
-        }
 
-        alert("Offline Mode", "Publishing is available when connected to the SmartForum server.");
+        new Thread(() -> {
+            ApiClient.MutationResult result = ApiClient.publishQuiz(quiz.getId());
+            Platform.runLater(() -> {
+                if (result.success()) {
+                    alert("Published", result.message());
+                    if (reviewPane.isVisible()) {
+                        openReview(quiz);
+                    }
+                    loadQuizzes();
+                } else {
+                    alert("Publish Failed", result.message().isBlank()
+                            ? "Could not publish this quiz."
+                            : result.message());
+                }
+            });
+        }).start();
     }
 
     private void deleteQuiz(Quiz quiz) {
@@ -873,25 +790,19 @@ public class QuizController {
             return;
         }
 
-        if (ApiSupport.useApi()) {
-            new Thread(() -> {
-                ApiClient.MutationResult result = ApiClient.deleteQuiz(quiz.getId());
-                Platform.runLater(() -> {
-                    if (result.success()) {
-                        loadQuizzes();
-                    } else {
-                        alert("Delete Failed", result.message().isBlank()
-                                ? "Could not delete this quiz."
-                                : result.message());
-                    }
-                });
-            }).start();
-            return;
-        }
 
-        if (quizDAO.deleteQuiz(quiz.getId())) {
-            loadOfflineQuizzes();
-        }
+        new Thread(() -> {
+            ApiClient.MutationResult result = ApiClient.deleteQuiz(quiz.getId());
+            Platform.runLater(() -> {
+                if (result.success()) {
+                    loadQuizzes();
+                } else {
+                    alert("Delete Failed", result.message().isBlank()
+                            ? "Could not delete this quiz."
+                            : result.message());
+                }
+            });
+        }).start();
     }
 
     private static String safe(String value) {

@@ -4,11 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
-import com.smartforum.dao.CategoryStudentDAO;
-import com.smartforum.dao.QuestionDAO;
-import com.smartforum.dao.QuizCategoryDAO;
-import com.smartforum.dao.QuizDAO;
-import com.smartforum.dao.QuizAttemptDAO;
 import com.smartforum.model.ForumUser;
 import com.smartforum.model.Question;
 import com.smartforum.model.Quiz;
@@ -16,10 +11,7 @@ import com.smartforum.model.QuizAttempt;
 import com.smartforum.model.QuizCategory;
 import com.smartforum.service.AppSession;
 import com.smartforum.service.QuizLaunchMonitor;
-import com.smartforum.service.QuizSubmissionService;
 import com.smartforum.util.ApiDateTimes;
-import com.smartforum.util.ApiSupport;
-import com.smartforum.util.QuizSchedule;
 
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -35,7 +27,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.net.URL;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -95,19 +86,18 @@ public class TakeQuizController {
     }
 
     public void loadForCurrentStudent() {
-        if (ApiSupport.useApi()) {
-            new Thread(() -> ApiClient.getStudentQuizzes().ifPresentOrElse(json -> Platform.runLater(() -> {
-                populateEnrollment(json);
-                List<Quiz> quizzes = parseQuizzes(json.getAsJsonArray("quizzes"));
-                tblAvailableQuizzes.setItems(FXCollections.observableArrayList(quizzes));
-                tblEmptyLabel.setText(json.has("enrolled_category") && !json.get("enrolled_category").isJsonNull()
-                        ? "No quizzes are available right now."
-                        : "Enroll in a quiz title to see available quizzes.");
-            }), () -> Platform.runLater(this::loadOffline))).start();
-            return;
-        }
 
-        loadOffline();
+        new Thread(() -> ApiClient.getStudentQuizzes().ifPresentOrElse(json -> Platform.runLater(() -> {
+            populateEnrollment(json);
+            List<Quiz> quizzes = parseQuizzes(json.getAsJsonArray("quizzes"));
+            tblAvailableQuizzes.setItems(FXCollections.observableArrayList(quizzes));
+            tblEmptyLabel.setText(json.has("enrolled_category") && !json.get("enrolled_category").isJsonNull()
+                    ? "No quizzes are available right now."
+                    : "Enroll in a quiz title to see available quizzes.");
+        }), () -> Platform.runLater(() -> {
+            tblAvailableQuizzes.setItems(FXCollections.observableArrayList());
+            tblEmptyLabel.setText("Could not load quizzes from the server.");
+        }))).start();
     }
 
     @FXML
@@ -132,34 +122,20 @@ public class TakeQuizController {
             return;
         }
 
-        if (ApiSupport.useApi()) {
-            new Thread(() -> {
-                ApiClient.MutationResult result = ApiClient.enrollInQuizCategory(category.getId());
-                Platform.runLater(() -> {
-                    if (result.success()) {
-                        showFeedback(result.message(), false);
-                        loadForCurrentStudent();
-                    } else {
-                        alert("Enrollment Failed", result.message().isBlank()
-                                ? "Could not enroll in the selected quiz title."
-                                : result.message());
-                    }
-                });
-            }).start();
-            return;
-        }
 
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        if (user == null) {
-            alert("Access Denied", "Sign in as a student to enroll.");
-            return;
-        }
-        if (new CategoryStudentDAO().enroll(category.getId(), user.getId(), user.getName())) {
-            showFeedback("You are now enrolled in " + category.getCategoryName() + ".", false);
-            loadForCurrentStudent();
-        } else {
-            alert("Enrollment Failed", "You could not be enrolled. You may already belong to another quiz title.");
-        }
+        new Thread(() -> {
+            ApiClient.MutationResult result = ApiClient.enrollInQuizCategory(category.getId());
+            Platform.runLater(() -> {
+                if (result.success()) {
+                    showFeedback(result.message(), false);
+                    loadForCurrentStudent();
+                } else {
+                    alert("Enrollment Failed", result.message().isBlank()
+                            ? "Could not enroll in the selected quiz title."
+                            : result.message());
+                }
+            });
+        }).start();
     }
 
     @FXML
@@ -171,31 +147,20 @@ public class TakeQuizController {
             return;
         }
 
-        if (ApiSupport.useApi()) {
-            new Thread(() -> {
-                ApiClient.MutationResult result = ApiClient.unenrollFromQuizCategory();
-                Platform.runLater(() -> {
-                    if (result.success()) {
-                        showFeedback(result.message(), false);
-                        loadForCurrentStudent();
-                    } else {
-                        alert("Unenroll Failed", result.message().isBlank()
-                                ? "Could not unenroll from the quiz title."
-                                : result.message());
-                    }
-                });
-            }).start();
-            return;
-        }
 
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        if (user != null) {
-            int categoryId = new CategoryStudentDAO().getCategoryForStudent(user.getId(), user.getName());
-            if (categoryId >= 0 && new CategoryStudentDAO().unenroll(categoryId, user.getName())) {
-                showFeedback("You have been unenrolled from the quiz title.", false);
-                loadForCurrentStudent();
-            }
-        }
+        new Thread(() -> {
+            ApiClient.MutationResult result = ApiClient.unenrollFromQuizCategory();
+            Platform.runLater(() -> {
+                if (result.success()) {
+                    showFeedback(result.message(), false);
+                    loadForCurrentStudent();
+                } else {
+                    alert("Unenroll Failed", result.message().isBlank()
+                            ? "Could not unenroll from the quiz title."
+                            : result.message());
+                }
+            });
+        }).start();
     }
 
     private void startQuiz(Quiz quiz) {
@@ -203,84 +168,19 @@ public class TakeQuizController {
             return;
         }
 
-        if (ApiSupport.useApi()) {
-            new Thread(() -> ApiClient.getStudentQuizSession(quiz.getId(), false).ifPresentOrElse(preview -> {
-                Platform.runLater(() -> {
-                    if (!confirmPreview(preview)) {
-                        return;
-                    }
-                    new Thread(() -> ApiClient.getStudentQuizSession(quiz.getId(), true).ifPresentOrElse(session ->
-                            Platform.runLater(() -> openApiQuizWindow(session)),
-                            () -> Platform.runLater(() -> alert("Unable to Start",
-                                    "Could not start this quiz session.")))).start();
-                });
-            }, () -> Platform.runLater(() -> alert("Quiz Unavailable",
-                    "This quiz is not currently available.")))).start();
-            return;
-        }
 
-        startOfflineQuiz(quiz);
-    }
-
-    private void loadOffline() {
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        if (user == null || !AppSession.getInstance().isStudent()) {
-            tblAvailableQuizzes.setItems(FXCollections.observableArrayList());
-            return;
-        }
-
-        QuizSubmissionService.FinalizationSummary finalization =
-                new QuizSubmissionService().finalizeExpiredForCurrentStudent();
-        if (finalization.getFinalized() > 0 || finalization.getFailed() > 0) {
-            showFeedback(finalization.getFinalized() + " expired quiz attempt(s) were submitted from saved answers.", false);
-        }
-
-        cmbEnrollCategory.setItems(FXCollections.observableArrayList(new QuizCategoryDAO().getAllCategories()));
-        int categoryId = new CategoryStudentDAO().getCategoryForStudent(user.getId(), user.getName());
-        if (categoryId == -1) {
-            enrolledPane.setVisible(false);
-            enrolledPane.setManaged(false);
-            enrollPane.setVisible(true);
-            enrollPane.setManaged(true);
-            tblAvailableQuizzes.setItems(FXCollections.observableArrayList());
-            tblEmptyLabel.setText("Enroll in a quiz title to see available quizzes.");
-            return;
-        }
-
-        QuizCategory enrolled = cmbEnrollCategory.getItems().stream()
-                .filter(category -> category.getId() == categoryId)
-                .findFirst()
-                .orElse(null);
-        if (enrolled != null) {
-            lblEnrolledInfo.setText("You are enrolled in " + enrolled.getCategoryName()
-                    + ". Only quizzes under this title are shown below.");
-        }
-        enrolledPane.setVisible(true);
-        enrolledPane.setManaged(true);
-        enrollPane.setVisible(false);
-        enrollPane.setManaged(false);
-
-        List<Quiz> quizzes = new QuizDAO().getQuizzesByCategory(categoryId).stream()
-                .map(this::decorateOfflineQuiz)
-                .toList();
-        tblAvailableQuizzes.setItems(FXCollections.observableArrayList(quizzes));
-        tblEmptyLabel.setText("No quizzes are available right now.");
-    }
-
-    private Quiz decorateOfflineQuiz(Quiz quiz) {
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        quiz.setQuestionsCount(new QuestionDAO().getQuestionsByQuizId(quiz.getId()).size());
-        quiz.setMaximumMarks(quiz.getTotalMarks() + Math.max(0, quiz.getParticipationMarks()));
-        boolean completed = user != null && new QuizAttemptDAO().hasCompletedResult(quiz.getId(), user.getId(), user.getName());
-        quiz.setCompleted(completed);
-        String availability = QuizSchedule.availability(quiz, LocalDateTime.now());
-        quiz.setStatusLabel(completed ? "Completed" : switch (availability) {
-            case "Available" -> "Available";
-            case "Upcoming" -> "Upcoming";
-            default -> availability;
-        });
-        quiz.setCanStart(!completed && "Available".equals(availability));
-        return quiz;
+        new Thread(() -> ApiClient.getStudentQuizSession(quiz.getId(), false).ifPresentOrElse(preview -> {
+            Platform.runLater(() -> {
+                if (!confirmPreview(preview)) {
+                    return;
+                }
+                new Thread(() -> ApiClient.getStudentQuizSession(quiz.getId(), true).ifPresentOrElse(session ->
+                        Platform.runLater(() -> openApiQuizWindow(session)),
+                        () -> Platform.runLater(() -> alert("Unable to Start",
+                                "Could not start this quiz session.")))).start();
+            });
+        }, () -> Platform.runLater(() -> alert("Quiz Unavailable",
+                "This quiz is not currently available.")))).start();
     }
 
     private void populateEnrollment(JsonObject json) {
@@ -398,47 +298,14 @@ public class TakeQuizController {
             }
 
             ForumUser user = AppSession.getInstance().getCurrentUser();
-            openQuizModal(quiz, questions, user, attempt, true);
+            openQuizModal(quiz, questions, user, attempt);
             loadForCurrentStudent();
         } catch (Exception e) {
             alert("Error", "Failed to open quiz window: " + e.getMessage());
         }
     }
 
-    private void startOfflineQuiz(Quiz selectedQuiz) {
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        if (user == null) {
-            return;
-        }
-
-        Quiz freshQuiz = new QuizDAO().getById(selectedQuiz.getId());
-        if (freshQuiz == null || !selectedQuiz.isCanStart()) {
-            alert("Quiz Unavailable", "This quiz cannot be started right now.");
-            loadForCurrentStudent();
-            return;
-        }
-
-        List<Question> questions = new QuestionDAO().getQuestionsByQuizId(freshQuiz.getId());
-        if (questions.isEmpty()) {
-            alert("No Questions", "This quiz has no questions yet.");
-            return;
-        }
-
-        int categoryId = new CategoryStudentDAO().getCategoryForStudent(user.getId(), user.getName());
-        try {
-            QuizAttempt attempt = new QuizAttemptDAO().startOrResume(freshQuiz, user.getId(), user.getName(), categoryId);
-            if (attempt == null) {
-                alert("Unable to Start", "Quiz attempt could not be created.");
-                return;
-            }
-            openQuizModal(freshQuiz, questions, user, attempt, false);
-            loadForCurrentStudent();
-        } catch (Exception e) {
-            alert("Unable to Start", e.getMessage());
-        }
-    }
-
-    private void openQuizModal(Quiz quiz, List<Question> questions, ForumUser user, QuizAttempt attempt, boolean apiMode) {
+    private void openQuizModal(Quiz quiz, List<Question> questions, ForumUser user, QuizAttempt attempt) {
         try {
             URL fxmlUrl = getClass().getResource("/fxml/QuizModal.fxml");
             FXMLLoader loader = new FXMLLoader(fxmlUrl);
@@ -451,7 +318,7 @@ public class TakeQuizController {
 
             QuizModalController modal = loader.getController();
             QuizLaunchMonitor.setQuizWindowOpen(true);
-            modal.setup(quiz, questions, user, attempt, apiMode);
+            modal.setup(quiz, questions, user, attempt);
 
             Stage stage = new Stage();
             stage.initModality(Modality.APPLICATION_MODAL);

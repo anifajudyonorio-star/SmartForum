@@ -96,11 +96,11 @@
 
                     @if($quiz->canEditQuestions())
                         <div class="mt-3">
-                            <a href="{{ route('questions.edit', $question) }}" class="btn btn-sm btn-warning">Edit question</a>
+                            <a href="{{ route('questions.edit', $question) }}" class="btn btn-warning btn-sm">Edit question</a>
                             <form action="{{ route('questions.destroy', $question) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this question?')">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this question?')">
                                     Delete question
                                 </button>
                             </form>

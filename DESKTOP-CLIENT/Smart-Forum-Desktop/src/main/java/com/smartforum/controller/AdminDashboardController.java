@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
-import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -44,11 +43,9 @@ public class AdminDashboardController {
 
     @FXML
     private void initialize() {
-        if (ApiSupport.useApi()) {
-            loadFromApi();
-        } else {
-            loadEmptyState();
-        }
+
+        loadFromApi();
+
     }
 
     private void loadFromApi() {

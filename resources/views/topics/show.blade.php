@@ -28,7 +28,7 @@
             <p class="wa-chat-subtitle">{{ $topic->group->Group_Name }} &bull; {{ $posts->count() }} messages</p>
         </div>
         <div class="wa-chat-actions">
-            <button type="button" class="btn" id="exportPdf" aria-label="Export PDF">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="exportPdf" aria-label="Export PDF">
                 <i class="bi bi-file-earmark-pdf"></i>
             </button>
         </div>

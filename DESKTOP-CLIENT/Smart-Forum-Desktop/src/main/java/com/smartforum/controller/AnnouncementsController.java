@@ -4,13 +4,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
-import com.smartforum.dao.AnnouncementDAO;
-import com.smartforum.dao.CategoryStudentDAO;
-import com.smartforum.dao.QuizCategoryDAO;
 import com.smartforum.model.Announcement;
 import com.smartforum.model.QuizCategory;
 import com.smartforum.service.AppSession;
-import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -21,8 +17,6 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,10 +39,6 @@ public class AnnouncementsController {
     @FXML private TableColumn<Announcement, String> colBy;
     @FXML private TableColumn<Announcement, String> colAt;
     @FXML private TableColumn<Announcement, Void> colAction;
-
-    private final AnnouncementDAO announcementDAO = new AnnouncementDAO();
-    private final CategoryStudentDAO categoryStudentDAO = new CategoryStudentDAO();
-    private final QuizCategoryDAO quizCategoryDAO = new QuizCategoryDAO();
 
     private Runnable openQuizzesHandler;
 
@@ -127,121 +117,59 @@ public class AnnouncementsController {
             return;
         }
 
-        if (ApiSupport.useApi()) {
-            new Thread(() -> {
-                ApiClient.MutationResult result = ApiClient.postQuizAnnouncement(category.getId(), title, message);
-                Platform.runLater(() -> {
-                    if (result.success()) {
-                        txtTitle.clear();
-                        txtMessage.clear();
-                        loadLecturerFeed();
-                        alert("Success", result.message());
-                    } else {
-                        alert("Error", result.message().isBlank()
-                                ? "Could not post announcement."
-                                : result.message());
-                    }
-                });
-            }).start();
-            return;
-        }
 
-        Announcement announcement = new Announcement();
-        announcement.setCategoryId(category.getId());
-        announcement.setTitle(title);
-        announcement.setMessage(message);
-        announcement.setCreatedBy(AppSession.getInstance().getCurrentUser() != null
-                ? AppSession.getInstance().getCurrentUser().getName()
-                : "Lecturer");
-        announcement.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a")));
-
-        if (announcementDAO.save(announcement)) {
-            txtTitle.clear();
-            txtMessage.clear();
-            loadLecturerFeed();
-            alert("Success", "Announcement posted to \"" + category.getCategoryName() + "\".");
-        }
+        new Thread(() -> {
+            ApiClient.MutationResult result = ApiClient.postQuizAnnouncement(category.getId(), title, message);
+            Platform.runLater(() -> {
+                if (result.success()) {
+                    txtTitle.clear();
+                    txtMessage.clear();
+                    loadLecturerFeed();
+                    alert("Success", result.message());
+                } else {
+                    alert("Error", result.message().isBlank()
+                            ? "Could not post announcement."
+                            : result.message());
+                }
+            });
+        }).start();
     }
 
     private void loadLecturerFeed() {
-        if (ApiSupport.useApi()) {
-            new Thread(() -> ApiClient.getQuizAnnouncements().ifPresentOrElse(json -> Platform.runLater(() -> {
-                populateCategories(json.getAsJsonArray("categories"));
-                List<Announcement> announcements = parseAnnouncements(json.getAsJsonArray("announcements"));
-                tblAnnouncements.setItems(FXCollections.observableArrayList(announcements));
-                announcementCountLabel.setText(String.valueOf(json.get("count").getAsInt()));
-            }), () -> Platform.runLater(this::loadLecturerOffline))).start();
-            return;
-        }
 
-        loadLecturerOffline();
-    }
-
-    private void loadLecturerOffline() {
-        cmbCategory.setItems(FXCollections.observableArrayList(quizCategoryDAO.getAllCategories()));
-        List<Announcement> announcements = announcementDAO.getAll();
-        announcements.forEach(announcement -> announcement.setCanDelete(true));
-        tblAnnouncements.setItems(FXCollections.observableArrayList(announcements));
-        announcementCountLabel.setText(String.valueOf(announcements.size()));
+        new Thread(() -> ApiClient.getQuizAnnouncements().ifPresentOrElse(json -> Platform.runLater(() -> {
+            populateCategories(json.getAsJsonArray("categories"));
+            List<Announcement> announcements = parseAnnouncements(json.getAsJsonArray("announcements"));
+            tblAnnouncements.setItems(FXCollections.observableArrayList(announcements));
+            announcementCountLabel.setText(String.valueOf(json.get("count").getAsInt()));
+        }), () -> Platform.runLater(() -> {
+            cmbCategory.setItems(FXCollections.observableArrayList());
+            tblAnnouncements.setItems(FXCollections.observableArrayList());
+            announcementCountLabel.setText("0");
+        }))).start();
     }
 
     private void loadStudentFeed() {
-        if (ApiSupport.useApi()) {
-            new Thread(() -> ApiClient.getStudentAnnouncements().ifPresentOrElse(json -> Platform.runLater(() -> {
-                JsonObject enrolled = json.has("enrolled_category") && !json.get("enrolled_category").isJsonNull()
-                        ? json.getAsJsonObject("enrolled_category")
-                        : null;
 
-                if (enrolled != null) {
-                    pageSubtitleLabel.setText("Updates for your enrolled quiz title: "
-                            + enrolled.get("name").getAsString() + ".");
-                    hideEnrollmentAlert();
-                } else {
-                    pageSubtitleLabel.setText("Enroll in a quiz title to receive announcements.");
-                    showEnrollmentAlert("You are not enrolled in a quiz title yet. Open Available Quizzes to enroll.");
-                }
+        new Thread(() -> ApiClient.getStudentAnnouncements().ifPresentOrElse(json -> Platform.runLater(() -> {
+            JsonObject enrolled = json.has("enrolled_category") && !json.get("enrolled_category").isJsonNull()
+                    ? json.getAsJsonObject("enrolled_category")
+                    : null;
 
-                renderStudentCards(parseAnnouncements(json.getAsJsonArray("announcements")), enrolled != null);
-            }), () -> Platform.runLater(this::loadStudentOffline))).start();
-            return;
-        }
+            if (enrolled != null) {
+                pageSubtitleLabel.setText("Updates for your enrolled quiz title: "
+                        + enrolled.get("name").getAsString() + ".");
+                hideEnrollmentAlert();
+            } else {
+                pageSubtitleLabel.setText("Enroll in a quiz title to receive announcements.");
+                showEnrollmentAlert("You are not enrolled in a quiz title yet. Open Available Quizzes to enroll.");
+            }
 
-        loadStudentOffline();
-    }
-
-    private void loadStudentOffline() {
-        var user = AppSession.getInstance().getCurrentUser();
-        if (user == null) {
-            pageSubtitleLabel.setText("Enroll in a quiz title to receive announcements.");
-            showEnrollmentAlert("You are not enrolled in a quiz title yet.");
+            renderStudentCards(parseAnnouncements(json.getAsJsonArray("announcements")), enrolled != null);
+        }), () -> Platform.runLater(() -> {
+            pageSubtitleLabel.setText("Announcements could not be loaded from the server.");
             renderStudentCards(List.of(), false);
-            return;
-        }
-
-        int categoryId = categoryStudentDAO.getCategoryForStudent(user.getId(), user.getName());
-        if (categoryId == -1) {
-            pageSubtitleLabel.setText("Enroll in a quiz title to receive announcements.");
-            showEnrollmentAlert("You are not enrolled in a quiz title yet. Open Available Quizzes to enroll.");
-            renderStudentCards(List.of(), false);
-            return;
-        }
-
-        quizCategoryDAO.getAllCategories().stream()
-                .filter(category -> category.getId() == categoryId)
-                .findFirst()
-                .ifPresentOrElse(category -> {
-                    pageSubtitleLabel.setText("Updates for your enrolled quiz title: "
-                            + category.getCategoryName() + ".");
-                    hideEnrollmentAlert();
-                }, this::hideEnrollmentAlert);
-
-        List<Announcement> announcements = announcementDAO.getByCategory(categoryId);
-        quizCategoryDAO.getAllCategories().stream()
-                .filter(category -> category.getId() == categoryId)
-                .findFirst()
-                .ifPresent(category -> announcements.forEach(item -> item.setCategoryName(category.getCategoryName())));
-
-        renderStudentCards(announcements, true);
+        }))).start();
     }
 
     private void populateCategories(JsonArray categories) {
@@ -380,24 +308,19 @@ public class AnnouncementsController {
             return;
         }
 
-        if (ApiSupport.useApi()) {
-            new Thread(() -> {
-                ApiClient.MutationResult result = ApiClient.deleteQuizAnnouncement(announcement.getId());
-                Platform.runLater(() -> {
-                    if (result.success()) {
-                        loadLecturerFeed();
-                    } else {
-                        alert("Error", result.message().isBlank()
-                                ? "Could not delete announcement."
-                                : result.message());
-                    }
-                });
-            }).start();
-            return;
-        }
 
-        announcementDAO.delete(announcement.getId());
-        loadLecturerFeed();
+        new Thread(() -> {
+            ApiClient.MutationResult result = ApiClient.deleteQuizAnnouncement(announcement.getId());
+            Platform.runLater(() -> {
+                if (result.success()) {
+                    loadLecturerFeed();
+                } else {
+                    alert("Error", result.message().isBlank()
+                            ? "Could not delete announcement."
+                            : result.message());
+                }
+            });
+        }).start();
     }
 
     private void showEnrollmentAlert(String message) {

@@ -4,11 +4,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
-import com.smartforum.dao.QuizResultDAO;
 import com.smartforum.model.GroupAdminSummaryRow;
 import com.smartforum.model.ParticipantRow;
 import com.smartforum.model.QuizResult;
-import com.smartforum.util.ApiSupport;
 import com.smartforum.util.ButtonStyles;
 import com.smartforum.util.GroupAdminDashboardSupport;
 import javafx.application.Platform;
@@ -83,7 +81,6 @@ public class LecturerDashboardController {
     @FXML private TableColumn<QuizResult, String> quizPercentageColumn;
 
     private ShellNavigator navigator;
-    private final QuizResultDAO quizResultDAO = new QuizResultDAO();
     private List<QuizResult> allQuizResults = List.of();
     private static final QuizFilterOption ALL_QUIZZES = new QuizFilterOption(null, "All quizzes");
     private static final int MAX_RECENT_RESULTS = 25;
@@ -146,11 +143,9 @@ public class LecturerDashboardController {
 
         loadQuizProgress();
 
-        if (ApiSupport.useApi()) {
-            loadFromApi();
-        } else {
-            loadEmptyState();
-        }
+
+        loadFromApi();
+
     }
 
     private void configureParticipantsTable() {
@@ -321,16 +316,7 @@ public class LecturerDashboardController {
     }
 
     private void loadQuizProgress() {
-        Thread loader = new Thread(() -> {
-            try {
-                List<QuizResult> results = quizResultDAO.getAllResults();
-                Platform.runLater(() -> showQuizProgress(results));
-            } catch (RuntimeException e) {
-                Platform.runLater(() -> showQuizProgress(List.of()));
-            }
-        }, "lecturer-quiz-progress");
-        loader.setDaemon(true);
-        loader.start();
+        showQuizProgress(List.of());
     }
 
     private void showQuizProgress(List<QuizResult> results) {

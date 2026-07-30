@@ -4,30 +4,17 @@ import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
 import com.smartforum.api.ApiMapper;
 import com.smartforum.model.ForumUser;
-import com.smartforum.UserSession;
 import com.smartforum.service.AppSession;
 import com.smartforum.service.ForumDataCache;
 
 import java.util.Optional;
 
+/**
+ * Laravel API session helpers. The desktop client always talks to the Laravel backend;
+ * temporary disconnects are handled by {@link NetworkMonitor} + {@link OfflineQueue}.
+ */
 public final class ApiSupport {
     private ApiSupport() {
-    }
-
-    /** True when logged in with an API token — independent of current network reachability. */
-    public static boolean useApi() {
-        SessionManager session = SessionManager.getInstance();
-        if (session.isLoggedIn()) {
-            return true;
-        }
-        String token = UserSession.getInstance().getToken();
-        if (token != null && !token.isBlank()) {
-            session.setToken(token);
-            UserSession userSession = UserSession.getInstance();
-            session.setUser(userSession.getId(), userSession.getFullName());
-            return true;
-        }
-        return false;
     }
 
     public static void bootstrapFromProperties() {

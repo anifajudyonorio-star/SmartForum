@@ -6,17 +6,11 @@ import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
 import com.smartforum.controller.QuizLaunchDialogController;
 import com.smartforum.controller.QuizModalController;
-import com.smartforum.dao.CategoryStudentDAO;
-import com.smartforum.dao.QuestionDAO;
-import com.smartforum.dao.QuizAttemptDAO;
-import com.smartforum.dao.QuizDAO;
 import com.smartforum.model.ForumUser;
 import com.smartforum.model.Question;
 import com.smartforum.model.Quiz;
 import com.smartforum.model.QuizAttempt;
 import com.smartforum.util.ApiDateTimes;
-import com.smartforum.util.ApiSupport;
-import com.smartforum.util.QuizSchedule;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -25,8 +19,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -39,7 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Polls for student quizzes that are starting / active and shows a launch popup.
- * Works with Laravel API (online) and local SQLite (offline).
+ * Uses the Laravel API and tolerates temporary API unavailability between polls.
  */
 public final class QuizLaunchMonitor {
 
@@ -110,7 +102,7 @@ public final class QuizLaunchMonitor {
             return;
         }
 
-        Candidate chosen = ApiSupport.useApi() ? findApiCandidate() : findOfflineCandidate(user);
+        Candidate chosen = findApiCandidate();
         if (chosen == null) {
             return;
         }
@@ -205,52 +197,6 @@ public final class QuizLaunchMonitor {
         return quiz;
     }
 
-    private Candidate findOfflineCandidate(ForumUser user) {
-        int categoryId = new CategoryStudentDAO().getCategoryForStudent(user.getId(), user.getName());
-        if (categoryId < 0) {
-            return null;
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        QuizAttemptDAO attemptDAO = new QuizAttemptDAO();
-        List<Quiz> quizzes = new QuizDAO().getQuizzesByCategory(categoryId);
-
-        Quiz soon = null;
-        long soonSeconds = Long.MAX_VALUE;
-
-        for (Quiz quiz : quizzes) {
-            if (dismissedIds.contains(quiz.getId())) {
-                continue;
-            }
-            if (attemptDAO.hasCompletedResult(quiz.getId(), user.getId(), user.getName())) {
-                continue;
-            }
-
-            String availability = QuizSchedule.availability(quiz, now);
-            if ("Available".equals(availability)) {
-                quiz.setQuestionsCount(new QuestionDAO().getQuestionsByQuizId(quiz.getId()).size());
-                quiz.setCanStart(true);
-                quiz.setStatusLabel("Available");
-                return new Candidate(quiz, false, 0);
-            }
-            if ("Upcoming".equals(availability)) {
-                LocalDateTime start = QuizSchedule.parseStart(quiz.getStartDate());
-                if (start == null) {
-                    continue;
-                }
-                long seconds = Duration.between(now, start).getSeconds();
-                if (seconds > 0 && seconds <= PRESTART_SECONDS && seconds < soonSeconds) {
-                    soonSeconds = seconds;
-                    quiz.setQuestionsCount(new QuestionDAO().getQuestionsByQuizId(quiz.getId()).size());
-                    quiz.setStatusLabel("Upcoming");
-                    soon = quiz;
-                }
-            }
-        }
-
-        return soon == null ? null : new Candidate(soon, true, soonSeconds);
-    }
-
     private void showDialog(ForumUser user, Candidate chosen) {
         if (dialogOpen.get() || QUIZ_WINDOW_OPEN.get()) {
             return;
@@ -299,25 +245,14 @@ public final class QuizLaunchMonitor {
     }
 
     private void startQuiz(ForumUser user, Quiz quiz) {
-        if (ApiSupport.useApi()) {
-            new Thread(() -> ApiClient.getStudentQuizSession(quiz.getId(), true).ifPresentOrElse(
-                session -> Platform.runLater(() -> {
-                    dismissedIds.add(quiz.getId());
-                    openApiQuizWindow(session);
-                }),
-                () -> Platform.runLater(() -> alert("Unable to Start",
-                    "Could not start this quiz session. Open Quizzes and try Start Quiz."))
-            ), "quiz-launch-start").start();
-            return;
-        }
-
-        try {
-            StudentQuizLauncher.LaunchRequest request = StudentQuizLauncher.prepare(user, quiz);
-            dismissedIds.add(quiz.getId());
-            openQuizWindow(request, false);
-        } catch (Exception e) {
-            alert("Unable to Start", e.getMessage());
-        }
+        new Thread(() -> ApiClient.getStudentQuizSession(quiz.getId(), true).ifPresentOrElse(
+            session -> Platform.runLater(() -> {
+                dismissedIds.add(quiz.getId());
+                openApiQuizWindow(session);
+            }),
+            () -> Platform.runLater(() -> alert("Unable to Start",
+                "Could not start this quiz session. Open Quizzes and try Start Quiz."))
+        ), "quiz-launch-start").start();
     }
 
     private void openApiQuizWindow(JsonObject session) {
@@ -366,17 +301,13 @@ public final class QuizLaunchMonitor {
             }
 
             ForumUser user = AppSession.getInstance().getCurrentUser();
-            openQuizWindow(new StudentQuizLauncher.LaunchRequest(quiz, questions, user, attempt), true);
+            openQuizWindow(new StudentQuizLauncher.LaunchRequest(quiz, questions, user, attempt));
         } catch (Exception e) {
             alert("Error", "Failed to open quiz window: " + e.getMessage());
         }
     }
 
     public static void openQuizWindow(StudentQuizLauncher.LaunchRequest request) throws Exception {
-        openQuizWindow(request, false);
-    }
-
-    public static void openQuizWindow(StudentQuizLauncher.LaunchRequest request, boolean apiMode) throws Exception {
         QUIZ_WINDOW_OPEN.set(true);
         try {
             FXMLLoader loader = new FXMLLoader(
@@ -391,8 +322,7 @@ public final class QuizLaunchMonitor {
                 request.getQuiz(),
                 request.getQuestions(),
                 request.getStudent(),
-                request.getAttempt(),
-                apiMode
+                request.getAttempt()
             );
 
             Stage stage = new Stage();

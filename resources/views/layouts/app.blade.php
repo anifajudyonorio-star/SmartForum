@@ -46,7 +46,7 @@ use Illuminate\Support\Facades\Auth;
                         </button>
                     @endauth
 
-                    <button id="backBtn" onclick="history.back()" class="btn btn-sm btn-outline-secondary me-2 d-none" title="Go back" aria-label="Go back">
+                    <button id="backBtn" onclick="history.back()" class="btn btn-outline-secondary btn-sm me-2 d-none" title="Go back" aria-label="Go back">
                         <i class="bi bi-arrow-left"></i>
                     </button>
 

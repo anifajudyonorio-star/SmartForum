@@ -4,11 +4,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
-import com.smartforum.dao.QuestionDAO;
-import com.smartforum.dao.QuizDAO;
 import com.smartforum.model.Question;
 import com.smartforum.model.Quiz;
-import com.smartforum.util.ApiSupport;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -55,21 +52,12 @@ public class QuestionController {
 
     /** Called when the Questions tab is selected so newly created quizzes appear. */
     public void reload() {
-        if (ApiSupport.useApi()) {
-            new Thread(() -> ApiClient.getManagedQuestions().ifPresentOrElse(json -> {
-                List<Quiz> quizzes = parseQuizzes(json.getAsJsonArray("quizzes"));
-                List<Question> questions = parseQuestions(json.getAsJsonArray("questions"));
-                Platform.runLater(() -> applyData(quizzes, questions));
-            }, () -> Platform.runLater(this::loadOffline)), "questions-reload").start();
-            return;
-        }
-        loadOffline();
-    }
 
-    private void loadOffline() {
-        List<Quiz> quizzes = new QuizDAO().getAllQuizzes();
-        List<Question> questions = new QuestionDAO().getAllQuestions();
-        applyData(quizzes, questions);
+        new Thread(() -> ApiClient.getManagedQuestions().ifPresentOrElse(json -> {
+            List<Quiz> quizzes = parseQuizzes(json.getAsJsonArray("quizzes"));
+            List<Question> questions = parseQuestions(json.getAsJsonArray("questions"));
+            Platform.runLater(() -> applyData(quizzes, questions));
+        }, () -> Platform.runLater(() -> applyData(List.of(), List.of()))), "questions-reload").start();
     }
 
     private void applyData(List<Quiz> quizzes, List<Question> questions) {
@@ -81,11 +69,6 @@ public class QuestionController {
         List<Quiz> editable = quizzes.stream()
                 .filter(this::canAuthorQuestions)
                 .toList();
-        // Offline quizzes don't set the flag — treat all as editable locally.
-        if (!ApiSupport.useApi()) {
-            editable = quizzes;
-            quizzes.forEach(quiz -> quiz.setCanEditQuestions(true));
-        }
 
         Quiz previous = cmbQuiz.getValue();
         cmbQuiz.setItems(FXCollections.observableArrayList(editable));
@@ -400,37 +383,24 @@ public class QuestionController {
             return;
         }
 
-        if (ApiSupport.useApi()) {
-            JsonObject body = buildApiPayload(quiz.getId());
-            new Thread(() -> {
-                ApiClient.MutationResult result = ApiClient.createQuestion(body);
-                Platform.runLater(() -> {
-                    if (result.success()) {
-                        showAlert("Success", result.message().isBlank()
-                                ? "Question saved successfully."
-                                : result.message());
-                        clearFields();
-                        reload();
-                    } else {
-                        showAlert("Error", result.message().isBlank()
-                                ? "Failed to save question."
-                                : result.message());
-                    }
-                });
-            }, "question-create").start();
-            return;
-        }
 
-        Question question = new Question();
-        question.setQuizId(quiz.getId());
-        fillLocalQuestion(question);
-        if (new QuestionDAO().saveQuestion(question)) {
-            showAlert("Success", "Question saved successfully.");
-            clearFields();
-            reload();
-        } else {
-            showAlert("Error", "Failed to save question.");
-        }
+        JsonObject body = buildApiPayload(quiz.getId());
+        new Thread(() -> {
+            ApiClient.MutationResult result = ApiClient.createQuestion(body);
+            Platform.runLater(() -> {
+                if (result.success()) {
+                    showAlert("Success", result.message().isBlank()
+                            ? "Question saved successfully."
+                            : result.message());
+                    clearFields();
+                    reload();
+                } else {
+                    showAlert("Error", result.message().isBlank()
+                            ? "Failed to save question."
+                            : result.message());
+                }
+            });
+        }, "question-create").start();
     }
 
     @FXML
@@ -448,38 +418,25 @@ public class QuestionController {
             return;
         }
 
-        if (ApiSupport.useApi()) {
-            JsonObject body = buildApiPayload(quiz.getId());
-            new Thread(() -> {
-                ApiClient.MutationResult result = ApiClient.updateQuestion(selectedQuestion.getId(), body);
-                Platform.runLater(() -> {
-                    if (result.success()) {
-                        showAlert("Success", result.message().isBlank()
-                                ? "Question updated successfully."
-                                : result.message());
-                        selectedQuestion = null;
-                        clearFields();
-                        reload();
-                    } else {
-                        showAlert("Error", result.message().isBlank()
-                                ? "Failed to update question."
-                                : result.message());
-                    }
-                });
-            }, "question-update").start();
-            return;
-        }
 
-        selectedQuestion.setQuizId(quiz.getId());
-        fillLocalQuestion(selectedQuestion);
-        if (new QuestionDAO().updateQuestion(selectedQuestion)) {
-            showAlert("Success", "Question updated successfully.");
-            selectedQuestion = null;
-            clearFields();
-            reload();
-        } else {
-            showAlert("Error", "Failed to update question.");
-        }
+        JsonObject body = buildApiPayload(quiz.getId());
+        new Thread(() -> {
+            ApiClient.MutationResult result = ApiClient.updateQuestion(selectedQuestion.getId(), body);
+            Platform.runLater(() -> {
+                if (result.success()) {
+                    showAlert("Success", result.message().isBlank()
+                            ? "Question updated successfully."
+                            : result.message());
+                    selectedQuestion = null;
+                    clearFields();
+                    reload();
+                } else {
+                    showAlert("Error", result.message().isBlank()
+                            ? "Failed to update question."
+                            : result.message());
+                }
+            });
+        }, "question-update").start();
     }
 
     @FXML
@@ -498,36 +455,25 @@ public class QuestionController {
             return;
         }
 
-        if (ApiSupport.useApi()) {
-            int questionId = selectedQuestion.getId();
-            new Thread(() -> {
-                ApiClient.MutationResult result = ApiClient.deleteQuestion(questionId);
-                Platform.runLater(() -> {
-                    if (result.success()) {
-                        showAlert("Success", result.message().isBlank()
-                                ? "Question deleted successfully."
-                                : result.message());
-                        selectedQuestion = null;
-                        clearFields();
-                        reload();
-                    } else {
-                        showAlert("Error", result.message().isBlank()
-                                ? "Failed to delete question."
-                                : result.message());
-                    }
-                });
-            }, "question-delete").start();
-            return;
-        }
 
-        if (new QuestionDAO().deleteQuestion(selectedQuestion.getId())) {
-            showAlert("Success", "Question deleted successfully.");
-            selectedQuestion = null;
-            clearFields();
-            reload();
-        } else {
-            showAlert("Error", "Failed to delete question.");
-        }
+        int questionId = selectedQuestion.getId();
+        new Thread(() -> {
+            ApiClient.MutationResult result = ApiClient.deleteQuestion(questionId);
+            Platform.runLater(() -> {
+                if (result.success()) {
+                    showAlert("Success", result.message().isBlank()
+                            ? "Question deleted successfully."
+                            : result.message());
+                    selectedQuestion = null;
+                    clearFields();
+                    reload();
+                } else {
+                    showAlert("Error", result.message().isBlank()
+                            ? "Failed to delete question."
+                            : result.message());
+                }
+            });
+        }, "question-delete").start();
     }
 
     private JsonObject buildApiPayload(int quizId) {
@@ -544,16 +490,6 @@ public class QuestionController {
         body.add("options", options);
         body.addProperty("correct_option", "ABCD".indexOf(cmbCorrect.getValue()));
         return body;
-    }
-
-    private void fillLocalQuestion(Question question) {
-        question.setQuestion(txtQuestion.getText());
-        question.setOptionA(txtOptionA.getText());
-        question.setOptionB(txtOptionB.getText());
-        question.setOptionC(txtOptionC.getText());
-        question.setOptionD(txtOptionD.getText());
-        question.setCorrectAnswer(cmbCorrect.getValue());
-        question.setMarks(spQuestionMarks.getValue());
     }
 
     @FXML

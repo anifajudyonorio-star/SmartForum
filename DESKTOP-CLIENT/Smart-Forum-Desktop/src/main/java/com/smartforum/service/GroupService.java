@@ -12,8 +12,6 @@ import com.smartforum.model.PendingJoinRequest;
 import com.smartforum.model.PostReport;
 import com.smartforum.model.Post;
 import com.smartforum.model.Topic;
-import com.smartforum.util.ApiSupport;
-import com.smartforum.util.NetworkMonitor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,17 +21,15 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class GroupService {
+    //create a new object
     private static final GroupService INSTANCE = new GroupService();
 
-    private final Map<Integer, ForumUser> users = new HashMap<>();
     private final Map<Integer, Group> groups = new HashMap<>();
     private final Map<Integer, List<GroupMember>> membersByGroup = new HashMap<>();
     private final Map<Integer, GroupContext> groupContexts = new HashMap<>();
     private final Map<Integer, GroupStats> statsCache = new HashMap<>();
     private final Map<Integer, List<ForumUser>> availableUsersCache = new HashMap<>();
     private final Map<Integer, List<PendingJoinRequest>> pendingJoinRequestsByGroup = new HashMap<>();
-    private int nextGroupId = 10;
-
     private static final class GroupContext {
         private boolean canManage;
         private boolean canParticipate;
@@ -42,9 +38,8 @@ public class GroupService {
 
     private GroupService() {
     }
-
+    //remove cached data
     public void clearCache() {
-        users.clear();
         groups.clear();
         membersByGroup.clear();
         groupContexts.clear();
@@ -52,27 +47,18 @@ public class GroupService {
         availableUsersCache.clear();
         pendingJoinRequestsByGroup.clear();
     }
-
+    //return same object
     public static GroupService getInstance() {
         return INSTANCE;
     }
-
+    //returns instance of topic topic service
     private TopicService topics() {
         return TopicService.getInstance();
     }
-
+    //return groups belonging to the logged in user
     public List<Group> getGroupsForCurrentUser() {
-        if (ApiSupport.useApi()) {
-            syncGroupsFromApi();
-            return groups.values().stream()
-                    .sorted((a, b) -> Integer.compare(b.getId(), a.getId()))
-                    .map(this::withCountsAndRole)
-                    .collect(Collectors.toList());
-        }
-
-        ForumUser user = AppSession.getInstance().getCurrentUser();
+        syncGroupsFromApi();
         return groups.values().stream()
-                .filter(group -> isMember(group.getId(), user.getId()))
                 .sorted((a, b) -> Integer.compare(b.getId(), a.getId()))
                 .map(this::withCountsAndRole)
                 .collect(Collectors.toList());
@@ -83,17 +69,8 @@ public class GroupService {
             return List.of();
         }
 
-        if (ApiSupport.useApi()) {
-            return ApiClient.fetchExploreGroups().stream()
-                    .sorted((a, b) -> Integer.compare(b.getId(), a.getId()))
-                    .collect(Collectors.toList());
-        }
-
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        return groups.values().stream()
-                .filter(group -> !isMember(group.getId(), user.getId()))
+        return ApiClient.fetchExploreGroups().stream()
                 .sorted((a, b) -> Integer.compare(b.getId(), a.getId()))
-                .peek(group -> group.setJoinStatus("none"))
                 .collect(Collectors.toList());
     }
 
@@ -112,25 +89,11 @@ public class GroupService {
             return false;
         }
 
-        if (ApiSupport.useApi()) {
-            return ApiClient.requestJoinGroup(groupId, acceptedRules);
-        }
-
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        if (isMember(groupId, user.getId())) {
-            return false;
-        }
-
-        membersByGroup.computeIfAbsent(groupId, key -> new ArrayList<>()).add(
-                new GroupMember(user.getId(), user.getName(), user.getEmail(), "member", "Pending", 0, false)
-        );
-        return true;
+        return ApiClient.requestJoinGroup(groupId, acceptedRules);
     }
 
     public Optional<Group> getGroup(int groupId) {
-        if (ApiSupport.useApi()) {
-            syncGroupDetail(groupId);
-        }
+        syncGroupDetail(groupId);
 
         Group group = groups.get(groupId);
         if (group == null) {
@@ -144,62 +107,40 @@ public class GroupService {
             return true;
         }
 
-        if (ApiSupport.useApi()) {
-            GroupContext context = groupContexts.get(groupId);
-            if (context != null) {
-                return context.isMember;
-            }
-            syncGroupDetail(groupId);
-            context = groupContexts.get(groupId);
-            if (context != null) {
-                return context.isMember;
-            }
+        GroupContext context = groupContexts.get(groupId);
+        if (context != null) {
+            return context.isMember;
         }
-
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        if (!isMember(groupId, user.getId())) {
-            return false;
+        syncGroupDetail(groupId);
+        context = groupContexts.get(groupId);
+        if (context != null) {
+            return context.isMember;
         }
-        return !"Blocked".equalsIgnoreCase(memberStatus(groupId, user.getId()));
+        return false;
     }
 
     public boolean canManageGroup(int groupId) {
-        if (ApiSupport.useApi()) {
-            GroupContext context = groupContexts.get(groupId);
-            if (context == null) {
-                syncGroupDetail(groupId);
-                context = groupContexts.get(groupId);
-            }
-            if (context != null) {
-                return AppSession.getInstance().isSystemAdmin() || context.canManage;
-            }
+        GroupContext context = groupContexts.get(groupId);
+        if (context == null) {
+            syncGroupDetail(groupId);
+            context = groupContexts.get(groupId);
         }
-
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        if (AppSession.getInstance().isSystemAdmin()) {
-            return true;
+        if (context != null) {
+            return AppSession.getInstance().isSystemAdmin() || context.canManage;
         }
-        return "admin".equalsIgnoreCase(memberRole(groupId, user.getId()));
+        return false;
     }
 
     public boolean canParticipateInGroup(int groupId) {
-        if (ApiSupport.useApi()) {
-            GroupContext context = groupContexts.get(groupId);
-            if (context == null) {
-                syncGroupDetail(groupId);
-                context = groupContexts.get(groupId);
-            }
-            if (context != null) {
-                return context.canParticipate;
-            }
-            if (!NetworkMonitor.isOnline()) {
-                return false;
-            }
+        GroupContext context = groupContexts.get(groupId);
+        if (context == null) {
+            syncGroupDetail(groupId);
+            context = groupContexts.get(groupId);
         }
-
-        ForumUser user = AppSession.getInstance().getCurrentUser();
-        return isMember(groupId, user.getId())
-                && "Active".equalsIgnoreCase(memberStatus(groupId, user.getId()));
+        if (context != null) {
+            return context.canParticipate;
+        }
+        return false;
     }
 
     public String groupRole(int groupId) {
@@ -207,9 +148,7 @@ public class GroupService {
     }
 
     public List<GroupMember> getMembers(int groupId) {
-        if (ApiSupport.useApi()) {
-            syncGroupDetail(groupId);
-        }
+        syncGroupDetail(groupId);
         return new ArrayList<>(membersByGroup.getOrDefault(groupId, List.of()));
     }
 
@@ -218,12 +157,10 @@ public class GroupService {
     }
 
     public GroupStats getGroupStats(int groupId) {
-        if (ApiSupport.useApi()) {
-            syncGroupDetail(groupId);
-            GroupStats cached = statsCache.get(groupId);
-            if (cached != null) {
-                return cached;
-            }
+        syncGroupDetail(groupId);
+        GroupStats cached = statsCache.get(groupId);
+        if (cached != null) {
+            return cached;
         }
         List<GroupMember> members = getMembers(groupId);
         List<Topic> groupTopics = getTopics(groupId);
@@ -337,20 +274,8 @@ public class GroupService {
     }
 
     public List<ForumUser> getAvailableUsers(int groupId) {
-        if (ApiSupport.useApi()) {
-            syncGroupDetail(groupId);
-            return new ArrayList<>(availableUsersCache.getOrDefault(groupId, List.of()));
-        }
-
-        List<Integer> memberIds = getMembers(groupId).stream()
-                .map(GroupMember::getUserId)
-                .toList();
-
-        return users.values().stream()
-                .filter(user -> user.getId() != AppSession.getInstance().getCurrentUser().getId())
-                .filter(user -> !memberIds.contains(user.getId()))
-                .sorted((a, b) -> a.getName().compareToIgnoreCase(b.getName()))
-                .collect(Collectors.toList());
+        syncGroupDetail(groupId);
+        return new ArrayList<>(availableUsersCache.getOrDefault(groupId, List.of()));
     }
 
     public Group createGroup(String name, String description) {
@@ -358,234 +283,109 @@ public class GroupService {
     }
 
     public Group createGroup(String name, String description, String joinRules) {
-        if (ApiSupport.useApi()) {
-            if (ApiClient.createGroup(name, description, joinRules)) {
-                syncGroupsFromApi();
-                return groups.values().stream()
-                        .filter(group -> name.equals(group.getName()))
-                        .findFirst()
-                        .map(this::withCountsAndRole)
-                        .orElseThrow(() -> new IllegalStateException("Group created but not returned by API."));
-            }
-            throw new IllegalStateException("Could not create group via API.");
+        if (ApiClient.createGroup(name, description, joinRules)) {
+            syncGroupsFromApi();
+            return groups.values().stream()
+                    .filter(group -> name.equals(group.getName()))
+                    .findFirst()
+                    .map(this::withCountsAndRole)
+                    .orElseThrow(() -> new IllegalStateException("Group created but not returned by API."));
         }
-
-        ForumUser creator = AppSession.getInstance().getCurrentUser();
-        int id = nextGroupId++;
-
-        Group group = new Group(
-                id,
-                name,
-                description,
-                "Active",
-                creator.getId(),
-                creator.getName(),
-                0,
-                1,
-                "admin"
-        );
-        groups.put(id, group);
-        membersByGroup.put(id, new ArrayList<>(List.of(
-                new GroupMember(creator.getId(), creator.getName(), creator.getEmail(),
-                        "admin", "Active", 0, true)
-        )));
-        topics().initGroupTopics(id);
-        return withCountsAndRole(group);
+        throw new IllegalStateException("Could not create group via API.");
     }
 
     public void addMember(int groupId, int userId, String role) {
-        if (ApiSupport.useApi()) {
-            if (!ApiClient.addGroupMember(groupId, userId, role)) {
-                throw new IllegalStateException("Could not add member via API.");
-            }
-            syncGroupDetail(groupId);
-            return;
+        if (!ApiClient.addGroupMember(groupId, userId, role)) {
+            throw new IllegalStateException("Could not add member via API.");
         }
-
-        if (isMember(groupId, userId)) {
-            return;
-        }
-        ForumUser user = users.get(userId);
-        if (user == null) {
-            return;
-        }
-        membersByGroup.computeIfAbsent(groupId, key -> new ArrayList<>())
-                .add(new GroupMember(user.getId(), user.getName(), user.getEmail(),
-                        role, "Active", 0, false));
-        refreshMemberCount(groupId);
+        syncGroupDetail(groupId);
     }
 
     public void removeMember(int groupId, int userId) {
-        if (ApiSupport.useApi()) {
-            if (!ApiClient.removeGroupMember(groupId, userId)) {
-                throw new IllegalStateException("Could not remove member via API.");
-            }
-            syncGroupDetail(groupId);
-            return;
+        if (!ApiClient.removeGroupMember(groupId, userId)) {
+            throw new IllegalStateException("Could not remove member via API.");
         }
-
-        if (isLastAdmin(groupId, userId)) {
-            throw new IllegalStateException("Cannot remove the last group admin.");
-        }
-        membersByGroup.getOrDefault(groupId, List.of())
-                .removeIf(member -> member.getUserId() == userId);
-        refreshMemberCount(groupId);
+        syncGroupDetail(groupId);
     }
 
     public void updateMemberRole(int groupId, int userId, String role) {
-        if (ApiSupport.useApi()) {
-            if (!ApiClient.updateMemberRole(groupId, userId, role)) {
-                throw new IllegalStateException("Could not update member role via API.");
-            }
-            syncGroupDetail(groupId);
-            return;
+        if (!ApiClient.updateMemberRole(groupId, userId, role)) {
+            throw new IllegalStateException("Could not update member role via API.");
         }
-
-        if (isLastAdmin(groupId, userId) && !"admin".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Cannot demote the last group admin.");
-        }
-        for (GroupMember member : membersByGroup.getOrDefault(groupId, List.of())) {
-            if (member.getUserId() == userId) {
-                member.setMemberRole(role);
-                break;
-            }
-        }
+        syncGroupDetail(groupId);
     }
 
     public void warnMember(int groupId, int userId) {
-        if (ApiSupport.useApi()) {
-            ApiClient.MutationResult result = ApiClient.warnGroupMember(groupId, userId, null);
-            if (!result.success()) {
-                throw new IllegalStateException(result.message());
-            }
-            syncGroupDetail(groupId);
-            return;
+        ApiClient.MutationResult result = ApiClient.warnGroupMember(groupId, userId, null);
+        if (!result.success()) {
+            throw new IllegalStateException(result.message());
         }
-
-        GroupMember member = findMember(groupId, userId);
-        if (member == null) {
-            return;
-        }
-        int warnings = Math.min(2, member.getWarnings() + 1);
-        member.setWarnings(warnings);
-        if (warnings >= 2) {
-            member.setMemberStatus("Suspended");
-        }
+        syncGroupDetail(groupId);
     }
 
     public void suspendMember(int groupId, int userId) {
-        if (ApiSupport.useApi()) {
-            ApiClient.MutationResult result = ApiClient.suspendGroupMember(groupId, userId, null);
-            if (!result.success()) {
-                throw new IllegalStateException(result.message());
-            }
-            syncGroupDetail(groupId);
-            return;
+        ApiClient.MutationResult result = ApiClient.suspendGroupMember(groupId, userId, null);
+        if (!result.success()) {
+            throw new IllegalStateException(result.message());
         }
-
-        GroupMember member = findMember(groupId, userId);
-        if (member != null) {
-            member.setMemberStatus("Suspended");
-        }
+        syncGroupDetail(groupId);
     }
 
     public void blockMember(int groupId, int userId) {
-        if (ApiSupport.useApi()) {
-            ApiClient.MutationResult result = ApiClient.blockGroupMember(groupId, userId, null);
-            if (!result.success()) {
-                throw new IllegalStateException(result.message());
-            }
-            syncGroupDetail(groupId);
-            return;
+        ApiClient.MutationResult result = ApiClient.blockGroupMember(groupId, userId, null);
+        if (!result.success()) {
+            throw new IllegalStateException(result.message());
         }
-
-        GroupMember member = findMember(groupId, userId);
-        if (member != null) {
-            member.setMemberStatus("Blocked");
-        }
+        syncGroupDetail(groupId);
     }
 
     public void reinstateMember(int groupId, int userId) {
-        if (ApiSupport.useApi()) {
-            ApiClient.MutationResult result = ApiClient.reinstateGroupMember(groupId, userId);
-            if (!result.success()) {
-                throw new IllegalStateException(result.message());
-            }
-            syncGroupDetail(groupId);
-            return;
+        ApiClient.MutationResult result = ApiClient.reinstateGroupMember(groupId, userId);
+        if (!result.success()) {
+            throw new IllegalStateException(result.message());
         }
-
-        GroupMember member = findMember(groupId, userId);
-        if (member != null) {
-            member.setMemberStatus("Active");
-            member.setWarnings(0);
-        }
+        syncGroupDetail(groupId);
     }
 
     public List<PendingJoinRequest> getPendingJoinRequests(int groupId) {
-        if (ApiSupport.useApi()) {
-            syncGroupDetail(groupId);
-        }
+        syncGroupDetail(groupId);
         return new ArrayList<>(pendingJoinRequestsByGroup.getOrDefault(groupId, List.of()));
     }
 
     public void approveJoinRequest(int groupId, int userId) {
-        if (ApiSupport.useApi()) {
-            ApiClient.MutationResult result = ApiClient.approveJoinRequest(groupId, userId);
-            if (!result.success()) {
-                throw new IllegalStateException(result.message());
-            }
-            syncGroupDetail(groupId);
-            return;
+        ApiClient.MutationResult result = ApiClient.approveJoinRequest(groupId, userId);
+        if (!result.success()) {
+            throw new IllegalStateException(result.message());
         }
-        GroupMember member = findMember(groupId, userId);
-        if (member != null) {
-            member.setMemberStatus("Active");
-        }
+        syncGroupDetail(groupId);
     }
 
     public void rejectJoinRequest(int groupId, int userId) {
-        if (ApiSupport.useApi()) {
-            ApiClient.MutationResult result = ApiClient.rejectJoinRequest(groupId, userId);
-            if (!result.success()) {
-                throw new IllegalStateException(result.message());
-            }
-            syncGroupDetail(groupId);
-            return;
+        ApiClient.MutationResult result = ApiClient.rejectJoinRequest(groupId, userId);
+        if (!result.success()) {
+            throw new IllegalStateException(result.message());
         }
-        membersByGroup.computeIfAbsent(groupId, key -> new ArrayList<>())
-                .removeIf(member -> member.getUserId() == userId);
+        syncGroupDetail(groupId);
     }
 
     public List<PostReport> getPostReports(int groupId) {
-        if (ApiSupport.useApi()) {
-            return ApiClient.fetchPostReports(groupId)
-                    .map(json -> ApiMapper.toPostReports(json.getAsJsonArray("reports")))
-                    .orElseGet(ArrayList::new);
-        }
-        return List.of();
+        return ApiClient.fetchPostReports(groupId)
+                .map(json -> ApiMapper.toPostReports(json.getAsJsonArray("reports")))
+                .orElseGet(ArrayList::new);
     }
 
     public void restorePostReport(int groupId, int reportId) {
-        if (ApiSupport.useApi()) {
-            ApiClient.MutationResult result = ApiClient.restoreReportedPost(groupId, reportId);
-            if (!result.success()) {
-                throw new IllegalStateException(result.message());
-            }
-            return;
+        ApiClient.MutationResult result = ApiClient.restoreReportedPost(groupId, reportId);
+        if (!result.success()) {
+            throw new IllegalStateException(result.message());
         }
-        throw new IllegalStateException("Post report moderation requires API mode.");
     }
 
     public void deletePostReport(int groupId, int reportId) {
-        if (ApiSupport.useApi()) {
-            ApiClient.MutationResult result = ApiClient.deleteReportedPost(groupId, reportId);
-            if (!result.success()) {
-                throw new IllegalStateException(result.message());
-            }
-            return;
+        ApiClient.MutationResult result = ApiClient.deleteReportedPost(groupId, reportId);
+        if (!result.success()) {
+            throw new IllegalStateException(result.message());
         }
-        throw new IllegalStateException("Post report moderation requires API mode.");
     }
 
     public Group updateGroup(
@@ -597,44 +397,25 @@ public class GroupService {
             int inactivityThresholdDays,
             int inactivityGraceDays,
             int inactivityBlacklistDays) {
-        if (ApiSupport.useApi()) {
-            JsonObject body = new JsonObject();
-            body.addProperty("Group_Name", name);
-            body.addProperty("Description", description);
-            body.addProperty("join_rules", joinRules == null ? "" : joinRules);
-            body.addProperty("inactivity_monitoring_enabled", inactivityMonitoringEnabled);
-            body.addProperty("inactivity_threshold_days", inactivityThresholdDays);
-            body.addProperty("inactivity_grace_days", inactivityGraceDays);
-            body.addProperty("inactivity_blacklist_days", inactivityBlacklistDays);
-            ApiClient.MutationResult result = ApiClient.updateGroup(groupId, body);
-            if (!result.success()) {
-                throw new IllegalStateException(result.message());
-            }
-            syncGroupDetail(groupId);
-            return getGroup(groupId).orElseThrow(() -> new IllegalStateException("Group not found after update."));
+        JsonObject body = new JsonObject();
+        body.addProperty("Group_Name", name);
+        body.addProperty("Description", description);
+        body.addProperty("join_rules", joinRules == null ? "" : joinRules);
+        body.addProperty("inactivity_monitoring_enabled", inactivityMonitoringEnabled);
+        body.addProperty("inactivity_threshold_days", inactivityThresholdDays);
+        body.addProperty("inactivity_grace_days", inactivityGraceDays);
+        body.addProperty("inactivity_blacklist_days", inactivityBlacklistDays);
+        ApiClient.MutationResult result = ApiClient.updateGroup(groupId, body);
+        if (!result.success()) {
+            throw new IllegalStateException(result.message());
         }
-
-        Group group = groups.get(groupId);
-        if (group == null) {
-            throw new IllegalStateException("Group not found.");
-        }
-        group.setName(name);
-        group.setDescription(description);
-        group.setJoinRules(joinRules);
-        group.setInactivityMonitoringEnabled(inactivityMonitoringEnabled);
-        group.setInactivityThresholdDays(inactivityThresholdDays);
-        group.setInactivityGraceDays(inactivityGraceDays);
-        group.setInactivityBlacklistDays(inactivityBlacklistDays);
-        return withCountsAndRole(group);
+        syncGroupDetail(groupId);
+        return getGroup(groupId).orElseThrow(() -> new IllegalStateException("Group not found after update."));
     }
 
     private Group withCountsAndRole(Group group) {
-        int topics = ApiSupport.useApi()
-                ? group.getTopicsCount()
-                : topics().countTopicsForGroup(group.getId());
-        int members = ApiSupport.useApi()
-                ? group.getMembersCount()
-                : membersByGroup.getOrDefault(group.getId(), List.of()).size();
+        int topics = group.getTopicsCount();
+        int members = group.getMembersCount();
         String role = memberRole(group.getId(), AppSession.getInstance().getCurrentUser().getId());
         Group enriched = new Group(
                 group.getId(),
@@ -656,30 +437,9 @@ public class GroupService {
         return enriched;
     }
 
-    private void refreshMemberCount(int groupId) {
-        Group group = groups.get(groupId);
-        if (group != null) {
-            group.setMembersCount(membersByGroup.getOrDefault(groupId, List.of()).size());
-        }
-    }
-
-    private boolean isMember(int groupId, int userId) {
-        GroupMember member = findMember(groupId, userId);
-        if (member == null) {
-            return false;
-        }
-        String status = member.getMemberStatus();
-        return status != null && !"Pending".equalsIgnoreCase(status);
-    }
-
     private String memberRole(int groupId, int userId) {
         GroupMember member = findMember(groupId, userId);
         return member == null ? null : member.getMemberRole();
-    }
-
-    private String memberStatus(int groupId, int userId) {
-        GroupMember member = findMember(groupId, userId);
-        return member == null ? null : member.getMemberStatus();
     }
 
     private GroupMember findMember(int groupId, int userId) {
@@ -687,16 +447,6 @@ public class GroupService {
                 .filter(member -> member.getUserId() == userId)
                 .findFirst()
                 .orElse(null);
-    }
-
-    private boolean isLastAdmin(int groupId, int userId) {
-        if (!"admin".equalsIgnoreCase(memberRole(groupId, userId))) {
-            return false;
-        }
-        long adminCount = membersByGroup.getOrDefault(groupId, List.of()).stream()
-                .filter(member -> "admin".equalsIgnoreCase(member.getMemberRole()))
-                .count();
-        return adminCount <= 1;
     }
 
     private void syncGroupsFromApi() {

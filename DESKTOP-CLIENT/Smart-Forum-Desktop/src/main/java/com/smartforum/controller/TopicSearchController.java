@@ -7,7 +7,6 @@ import com.smartforum.model.Group;
 import com.smartforum.service.AppSession;
 import com.smartforum.service.GroupService;
 import com.smartforum.service.TopicService;
-import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -81,11 +80,7 @@ public class TopicSearchController {
     }
 
     private void loadRecommendations() {
-        if (!ApiSupport.useApi()) {
-            recommendationsBox.setVisible(false);
-            recommendationsBox.setManaged(false);
-            return;
-        }
+
 
         new Thread(() -> {
             List<RecommendedTopic> recommendations = ApiClient.fetchRecommendations();

@@ -4,11 +4,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
-import com.smartforum.dao.QuizResultDAO;
 import com.smartforum.model.ForumUser;
 import com.smartforum.model.QuizResult;
 import com.smartforum.service.AppSession;
-import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -20,7 +18,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.VBox;
 
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -49,7 +46,6 @@ public class QuizProgressController {
     @FXML private TableColumn<QuizResult, String> quizPercentageColumn;
     @FXML private TableColumn<QuizResult, String> quizReportColumn;
 
-    private final QuizResultDAO quizResultDAO = new QuizResultDAO();
     private static final DateTimeFormatter WEB_DISPLAY_DATE =
             DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a", Locale.ENGLISH);
 
@@ -264,11 +260,9 @@ public class QuizProgressController {
 
         Thread loader = new Thread(() -> {
             try {
-                List<QuizResult> results = ApiSupport.useApi()
-                        ? loadApiProgress()
-                        : quizResultDAO.getStudentProgress(currentUser.getId(), currentUser.getName());
+                List<QuizResult> results = loadApiProgress();
                 Platform.runLater(() -> showQuizProgress(results));
-            } catch (SQLException | RuntimeException e) {
+            } catch (RuntimeException e) {
                 Platform.runLater(() ->
                         resetQuizProgress("Quiz progress could not be loaded right now."));
             }

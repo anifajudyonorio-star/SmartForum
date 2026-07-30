@@ -6,7 +6,6 @@ import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
 import com.smartforum.api.ApiClient.MutationResult;
 import com.smartforum.model.NotificationItem;
-import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -60,11 +59,9 @@ public class NotificationViewController {
     }
 
     public void refresh() {
-        if (ApiSupport.useApi()) {
-            loadFromApi();
-        } else {
-            loadEmptyState();
-        }
+
+        loadFromApi();
+
     }
 
     private void loadFromApi() {
@@ -168,7 +165,7 @@ public class NotificationViewController {
     }
 
     private void onNotificationClicked(NotificationItem item, HBox row) {
-        if (ApiSupport.useApi() && !item.isRead()) {
+        if (!item.isRead()) {
             new Thread(() -> {
                 MutationResult result = ApiClient.markNotificationReadResult(item.getId());
                 Platform.runLater(() -> {

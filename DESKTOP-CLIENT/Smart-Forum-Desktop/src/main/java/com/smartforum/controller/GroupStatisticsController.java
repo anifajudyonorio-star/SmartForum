@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
-import com.smartforum.util.ApiSupport;
 import com.smartforum.util.StatChartFactory;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -47,11 +46,9 @@ public class GroupStatisticsController {
 
     public void loadGroup(int groupId) {
         this.groupId = groupId;
-        if (ApiSupport.useApi()) {
-            loadFromApi(groupId);
-        } else {
-            loadEmptyState();
-        }
+
+        loadFromApi(groupId);
+
     }
 
     @FXML

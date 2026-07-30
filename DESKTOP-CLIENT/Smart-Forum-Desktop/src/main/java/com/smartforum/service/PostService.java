@@ -6,7 +6,6 @@ import com.smartforum.api.ApiClient;
 import com.smartforum.model.ForumUser;
 import com.smartforum.model.Post;
 import com.smartforum.model.Topic;
-import com.smartforum.util.ApiSupport;
 import com.smartforum.util.NetworkMonitor;
 import com.smartforum.util.OfflineQueue;
 import javafx.application.Platform;
@@ -56,9 +55,7 @@ public class PostService {
     }
 
     public List<Post> getPosts(int topicId) {
-        if (ApiSupport.useApi()) {
-            syncPostsForTopic(topicId);
-        }
+        syncPostsForTopic(topicId);
 
         ForumUser user = AppSession.getInstance().getCurrentUser();
         boolean systemAdmin = AppSession.getInstance().isSystemAdmin();
@@ -69,23 +66,17 @@ public class PostService {
     }
 
     public int countPostsForTopic(int topicId) {
-        if (ApiSupport.useApi()) {
-            syncPostsForTopic(topicId);
-        }
+        syncPostsForTopic(topicId);
         return postsByTopic.getOrDefault(topicId, List.of()).size();
     }
 
     public List<Post> getAllPostsForTopic(int topicId) {
-        if (ApiSupport.useApi()) {
-            syncPostsForTopic(topicId);
-        }
+        syncPostsForTopic(topicId);
         return new ArrayList<>(postsByTopic.getOrDefault(topicId, List.of()));
     }
 
     public Optional<Post> getPost(int postId) {
-        if (ApiSupport.useApi()) {
-            syncAllCachedTopicsPosts();
-        }
+        syncAllCachedTopicsPosts();
         for (List<Post> posts : postsByTopic.values()) {
             for (Post post : posts) {
                 if (post.getId() == postId) {
@@ -125,46 +116,22 @@ public class PostService {
             throw new IllegalStateException("You must be an active member of this group to post.");
         }
 
-        if (ApiSupport.useApi()) {
-            Topic topic = topics().getTopic(topicId)
-                    .orElseThrow(() -> new IllegalArgumentException("Topic not found."));
-            List<Integer> hiddenFrom = visibility().resolveExcludedUserIds(
-                    topic.getGroupId(),
-                    AppSession.getInstance().getCurrentUser().getId(),
-                    excludedUserIds);
-
-            if (NetworkMonitor.isOnline()
-                    && ApiClient.sendPost(topicId, content, parentPostId, hiddenFrom)) {
-                syncPostsForTopic(topicId);
-                List<Post> posts = getPosts(topicId);
-                return posts.isEmpty() ? null : posts.get(posts.size() - 1);
-            }
-            queueOfflinePost(topicId, content, parentPostId, hiddenFrom);
-            NetworkMonitor.probeNow();
-            return buildLocalPendingPost(topicId, content, parentPostId, hiddenFrom);
-        }
-
         Topic topic = topics().getTopic(topicId)
                 .orElseThrow(() -> new IllegalArgumentException("Topic not found."));
-
-        ForumUser author = AppSession.getInstance().getCurrentUser();
         List<Integer> hiddenFrom = visibility().resolveExcludedUserIds(
-                topic.getGroupId(), author.getId(), excludedUserIds);
+                topic.getGroupId(),
+                AppSession.getInstance().getCurrentUser().getId(),
+                excludedUserIds);
 
-        int id = nextPostId++;
-        Post post = new Post(
-                id,
-                topicId,
-                parentPostId,
-                author.getId(),
-                author.getName(),
-                content,
-                LocalDateTime.now(),
-                hiddenFrom
-        );
-
-        postsByTopic.computeIfAbsent(topicId, key -> new ArrayList<>()).add(post);
-        return post;
+        if (NetworkMonitor.isOnline()
+                && ApiClient.sendPost(topicId, content, parentPostId, hiddenFrom)) {
+            syncPostsForTopic(topicId);
+            List<Post> posts = getPosts(topicId);
+            return posts.isEmpty() ? null : posts.get(posts.size() - 1);
+        }
+        queueOfflinePost(topicId, content, parentPostId, hiddenFrom);
+        NetworkMonitor.probeNow();
+        return buildLocalPendingPost(topicId, content, parentPostId, hiddenFrom);
     }
 
     public Post update(int postId, String content, List<Integer> excludedUserIds) {
@@ -172,42 +139,19 @@ public class PostService {
             throw new IllegalStateException("You are not allowed to edit this message.");
         }
 
-        if (ApiSupport.useApi()) {
-            Post existing = getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
-            List<Integer> hiddenFrom = visibility().resolveExcludedUserIds(
-                    topics().getTopic(existing.getTopicId()).orElseThrow().getGroupId(),
-                    existing.getAuthorId(),
-                    excludedUserIds);
+        Post existing = getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
+        List<Integer> hiddenFrom = visibility().resolveExcludedUserIds(
+                topics().getTopic(existing.getTopicId()).orElseThrow().getGroupId(),
+                existing.getAuthorId(),
+                excludedUserIds);
 
-            if (NetworkMonitor.isOnline()
-                    && ApiClient.updatePost(postId, content, hiddenFrom)) {
-                syncPostsForTopic(existing.getTopicId());
-                return getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
-            }
-
-            queueOfflineUpdate(postId, content, hiddenFrom);
-            Post updated = new Post(
-                    existing.getId(),
-                    existing.getTopicId(),
-                    existing.getParentPostId(),
-                    existing.getAuthorId(),
-                    existing.getAuthorName(),
-                    content,
-                    existing.getCreatedAt(),
-                    hiddenFrom
-            );
-            replacePost(updated);
-            Platform.runLater(() -> SyncStatusService.getInstance().refreshNow());
-            return updated;
+        if (NetworkMonitor.isOnline()
+                && ApiClient.updatePost(postId, content, hiddenFrom)) {
+            syncPostsForTopic(existing.getTopicId());
+            return getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
         }
 
-        Post existing = getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
-        Topic topic = topics().getTopic(existing.getTopicId())
-                .orElseThrow(() -> new IllegalArgumentException("Topic not found."));
-
-        List<Integer> hiddenFrom = visibility().resolveExcludedUserIds(
-                topic.getGroupId(), existing.getAuthorId(), excludedUserIds);
-
+        queueOfflineUpdate(postId, content, hiddenFrom);
         Post updated = new Post(
                 existing.getId(),
                 existing.getTopicId(),
@@ -220,6 +164,7 @@ public class PostService {
         );
 
         replacePost(updated);
+        Platform.runLater(() -> SyncStatusService.getInstance().refreshNow());
         return updated;
     }
 
@@ -230,25 +175,17 @@ public class PostService {
 
         Post post = getPost(postId).orElseThrow(() -> new IllegalArgumentException("Post not found."));
 
-        if (ApiSupport.useApi()) {
-            if (NetworkMonitor.isOnline() && ApiClient.deletePost(postId)) {
-                syncPostsForTopic(post.getTopicId());
-                return;
-            }
-
-            queueOfflineDelete(postId);
-            List<Post> posts = postsByTopic.get(post.getTopicId());
-            if (posts != null) {
-                posts.removeIf(item -> item.getId() == postId);
-            }
-            Platform.runLater(() -> SyncStatusService.getInstance().refreshNow());
+        if (NetworkMonitor.isOnline() && ApiClient.deletePost(postId)) {
+            syncPostsForTopic(post.getTopicId());
             return;
         }
 
+        queueOfflineDelete(postId);
         List<Post> posts = postsByTopic.get(post.getTopicId());
         if (posts != null) {
             posts.removeIf(item -> item.getId() == postId);
         }
+        Platform.runLater(() -> SyncStatusService.getInstance().refreshNow());
     }
 
     private void replacePost(Post updated) {

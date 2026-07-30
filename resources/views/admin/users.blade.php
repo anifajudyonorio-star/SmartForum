@@ -51,8 +51,8 @@
                 </div>
             </div>
             <div class="d-flex gap-2 justify-content-end">
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="cancelAddLecturer">Cancel</button>
-                <button type="submit" class="btn btn-sm btn-primary">Create Lecturer</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="cancelAddLecturer">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-sm">Create Lecturer</button>
             </div>
         </form>
     </div>

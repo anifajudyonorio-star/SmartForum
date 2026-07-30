@@ -6,7 +6,6 @@ import com.smartforum.model.ForumUser;
 import com.smartforum.model.GroupMember;
 import com.smartforum.model.Topic;
 import com.smartforum.model.TopicSearchResult;
-import com.smartforum.util.ApiSupport;
 import com.smartforum.util.NetworkMonitor;
 import com.smartforum.util.OfflineQueue;
 
@@ -59,9 +58,7 @@ public class TopicService {
     }
 
     public List<Topic> getTopicsForGroup(int groupId) {
-        if (ApiSupport.useApi()) {
-            syncTopicsForGroup(groupId);
-        }
+        syncTopicsForGroup(groupId);
         return new ArrayList<>(topicsByGroup.getOrDefault(groupId, List.of()));
     }
 
@@ -70,43 +67,30 @@ public class TopicService {
     }
 
     public Optional<Topic> getTopic(int topicId) {
-        if (ApiSupport.useApi() && !topicsById.containsKey(topicId)) {
+        if (!topicsById.containsKey(topicId)) {
             syncAllTopicsFromApi();
         }
         return Optional.ofNullable(topicsById.get(topicId));
     }
 
     public Topic createTopic(int groupId, String title, String description) {
-        if (ApiSupport.useApi()) {
-            if (NetworkMonitor.isOnline() && ApiClient.createTopic(groupId, title, description)) {
-                syncTopicsForGroup(groupId);
-                return topicsByGroup.getOrDefault(groupId, List.of()).stream()
-                        .filter(topic -> title.equals(topic.getTitle()))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalStateException("Topic created but not returned by API."));
-            }
-            Topic topic = buildLocalPendingTopic(groupId, title, description);
-            queueOfflineTopic(groupId, title, description, topic.getId());
-            NetworkMonitor.probeNow();
-            return topic;
+        if (NetworkMonitor.isOnline() && ApiClient.createTopic(groupId, title, description)) {
+            syncTopicsForGroup(groupId);
+            return topicsByGroup.getOrDefault(groupId, List.of()).stream()
+                    .filter(topic -> title.equals(topic.getTitle()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Topic created but not returned by API."));
         }
-
-        ForumUser creator = AppSession.getInstance().getCurrentUser();
-        int id = nextTopicId++;
-
-        Topic topic = new Topic(id, groupId, title, description, creator.getId(), creator.getName());
-        topicsByGroup.computeIfAbsent(groupId, key -> new ArrayList<>()).add(0, topic);
-        topicsById.put(id, topic);
-        PostService.getInstance().initTopicPosts(id);
+        Topic topic = buildLocalPendingTopic(groupId, title, description);
+        queueOfflineTopic(groupId, title, description, topic.getId());
+        NetworkMonitor.probeNow();
         return topic;
     }
 
     public void recordTopicView(int topicId) {
-        if (ApiSupport.useApi()) {
-            boolean success = NetworkMonitor.isOnline() && ApiClient.recordTopicView(topicId);
-            if (!success) {
-                queueOfflineTopicView(topicId);
-            }
+        boolean success = NetworkMonitor.isOnline() && ApiClient.recordTopicView(topicId);
+        if (!success) {
+            queueOfflineTopicView(topicId);
         }
     }
 
@@ -156,34 +140,7 @@ public class TopicService {
      * optionally filtered by title or description.
      */
     public List<TopicSearchResult> searchTopics(String query) {
-        if (ApiSupport.useApi()) {
-            return ApiClient.searchTopics(query);
-        }
-
-        String search = query == null ? "" : query.trim();
-        List<Integer> allowedGroupIds = getSearchableGroupIds();
-
-        if (allowedGroupIds.isEmpty()) {
-            return List.of();
-        }
-
-        PostService postService = PostService.getInstance();
-        String needle = search.toLowerCase();
-
-        return topicsById.values().stream()
-                .filter(topic -> allowedGroupIds.contains(topic.getGroupId()))
-                .filter(topic -> search.isEmpty()
-                        || containsIgnoreCase(topic.getTitle(), needle)
-                        || containsIgnoreCase(topic.getDescription(), needle))
-                .sorted((a, b) -> Integer.compare(b.getId(), a.getId()))
-                .map(topic -> {
-                    String groupName = groups().getGroup(topic.getGroupId())
-                            .map(group -> group.getName())
-                            .orElse("Unknown group");
-                    int postsCount = postService.countPostsForTopic(topic.getId());
-                    return new TopicSearchResult(topic, groupName, postsCount);
-                })
-                .collect(Collectors.toList());
+        return ApiClient.searchTopics(query);
     }
 
     public boolean hasSearchableGroups() {
@@ -221,10 +178,6 @@ public class TopicService {
         payload.addProperty("topic_id", topicId);
         OfflineQueue.add("view_topic", payload);
         SyncStatusService.getInstance().refreshNow();
-    }
-
-    private boolean containsIgnoreCase(String value, String needle) {
-        return value != null && value.toLowerCase().contains(needle);
     }
 
     private void syncTopicsForGroup(int groupId) {

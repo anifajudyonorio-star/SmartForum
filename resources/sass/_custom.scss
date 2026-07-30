@@ -1,3 +1,4 @@
+// Element comments: each class below names the UI it styles.
 @use 'tokens' as t;
 
 // Colors are defined once in _tokens.scss — edit that file to change the palette.
@@ -33,10 +34,12 @@ h2.fw-bold { font-size: 1.35rem; }
 h5 { font-size: 1rem; }
 
 // ── Layout shell ───────────────────────────────────────────
+// Outer page wrapper (sidebar + main)
 .app-shell {
     min-height: 100vh;
 }
 
+// Left fixed sidebar
 .app-sidebar {
     position: fixed;
     top: 0;
@@ -48,6 +51,7 @@ h5 { font-size: 1rem; }
     overflow-x: hidden;
 }
 
+// Main column to the right of the sidebar
 .app-main {
     min-height: 100vh;
     margin-left: 0;
@@ -59,6 +63,7 @@ h5 { font-size: 1rem; }
     }
 }
 
+// Top navbar bar
 .app-navbar {
     position: fixed;
     top: 0;
@@ -77,12 +82,14 @@ h5 { font-size: 1rem; }
     }
 }
 
+// Brand text in the top navbar
 .app-navbar .navbar-brand {
     color: var(--primary-dark) !important;
     font-weight: 700;
     font-size: 1.05rem;
 }
 
+// Scrollable page content under the navbar
 .app-content {
     padding: 1rem 1.25rem;
     margin-top: var(--header-height);
@@ -97,6 +104,7 @@ h5 { font-size: 1rem; }
 }
 
 // ── Dashboard ──────────────────────────────────────────────
+// Page title row (e.g. User Management header)
 .dashboard-header {
     position: sticky;
     top: var(--header-height);
@@ -110,17 +118,20 @@ h5 { font-size: 1rem; }
     justify-content: space-between;
 }
 
+// Main H2 title on dashboard-style pages
 .dashboard-title {
     font-size: 1.1rem;
     font-weight: 700;
     color: #111827;
 }
 
+// Small action buttons in dashboard headers
 .dashboard-action-btn {
     font-size: 0.75rem;
     padding: 0.3rem 0.65rem;
 }
 
+// Compact stat tile on dashboards
 .stat-card-compact {
     padding: 0.55rem 0.7rem;
     height: 5.5rem;
@@ -180,6 +191,7 @@ h5 { font-size: 1rem; }
     margin: 0.05rem 0 0;
 }
 
+// Card container on dashboard pages
 .dashboard-card {
     .card-header {
         padding: 0.45rem 0.75rem;
@@ -205,6 +217,7 @@ h5 { font-size: 1rem; }
 }
 
 // ── Sidebar ────────────────────────────────────────────────
+// Inner scroll area of the sidebar
 .sidebar-inner {
     display: flex;
     flex-direction: column;
@@ -214,12 +227,14 @@ h5 { font-size: 1rem; }
     padding: 1rem 0;
 }
 
+// SmartForum brand block at top of sidebar
 .sidebar-brand {
     padding: 0 1rem 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     margin-bottom: 0.5rem;
 }
 
+// Sidebar brand title text
 .sidebar-brand-title {
     font-size: 1rem;
     font-weight: 700;
@@ -227,12 +242,14 @@ h5 { font-size: 1rem; }
     color: #fff;
 }
 
+// Sidebar brand subtitle
 .sidebar-brand-sub {
     font-size: 0.75rem;
     opacity: 0.75;
     margin: 0;
 }
 
+// Nav list in the sidebar
 .sidebar-nav {
     list-style: none;
     padding: 0 0.6rem;
@@ -240,10 +257,12 @@ h5 { font-size: 1rem; }
     flex: 1;
 }
 
+// One sidebar nav row
 .sidebar-nav-item {
     margin-bottom: 0.15rem;
 }
 
+// Clickable sidebar link
 .sidebar-nav-link {
     display: flex;
     align-items: center;
@@ -278,6 +297,7 @@ h5 { font-size: 1rem; }
     }
 }
 
+// Section label above a group of sidebar links
 .sidebar-section-label {
     font-size: 0.68rem;
     text-transform: uppercase;
@@ -393,6 +413,7 @@ h5 { font-size: 1rem; }
 }
 
 // ── User profile ───────────────────────────────────────────
+// Profile button in the navbar
 .user-profile-trigger {
     display: flex;
     align-items: center;
@@ -408,6 +429,7 @@ h5 { font-size: 1rem; }
     box-shadow: 0 2px 6px rgba(22, 101, 52, 0.12);
 }
 
+// Round avatar in the navbar profile trigger
 .user-avatar {
     width: 32px;
     height: 32px;
@@ -430,6 +452,7 @@ h5 { font-size: 1rem; }
     background: #fff;
 }
 
+// Large statistic card
 .stat-card {
     background: #fff;
     border-radius: 0.45rem;
@@ -489,6 +512,13 @@ h5 { font-size: 1rem; }
 }
 
 // ── Buttons ────────────────────────────────────────────────
+// Blade uses: class="btn btn-primary btn-sm" (etc).
+// Search here for the COLOR name only, e.g. btn-primary — not the full class string.
+
+// Green primary/success buttons:
+//   - "Add Lecturer", "Create Lecturer", "Save Role"  →  admin/users.blade.php
+//   - Login / Create account submit  →  auth/*.blade.php
+//   - Start Quiz, Enroll, Approve, Save forms
 .btn-primary,
 .btn-success {
     background: var(--primary) !important;
@@ -502,6 +532,9 @@ h5 { font-size: 1rem; }
     }
 }
 
+// Yellow Warn buttons:
+//   - "Warn" / "Issue Warning"  →  admin/users.blade.php
+//   - Suspend / warning actions on group members
 .btn-warning {
     background: var(--warning) !important;
     border-color: var(--warning) !important;
@@ -516,6 +549,9 @@ h5 { font-size: 1rem; }
     }
 }
 
+// Red danger buttons:
+//   - "Blacklist" / "Blacklist User"  →  admin/users.blade.php
+//   - Delete, Block, Decline, Unenroll
 .btn-danger {
     background: var(--danger) !important;
     border-color: var(--danger) !important;
@@ -530,6 +566,7 @@ h5 { font-size: 1rem; }
     }
 }
 
+// Outlined green buttons — dashboard links, "View report", secondary CTAs
 .btn-outline-primary {
     color: var(--primary-dark) !important;
     border-color: var(--primary) !important;
@@ -540,15 +577,18 @@ h5 { font-size: 1rem; }
     }
 }
 
+// Green text links — e.g. "Forgot password?" (.text-primary)
 .text-primary {
     color: var(--primary-dark) !important;
 }
 
+// Primary badge chips (Bootstrap .badge.bg-primary)
 .badge.bg-primary {
     background: var(--primary) !important;
 }
 
-// ── User Management ───────────────────────────────────────────
+// ── User Management (admin/users.blade.php) ───────────────
+// Each user row card on the User Management page
 .um-user-card {
     background: #fff;
     border: 1px solid #d1fae5;
@@ -559,11 +599,13 @@ h5 { font-size: 1rem; }
     &:hover { box-shadow: 0 2px 8px rgba(22,101,52,0.08); }
 }
 
+// Same card when the user is blacklisted (red tint)
 .um-user-card-blacklisted {
     background: #fef2f2;
     border-color: #fecaca;
 }
 
+// Circle with the user's first-name initial
 .um-avatar {
     width: 40px;
     height: 40px;
@@ -578,17 +620,20 @@ h5 { font-size: 1rem; }
     flex-shrink: 0;
 }
 
+// User full name on the card
 .um-user-name {
     font-size: 0.9rem;
     font-weight: 700;
     color: #111827;
 }
 
+// User email under the name
 .um-user-email {
     font-size: 0.78rem;
     color: #6b7280;
 }
 
+// Small status/role pills on the user card
 .um-badge {
     font-size: 0.68rem;
     font-weight: 700;
@@ -597,12 +642,18 @@ h5 { font-size: 1rem; }
     display: inline-block;
 }
 
+// Role pill (Student / Lecturer / Admin)
 .um-badge-role   { background: #e5e7eb; color: #374151; }
+// Active status pill
 .um-badge-success { background: var(--primary-muted); color: var(--primary-dark); }
+// Blacklisted / high-warning pill
 .um-badge-danger  { background: #fee2e2; color: #991b1b; }
+// 1-warning pill
 .um-badge-warning { background: #fef3c7; color: #92400e; }
+// 0-warnings pill
 .um-badge-muted   { background: #f3f4f6; color: #374151; }
 
+// Inline "Add Lecturer Account" form panel
 .um-add-panel {
     background: #fff;
     border: 1px solid #d1fae5;
@@ -610,6 +661,7 @@ h5 { font-size: 1rem; }
     padding: 1rem 1.25rem;
 }
 
+// Yellow notice inside Warn / Blacklist modals
 .um-dialog-warning {
     background: #fef3c7;
     color: #92400e;
@@ -619,12 +671,14 @@ h5 { font-size: 1rem; }
     font-size: 0.8rem;
 }
 
-// ── Auth / Login ───────────────────────────────────────────
+// ── Auth / Login (auth/*.blade.php) ───────────────────────
+// Full-page background behind login/register
 .auth-body {
     background: var(--primary-muted);
     min-height: 100vh;
 }
 
+// Centered wrapper for the auth card
 .auth-page {
     min-height: 100vh;
     display: flex;
@@ -633,6 +687,7 @@ h5 { font-size: 1rem; }
     padding: 1rem;
 }
 
+// White login/register card container
 .auth-card {
     width: min(100%, 340px);
     background: #fff;
@@ -642,6 +697,7 @@ h5 { font-size: 1rem; }
     overflow: hidden;
 }
 
+// Green brand header (logo + title) on the auth card
 .auth-card-brand {
     background: var(--sidebar-bg);
     color: #fff;
@@ -649,6 +705,7 @@ h5 { font-size: 1rem; }
     text-align: center;
 }
 
+// "SD" logo square in the auth brand header
 .auth-logo {
     width: 36px;
     height: 36px;
@@ -662,28 +719,33 @@ h5 { font-size: 1rem; }
     margin-bottom: 0.5rem;
 }
 
+// "Smart Discussion" title in auth brand header
 .auth-title {
     font-size: 1.05rem;
     font-weight: 700;
     margin: 0 0 0.15rem;
 }
 
+// Subtitle under the auth title (e.g. Sign in to continue)
 .auth-subtitle {
     font-size: 0.75rem;
     opacity: 0.85;
     margin: 0;
 }
 
+// Form area under the brand header
 .auth-card-form {
     padding: 1rem 1.25rem 1.25rem;
 }
 
+// Field labels (Email, Password, First name, ...)
 .auth-label {
     font-size: 0.75rem;
     font-weight: 600;
     margin-bottom: 0.2rem;
 }
 
+// Text inputs on login/register forms
 .auth-input {
     font-size: 0.8rem;
     padding: 0.35rem 0.55rem;
@@ -691,11 +753,13 @@ h5 { font-size: 1rem; }
     border-radius: 0.35rem;
 }
 
+// Login / Create account / Reset password submit button size
 .auth-submit {
     font-size: 0.8rem;
     padding: 0.4rem 0.75rem;
 }
 
+// Sign In / Register tab buttons
 .auth-tabs .nav-link {
     font-size: 0.75rem;
     font-weight: 600;
@@ -709,6 +773,7 @@ h5 { font-size: 1rem; }
     }
 }
 
+// Role choice tiles during registration (if shown)
 .auth-role-option {
     border: 1px solid var(--primary-border);
     border-radius: 0.35rem;
@@ -736,6 +801,7 @@ h5 { font-size: 1rem; }
     to { opacity: 1; transform: translateY(0); }
 }
 
+// Entrance animation wrapper for page sections
 .fly-in {
     opacity: 0;
     animation: flyInUp 0.45s ease forwards;
@@ -749,10 +815,14 @@ h5 { font-size: 1rem; }
 .fly-in-delay-6 { animation-delay: 0.3s; }
 
 // ── Groups page ────────────────────────────────────────────
+// Header block on the Groups page
 .groups-page-header { margin-bottom: 1.25rem; }
+// Groups page title
 .groups-page-title { font-size: 1.25rem; font-weight: 700; margin: 0; }
+// Groups page subtitle
 .groups-page-subtitle { color: #6b7280; font-size: 0.875rem; margin: 0.2rem 0 0; }
 
+// Group card on groups index / explore
 .group-card-modern {
     background: #fff;
     border-radius: 0.5rem;
@@ -863,6 +933,7 @@ h5 { font-size: 1rem; }
     gap: 0.75rem;
 }
 
+// One participant card on participation page
 .participant-card {
     background: #fff;
     border: 1px solid var(--primary-border);
@@ -1238,6 +1309,7 @@ body.chat-page {
     }
 }
 
+// Small action icon button on a chat message
 .wa-action-btn {
     width: 26px;
     height: 26px;
@@ -1361,6 +1433,7 @@ body.chat-page {
     }
 }
 
+// Send message button in the chat composer
 .wa-send-btn {
     width: 44px;
     height: 44px;
@@ -2225,6 +2298,7 @@ body.chat-page {
     .bubble { max-width: 100% !important; break-inside: avoid; }
 }
 
+// OR divider between password login and Google
 .auth-divider {
     display: flex;
     align-items: center;

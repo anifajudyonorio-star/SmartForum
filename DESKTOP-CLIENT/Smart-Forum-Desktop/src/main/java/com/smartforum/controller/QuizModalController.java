@@ -1,13 +1,10 @@
 package com.smartforum.controller;
 
-import com.smartforum.dao.QuizAttemptDAO;
 import com.smartforum.model.ForumUser;
 import com.smartforum.model.Question;
 import com.smartforum.model.Quiz;
 import com.smartforum.model.QuizAttempt;
-import com.smartforum.model.QuizResult;
 import com.smartforum.service.AppSession;
-import com.smartforum.service.QuizSubmissionService;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -48,7 +45,6 @@ public class QuizModalController {
     private Timeline timer;
     private long secondsLeft;
     private boolean submitting;
-    private boolean apiMode;
 
     @FXML
     public void initialize() {
@@ -60,10 +56,6 @@ public class QuizModalController {
     }
 
     public void setup(Quiz quiz, List<Question> questions, ForumUser student, QuizAttempt attempt) {
-        setup(quiz, questions, student, attempt, false);
-    }
-
-    public void setup(Quiz quiz, List<Question> questions, ForumUser student, QuizAttempt attempt, boolean apiMode) {
         if (quiz == null || questions == null || questions.isEmpty() || student == null || attempt == null) {
             throw new IllegalStateException("Quiz session data is incomplete.");
         }
@@ -75,7 +67,6 @@ public class QuizModalController {
         this.questions = questions;
         this.student = student;
         this.attempt = attempt;
-        this.apiMode = apiMode;
         restoreAnswers(attempt.getAnswers());
 
         lblQuizTitle.setText(quiz.getTitle());
@@ -192,29 +183,7 @@ public class QuizModalController {
             return;
         }
 
-        if (apiMode) {
-            submitViaApi(timedOut);
-            return;
-        }
-
-        QuizSubmissionService.Submission submission;
-        try {
-            submission = new QuizSubmissionService().submitForCurrentStudent(attempt.getId());
-        } catch (Exception e) {
-            submitting = false;
-            showError("Submission was not saved. Your answers are preserved.\n" + e.getMessage());
-            if (secondsLeft > 0) timer.play();
-            return;
-        }
-        QuizResult result = submission.getResult();
-        int score = result.getScore();
-        int authoredTotal = result.getTotalMarks();
-        int participationMarks = result.getParticipationMarks();
-        int finalScore = result.getTotalScore();
-        int finalPossibleMarks = result.getFinalPossibleMarks();
-        double pct = finalPossibleMarks <= 0 ? 0 : finalScore * 100.0 / finalPossibleMarks;
-
-        showResultPane(score, authoredTotal, participationMarks, finalScore, finalPossibleMarks, pct, submission.isTimedOut());
+        submitViaApi(timedOut);
     }
 
     private void submitViaApi(boolean timedOut) {
@@ -292,15 +261,12 @@ public class QuizModalController {
     }
 
     private void persistAnswers() {
-        if (attempt == null || apiMode) return;
+        if (attempt == null) {
+            return;
+        }
         StringBuilder encoded = new StringBuilder();
         answers.forEach((id, answer) -> encoded.append(id).append('=').append(answer).append(';'));
         attempt.setAnswers(encoded.toString());
-        try {
-            new QuizAttemptDAO().saveAnswers(attempt.getId(), student.getId(), encoded.toString());
-        } catch (Exception e) {
-            showError("Could not save answer progress locally: " + e.getMessage());
-        }
     }
 
     private void restoreAnswers(String encoded) {

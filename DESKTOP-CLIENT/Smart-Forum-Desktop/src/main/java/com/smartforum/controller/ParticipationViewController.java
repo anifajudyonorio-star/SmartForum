@@ -5,7 +5,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartforum.api.ApiClient;
 import com.smartforum.model.ParticipationCard;
-import com.smartforum.util.ApiSupport;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -63,18 +62,13 @@ public class ParticipationViewController {
             loadParticipation(groupId);
         });
 
-        if (ApiSupport.useApi()) {
-            loadParticipation(null);
-        } else {
-            loadEmptyState();
-        }
+
+        loadParticipation(null);
+
     }
 
     public void loadParticipation(Integer groupId) {
-        if (!ApiSupport.useApi()) {
-            loadEmptyState();
-            return;
-        }
+
 
         new Thread(() -> ApiClient.getParticipation(groupId).ifPresentOrElse(json -> Platform.runLater(() -> {
             populateGroupFilter(json, groupId);

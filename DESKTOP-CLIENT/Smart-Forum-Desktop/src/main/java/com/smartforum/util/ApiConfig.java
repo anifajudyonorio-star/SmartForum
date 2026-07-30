@@ -1,11 +1,9 @@
 package com.smartforum.util;
 
 /**
- * Server URL for the desktop client. Override for deployment:
- * <ul>
- *   <li>System property: {@code -Dsf.api.url=https://forum.example.com}</li>
- *   <li>Environment variable: {@code SMARTFORUM_API_URL=https://forum.example.com}</li>
- * </ul>
+ * Laravel server URL for the desktop client.
+ * Override for deployment with {@code -Dsf.api.url=...} or {@code SMARTFORUM_API_URL}.
+ * Default is local Laravel ({@code http://127.0.0.1:8000}); packaged builds set production via jpackage.
  */
 public final class ApiConfig {
     private static final String DEFAULT_BASE_URL = "http://127.0.0.1:8000";
